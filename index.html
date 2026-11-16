@@ -240,7 +240,7 @@ select option,select optgroup{background:#0d1a15;color:#f1f6f3}
 <body>
 <div class="app">
   <nav>
-    <div class="brand" title="Nuts · версия 3.4 · by MichaelKae"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v3.4</span></div>
+    <div class="brand" title="Nuts · версия 3.5 · by MichaelKae"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v3.5</span></div>
     <button class="tab on" data-v="timer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg><span>Таймер</span></button>
     <button class="tab" data-v="players"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14.6c2.6.2 4.4 1.9 5 4.9"/></svg><span>Игроки</span></button>
     <button class="tab" data-v="results"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 14v4M8 21h8"/></svg><span>Итоги</span></button>
@@ -409,6 +409,10 @@ select option,select optgroup{background:#0d1a15;color:#f1f6f3}
       <div class="card">
         <h3>Правила</h3>
         <div class="grid">
+          <label class="f">Когда можно докупиться<select data-s="rebuyWhen">
+            <option value="bust">Только после вылета</option>
+            <option value="short">Если стек не больше стартового</option>
+            <option value="any">В любой момент</option></select></label>
           <label class="f">Макс. докупов на игрока (0 — без лимита)<input type="number" min="0" data-s="maxRebuys"></label>
           <label class="f">Докупы до уровня (0 — всю игру)<input type="number" min="0" data-s="rebuyUntil"></label>
           <label class="f">Поздняя регистрация до уровня (0 — всю игру)<input type="number" min="0" data-s="lateRegUntil"></label>
@@ -442,7 +446,7 @@ select option,select optgroup{background:#0d1a15;color:#f1f6f3}
       </div>
       <div class="card">
         <div class="about"><div class="logo">♠</div><div>
-          <div style="font-family:var(--disp);font-weight:800;font-size:20px">Nuts <span class="muted small" style="font-family:var(--ui)">v3.4</span></div>
+          <div style="font-family:var(--disp);font-weight:800;font-size:20px">Nuts <span class="muted small" style="font-family:var(--ui)">v3.5</span></div>
           <div class="muted small">Покерный таймер для домашних игр · автор <a href="https://github.com/MichaelKae" target="_blank" rel="noopener">MichaelKae</a> · <a href="https://github.com/MichaelKae/nuts" target="_blank" rel="noopener">GitHub</a></div>
         </div></div>
       </div>
@@ -465,7 +469,7 @@ select option,select optgroup{background:#0d1a15;color:#f1f6f3}
           <button class="btn red" id="newGame">Завершить вечер и начать новый</button>
           <button class="btn red" id="resetAll">Сбросить всё</button>
         </div>
-        <div class="hint">Nuts · версия 3.4. При завершении итоги вечера сохраняются в историю (вкладка «Итоги»). Игроки, наборы и структура остаются.</div>
+        <div class="hint">Nuts · версия 3.5. При завершении итоги вечера сохраняются в историю (вкладка «Итоги»). Игроки, наборы и структура остаются.</div>
       </div>
     </section>
   </main>
@@ -484,7 +488,7 @@ function freshTimer(){return {idx:0,running:false,endsAt:0,remaining:null,starte
 function defaults(){ return {
   name:'Покер с коллегами', currency:'₽', mode:'cash',
   buyin:1000, startStack:2000, rebuyCost:1000, rebuyStack:2000,
-  maxRebuys:3, rebuyUntil:0, lateRegUntil:4,
+  maxRebuys:3, rebuyUntil:0, lateRegUntil:4, rebuyWhen:'bust',
   addonOn:false, addonCost:1000, addonStack:2000,
   bountyOn:false, bounty:200,
   payoutsAuto:true, payouts:[50,30,20], sound:true, voice:true,
@@ -669,7 +673,7 @@ function render(){
   // notes
   const cl=curLvl(),N=[];
   if(S.rebuyUntil){N.push(cl<=S.rebuyUntil?`<span class="note g">Докупы открыты до ${S.rebuyUntil} ур.</span>`:`<span class="note r">Докупы закрыты</span>`);}
-  if(S.maxRebuys)N.push(`<span class="note">Лимит докупов: ${S.maxRebuys}</span>`);
+  N.push(`<span class="note">${{bust:'Докуп после вылета',short:'Докуп при стеке ≤ стартового',any:'Докуп в любой момент'}[S.rebuyWhen]||''}${S.maxRebuys?' · до '+S.maxRebuys+' раз':''}</span>`);
   if(S.lateRegUntil){N.push(cl<=S.lateRegUntil?`<span class="note g">Регистрация до ${S.lateRegUntil} ур.</span>`:`<span class="note">Регистрация закрыта</span>`);}
   if(l&&l.type==='break'){const cu=colorUpNew(t.idx+1);if(cu.length)N.push(`<span class="note y">Можно убрать фишки ${cu.join(', ')}</span>`);if(S.addonOn)N.push('<span class="note y">Время аддона</span>');}
   if(!nx)N.push('<span class="note y">Последний уровень — дальше добавлю уровни автоматически</span>');
@@ -709,7 +713,7 @@ function renderPlayers(x,pa){
     let a='';
     const winner=isT()&&p.place===1;
     if(p.status==='in'){ if(!winner&&x.inP>1)a+=`<button class="btn sm red" data-a="bust" data-id="${p.id}">💥 Вылет</button>`;
-      if(!winner)a+=`<button class="btn sm" data-a="rebuy" data-id="${p.id}">＋ Докуп</button>`;
+      if(!winner&&S.rebuyWhen!=='bust')a+=`<button class="btn sm" data-a="rebuy" data-id="${p.id}" title="${S.rebuyWhen==='short'?'Если стек не больше стартового':'Докуп в любой момент'}">＋ Докуп</button>`;
       if(S.addonOn&&!p.addons&&!winner)a+=`<button class="btn sm" data-a="addon" data-id="${p.id}">＋ Аддон</button>`;}
     else a+=`<button class="btn sm pri" data-a="rebuy" data-id="${p.id}">💸 Докуп и в игру</button><button class="btn sm" data-a="back" data-id="${p.id}" title="Ошибочно выбит — вернуть без докупа">Вернуть</button>`;
     if(p.rebuys&&p.status==='in')a+=`<button class="btn sm ghost" data-a="unrebuy" data-id="${p.id}" title="Отменить докуп">−докуп</button>`;
@@ -829,7 +833,10 @@ $('#rosterBox').addEventListener('click',e=>{const x=e.target.closest('[data-rx]
 function doBust(p,by){snap();p.status='out';p.outAt=Date.now();p.finalChips=0;p.bustedBy=by||null;const k=by?S.players.find(q=>q.id===by):null;if(k)k.knocks=(k.knocks||0)+1;
   settle();logEv('bust',p.name+' — вылет'+(isT()?' · '+p.place+' место':'')+(k?' · выбил(а) '+k.name:''));const w=S.players.find(q=>q.place===1&&q.status==='in');if(w){logEv('win','Победитель: '+w.name);if(T().running)pause();}save();render();toast(p.name+(isT()?' — '+p.place+' место':' — вылет'));}
 function doRebuy(p){const f=()=>{snap();p.rebuys++;p.paid=invested(p)+S.rebuyCost;p.chipsIn=chipsOf(p)+S.rebuyStack;(p.rb=p.rb||[]).push([S.rebuyCost,S.rebuyStack]);logEv('rebuy',p.name+(p.status==='out'?' — докуп, снова в игре':' — докуп')+' · №'+p.rebuys+' (+'+fmt(S.rebuyStack)+' фишек, '+money(S.rebuyCost)+')');if(p.status==='out'){p.status='in';p.finalChips=null;p.bustedBy=null;}settle();save();render();toast(p.name+' — докуп');};
-  const why=canRebuy(p);if(why)confirmB('Докуп вне правил',why+' Всё равно оформить?',f,'Оформить');else f();}
+  const check=()=>{const why=canRebuy(p);if(why)confirmB('Докуп вне правил',why+' Всё равно оформить?',f,'Оформить');else f();};
+  if(p.status==='in'&&S.rebuyWhen==='bust')return confirmB('Докуп только после вылета',`По правилам этого вечера ${esc(p.name)} может докупиться только после вылета. Всё равно оформить?`,check,'Оформить');
+  if(p.status==='in'&&S.rebuyWhen==='short')return confirmB('Докуп: '+esc(p.name),`Стек сейчас не больше стартового (${fmt(S.startStack)} фишек)?`,check,'Да, докуп');
+  check();}
 $('#plist').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const p=S.players.find(x=>x.id==b.dataset.id);if(!p)return;const a=b.dataset.a;
   if(a==='bust'){const others=S.players.filter(q=>q.status==='in'&&q!==p);
     if(isT()&&S.bountyOn&&others.length){modal(`<h3>Вылет: ${esc(p.name)}</h3><p>Кто выбил? Баунти ${money(S.bounty)} достанется ему.</p><select id="byWho">${others.map(q=>`<option value="${q.id}">${esc(q.name)}</option>`).join('')}<option value="">— никто / не важно</option></select>`,
