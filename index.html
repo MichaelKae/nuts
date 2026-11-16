@@ -5,12 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#06100c">
 <title>Nuts — покерный таймер</title>
+<meta name="author" content="MichaelKae">
 <meta name="description" content="Покерный таймер для домашних игр: блайнды, докупы, кэш и турниры, расчёт переводов, хронология вечера.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2334d399'/%3E%3Cstop offset='1' stop-color='%23a3e635'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Ctext x='16' y='23' font-size='20' text-anchor='middle' fill='%2305140d'%3E♠%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;700;800&display=swap" rel="stylesheet">
 <style>
-:root{
+:root{color-scheme:dark;
   --bg:#06100c; --glass:rgba(255,255,255,.045); --glass2:rgba(255,255,255,.08); --line:rgba(255,255,255,.09);
   --text:#f1f6f3; --muted:#8ea69a; --dim:#5d7268;
   --acc:#34d399; --acc2:#a3e635; --gold:#fbbf24; --red:#f87171; --blue:#60a5fa;
@@ -160,6 +161,13 @@ td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
 .arch{padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid var(--line);margin-bottom:8px}
 .arch pre{white-space:pre-wrap;font-family:var(--ui);font-size:13px;color:var(--muted);margin:8px 0 0}
 .mbtns.col{flex-direction:column;align-items:stretch}
+select option,select optgroup{background:#0d1a15;color:#f1f6f3}
+#v-timer .wm-in{position:absolute;left:16px;bottom:10px;z-index:3;font-size:11.5px;color:var(--dim);opacity:.6;text-decoration:none;font-weight:600;letter-spacing:.02em;transition:opacity .2s}
+#v-timer .wm-in:hover{opacity:1;color:var(--muted)}
+@media (max-width:760px){#v-timer .wm-in{position:static;display:block;text-align:center;padding:10px 0 4px}}
+.about{display:flex;gap:14px;align-items:center}
+.about .logo{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--acc),var(--acc2));display:grid;place-items:center;font-size:28px;color:#05140d;flex-shrink:0}
+.about a{color:var(--acc)}
 .timeline{display:flex;flex-direction:column;gap:2px;max-height:520px;overflow:auto;margin-top:6px}
 .ev{display:grid;grid-template-columns:48px 52px 26px 1fr auto;gap:8px;align-items:baseline;padding:8px 10px;border-radius:10px;font-size:14px}
 .ev:nth-child(odd){background:rgba(255,255,255,.025)}
@@ -232,7 +240,7 @@ td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
 <body>
 <div class="app">
   <nav>
-    <div class="brand" title="Nuts · версия 3.3"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v3.3</span></div>
+    <div class="brand" title="Nuts · версия 3.4 · by MichaelKae"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v3.4</span></div>
     <button class="tab on" data-v="timer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg><span>Таймер</span></button>
     <button class="tab" data-v="players"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14.6c2.6.2 4.4 1.9 5 4.9"/></svg><span>Игроки</span></button>
     <button class="tab" data-v="results"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 14v4M8 21h8"/></svg><span>Итоги</span></button>
@@ -272,6 +280,7 @@ td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
         </div>
         <div class="kbd">Пробел — старт/пауза · ←/→ — уровни · R — сброс · T — ТВ · F — полный экран · L — блокировка</div>
       </div></div>
+      <a class="wm-in" href="https://github.com/MichaelKae/nuts" target="_blank" rel="noopener">♠ Nuts · by MichaelKae</a>
       <aside class="side" id="side"></aside>
     </section>
 
@@ -389,6 +398,7 @@ td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
       </div>
       <div class="card">
         <h3>Взносы</h3>
+        <div class="hint" style="margin:-6px 0 12px">Изменения применяются к новым входам и докупам — уже внесённое не пересчитывается.</div>
         <div class="grid">
           <label class="f">Бай-ин, деньги<input type="number" min="0" data-s="buyin"></label>
           <label class="f">Стартовый стек, фишки<input type="number" min="0" data-s="startStack"></label>
@@ -431,6 +441,12 @@ td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
         <div class="hint">Самые живые голоса обычно «Google русский» (Chrome) и «Microsoft … Online (Natural)» (Edge).</div>
       </div>
       <div class="card">
+        <div class="about"><div class="logo">♠</div><div>
+          <div style="font-family:var(--disp);font-weight:800;font-size:20px">Nuts <span class="muted small" style="font-family:var(--ui)">v3.4</span></div>
+          <div class="muted small">Покерный таймер для домашних игр · автор <a href="https://github.com/MichaelKae" target="_blank" rel="noopener">MichaelKae</a> · <a href="https://github.com/MichaelKae/nuts" target="_blank" rel="noopener">GitHub</a></div>
+        </div></div>
+      </div>
+      <div class="card">
         <h3>💾 Хранение на компьютере</h3>
         <div class="fstate" id="fileState"></div>
         <div class="row" style="margin-top:12px">
@@ -449,7 +465,7 @@ td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
           <button class="btn red" id="newGame">Завершить вечер и начать новый</button>
           <button class="btn red" id="resetAll">Сбросить всё</button>
         </div>
-        <div class="hint">Nuts · версия 3.3. При завершении итоги вечера сохраняются в историю (вкладка «Итоги»). Игроки, наборы и структура остаются.</div>
+        <div class="hint">Nuts · версия 3.4. При завершении итоги вечера сохраняются в историю (вкладка «Итоги»). Игроки, наборы и структура остаются.</div>
       </div>
     </section>
   </main>
@@ -480,7 +496,7 @@ function defaults(){ return {
 };}
 let S; try{S=JSON.parse(localStorage.getItem(KEY));}catch(e){S=null}
 S=Object.assign(defaults(),S||{});migrate();
-function migrate(){if(S.chips){if(!S.sets||!S.sets.length||(S.sets.length===1&&S.sets[0].id===1&&S.chips.length))S.sets=[{id:1,name:'Мой набор',on:true,chips:S.chips}];delete S.chips;}if(!S.archive)S.archive=[];S.gen=Object.assign({grow:0,maxMin:25,depth:100,pace:''},S.gen);if(!S.log)S.log=[];}
+function migrate(){if(S.chips){if(!S.sets||!S.sets.length||(S.sets.length===1&&S.sets[0].id===1&&S.chips.length))S.sets=[{id:1,name:'Мой набор',on:true,chips:S.chips}];delete S.chips;}if(!S.archive)S.archive=[];(S.players||[]).forEach(p=>{if(p.paid==null){p.paid=S.buyin+p.rebuys*S.rebuyCost+p.addons*S.addonCost;p.chipsIn=S.startStack+p.rebuys*S.rebuyStack+p.addons*S.addonStack;}});S.gen=Object.assign({grow:0,maxMin:25,depth:100,pace:''},S.gen);if(!S.log)S.log=[];}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}scheduleFile();}
 
 /* ===== Utils ===== */
@@ -495,7 +511,7 @@ const Lms=i=>(L(i)?L(i).min:0)*60000;
 const bstr=l=>!l?'—':l.type==='break'?'Перерыв':fmt(l.sb)+' / '+fmt(l.bb);
 function lvlNum(i){let n=0;for(let k=0;k<=i&&k<S.levels.length;k++)if(S.levels[k].type==='level')n++;return n;}
 const curLvl=()=>lvlNum(T().idx);
-const chipsAsc=()=>{const m=new Map();S.sets.filter(st=>st.on).forEach(st=>st.chips.forEach(c=>{if(!(c.v>0))return;const e=m.get(c.v);if(e)e.n+=c.n;else m.set(c.v,{v:c.v,n:c.n,c:c.c,d:c.d});}));return[...m.values()].sort((a,b)=>a.v-b.v);};
+const chipsAsc=()=>{const m=new Map();S.sets.filter(st=>st.on).forEach(st=>st.chips.forEach(c=>{if(!(c.v>0))return;const e=m.get(c.v);if(e)e.n+=c.n;else m.set(c.v,{v:c.v,n:c.n,c:c.c,d:c.d});}));return[...m.values()].filter(c=>c.n>0).sort((a,b)=>a.v-b.v);};
 const minChip=()=>(chipsAsc()[0]||{v:1}).v;
 const gcd=(a,b)=>b?gcd(b,a%b):a;
 const hue=s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))%360;return h;};
@@ -509,6 +525,7 @@ function modal(html,btns){ $('#mbox').innerHTML=html+'<div class="mbtns"></div>'
   $('#modal').classList.add('on'); const f=$('#mbox input,#mbox select'); if(f) setTimeout(()=>f.focus(),50); }
 function closeModal(){$('#modal').classList.remove('on');}
 $('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(b&&e.detail>0)b.blur();});
 function confirmB(title,text,yes,yesT='Да',cls='pri'){modal(`<h3>${title}</h3><p>${text}</p>`,[{t:'Отмена'},{t:yesT,cls,fn:yes}]);}
 
 /* ===== Sound ===== */
@@ -523,7 +540,7 @@ const sndWarn=()=>beep([[660,.18],[660,.18]]);
 function ruVoices(){try{return speechSynthesis.getVoices().filter(v=>/^ru/i.test(v.lang));}catch(e){return[];}}
 function pickVoice(){const vs=ruVoices();if(!vs.length)return null;const byName=vs.find(v=>v.name===S.voiceName);if(byName)return byName;
   return vs.find(v=>/google/i.test(v.name))||vs.find(v=>/natural|online/i.test(v.name))||vs.find(v=>/milena|svetlana|dariya|alena/i.test(v.name))||vs[0];}
-function fillVoices(){const sel=$('#voiceSel');if(!sel)return;const vs=ruVoices(),cur=pickVoice();
+let voiceSig='';function fillVoices(){const sel=$('#voiceSel');if(!sel)return;const vs=ruVoices(),cur=pickVoice();const sig=vs.map(v=>v.name).join('|')+'#'+(cur?cur.name:'');if(sig===voiceSig)return;voiceSig=sig;
   sel.innerHTML=vs.length?vs.map(v=>`<option ${cur&&v.name===cur.name?'selected':''}>${esc(v.name)}</option>`).join(''):'<option>Русских голосов в системе нет</option>';sel.disabled=!vs.length;}
 try{speechSynthesis.onvoiceschanged=fillVoices;}catch(e){}
 function say(t){if(!S.voice)return;try{const u=new SpeechSynthesisUtterance(t);u.lang='ru-RU';const v=pickVoice();if(v)u.voice=v;u.rate=1;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}}
@@ -548,16 +565,17 @@ function start(){const t=T();if(t.running)return;ac();const first=t.startedAt==n
   if(t.pausedAt){t.pausedTotal+=Date.now()-t.pausedAt;t.pausedAt=null;}
   const r=rem();t.endsAt=Date.now()+r;t.running=true;t.warned=r<=60000;awake(true);save();render();}
 function pause(){const t=T();if(!t.running)return;t.remaining=t.endsAt-Date.now();t.running=false;t.pausedAt=Date.now();logEv('pause','Пауза');awake(false);save();render();}
-const toggle=()=>T().running?pause():start();
+const toggle=()=>{if(T().running)return pause();if(T().startedAt==null&&!S.players.length)return confirmB('Игроков пока нет','Добавьте игроков на вкладке «Игроки» — или запустите таймер без них.',start,'Запустить таймер');start();};
 function lvlLog(i){const l=L(i);if(!l)return;if(l.type==='break')logEv('break','Перерыв '+l.min+' мин');else logEv('level','Уровень '+lvlNum(i)+': '+fmt(l.sb)+' / '+fmt(l.bb)+(l.ante?', анте '+fmt(l.ante):''));}
+function step(d){const t=T(),i=t.idx+d;if(i<0||i>=S.levels.length)return;goto(i,d<0);}
 function goto(i,silent){const t=T();i=Math.max(0,Math.min(S.levels.length-1,i));const ch=i!==t.idx;t.idx=i;t.remaining=Lms(i);t.warned=false;if(t.startedAt!=null){if(ch)lvlLog(i);else logEv('reset','Уровень перезапущен');}
   if(t.running)t.endsAt=Date.now()+t.remaining; if(!silent){sndLevel();announce(i);} save();render();}
 function addTime(ms){const t=T();if(t.running)t.endsAt=Math.max(Date.now()+1000,t.endsAt+ms);else t.remaining=Math.max(1000,rem()+ms);if(rem()>60000)t.warned=false;save();render();}
 function tick(){const t=T();
   if(t.running){const r=t.endsAt-Date.now();
     if(r<=60000&&!t.warned&&Lms(t.idx)>60000){t.warned=true;sndWarn();save();}
-    if(r<=0){ if(t.idx>=S.levels.length-1){t.running=false;t.remaining=0;save();render();}
-      else{let over=-r,i=t.idx+1;while(over>=Lms(i)&&i<S.levels.length-1){over-=Lms(i);i++;}
+    if(r<=0){ if(t.idx>=S.levels.length-1){extendLevels();logEv('level','Структура закончилась — добавлен уровень');toast('Структура закончилась — добавил уровень, игра продолжается');}
+      {let over=-r,i=t.idx+1;while(over>=Lms(i)&&i<S.levels.length-1){over-=Lms(i);i++;}
         t.idx=i;t.endsAt=Date.now()+Lms(i)-over;t.warned=false;lvlLog(i);save();sndLevel();announce(i);render();}}}
   renderClock();}
 
@@ -565,6 +583,14 @@ function tick(){const t=T();
 function niceList(){const c=minChip(),out=new Set();
   for(let p=0;p<8;p++)for(const b of [1,1.2,1.5,1.6,2,2.5,3,4,5,6,8]){const v=Math.round(b*10**p);if(v>=2*c&&(v/2)%c===0)out.add(v);}
   return [...out].sort((a,b)=>a-b);}
+function niceNear(x){const N=niceList();return N.reduce((a,b)=>Math.abs(Math.log(b/x))<Math.abs(Math.log(a/x))?b:a,N[0]);}
+function niceAbove(x){return niceList().find(v=>v>x)||Math.round(x*2);}
+function extendLevels(){const lv=S.levels.filter(l=>l.type==='level');const a=lv[lv.length-1]||{bb:20,min:15},b=lv[lv.length-2];
+  const r=b&&b.bb?Math.min(2,Math.max(1.25,a.bb/b.bb)):1.5;let bb=niceNear(a.bb*r);if(bb<=a.bb)bb=niceAbove(a.bb);
+  S.levels.push({type:'level',sb:bb/2,bb,ante:0,min:a.min||15});return S.levels.length-1;}
+function regen(){const t=T(),started=t.startedAt!=null,num=curLvl();S.levels=generate();let idx=0;
+  if(started){idx=S.levels.findIndex((l,i)=>l.type==='level'&&lvlNum(i)===Math.max(1,num));if(idx<0)idx=S.levels.length-1;}
+  t.idx=idx;t.remaining=Lms(idx);t.warned=false;if(t.running)t.endsAt=Date.now()+t.remaining;if(started)logEv('reset','Структура пересобрана, продолжаем с уровня '+lvlNum(idx));}
 function generate(){
   const g=S.gen,N=niceList(),s=S.startStack||1000;
   const near=x=>N.reduce((a,b)=>Math.abs(Math.log(b/x))<Math.abs(Math.log(a/x))?b:a,N[0]);
@@ -605,16 +631,18 @@ function suggestStack(E){const ch=chipsAsc();const max=ch.reduce((a,c)=>a+Math.f
   return{s:0,max};}
 
 /* ===== Game math ===== */
-const invested=p=>S.buyin+p.rebuys*S.rebuyCost+p.addons*S.addonCost;
+const legacyPaid=p=>S.buyin+p.rebuys*S.rebuyCost+p.addons*S.addonCost,legacyChips=p=>S.startStack+p.rebuys*S.rebuyStack+p.addons*S.addonStack;
+const invested=p=>p.paid!=null?p.paid:legacyPaid(p);
+const chipsOf=p=>p.chipsIn!=null?p.chipsIn:legacyChips(p);
 function totals(){const P=S.players,reb=P.reduce((a,p)=>a+p.rebuys,0),add=P.reduce((a,p)=>a+p.addons,0),inP=P.filter(p=>p.status==='in').length;
   const money=P.reduce((a,p)=>a+invested(p),0),entries=P.length+reb;
   const bountyTot=isT()&&S.bountyOn?entries*S.bounty:0;
-  const chips=P.length*S.startStack+reb*S.rebuyStack+add*S.addonStack;
+  const chips=P.reduce((a,p)=>a+chipsOf(p),0);
   return{n:P.length,reb,add,inP,money,entries,bountyTot,pool:money-bountyTot,chips,avg:inP?chips/inP:0};}
 function payoutPcts(){if(!S.payoutsAuto)return S.payouts;const n=S.players.length;
   return n<=3?[100]:n<=6?[65,35]:n<=10?[50,30,20]:[45,27,17,11];}
-const payouts=pool=>payoutPcts().map(p=>Math.round(pool*p/100));
-const rate=()=>S.startStack?S.buyin/S.startStack:0; // деньги за 1 фишку
+const payouts=pool=>{const pc=payoutPcts(),tot=pc.reduce((a,b)=>a+b,0)||100,a=pc.map(p=>Math.floor(pool*p/tot));if(a.length)a[0]+=pool-a.reduce((x,y)=>x+y,0);return a;};
+const rate=()=>{const x=totals();if(x.chips>0)return x.money/x.chips;return S.startStack?S.buyin/S.startStack:0;}; // деньги за 1 фишку (средневзвешенный курс всех взносов)
 function canRebuy(p){if(S.maxRebuys&&p.rebuys>=S.maxRebuys)return'У '+p.name+' уже '+p.rebuys+' докупа(ов) — это лимит.';
   if(S.rebuyUntil&&curLvl()>S.rebuyUntil)return'Окно докупов закрылось после '+S.rebuyUntil+' уровня.';return'';}
 
@@ -634,7 +662,8 @@ function render(){
   const lc=$('#lvlChip');lc.className='lvlchip'+(l&&l.type==='break'?' brk':'');lc.textContent=l?(l.type==='break'?'☕ Перерыв':'Уровень '+lvlNum(t.idx)+' из '+S.levels.filter(z=>z.type==='level').length):'';
   const b=$('#blinds');b.textContent=l&&l.type==='break'?'Перерыв':bstr(l);b.classList.toggle('brk',l&&l.type==='break');
   $('#ante').textContent=l&&l.type==='level'&&l.ante?'Анте '+fmt(l.ante):'';
-  $('#prevV').textContent=bstr(L(t.idx-1));$('#nextV').textContent=nx?bstr(nx):'Конец';
+  $('#prevV').textContent=bstr(L(t.idx-1));$('#nextV').textContent=nx?bstr(nx):'Последний';
+  $('#bPrev').disabled=t.idx<=0;$('#bNext').disabled=t.idx>=S.levels.length-1;
   $('#bPlay').innerHTML=t.running?'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>Пауза':'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4v16l13-8z"/></svg>'+(t.startedAt==null?'Старт':'Продолжить');
   $('#bLock').textContent=document.body.classList.contains('locked')?'🔒':'🔓';
   // notes
@@ -643,6 +672,7 @@ function render(){
   if(S.maxRebuys)N.push(`<span class="note">Лимит докупов: ${S.maxRebuys}</span>`);
   if(S.lateRegUntil){N.push(cl<=S.lateRegUntil?`<span class="note g">Регистрация до ${S.lateRegUntil} ур.</span>`:`<span class="note">Регистрация закрыта</span>`);}
   if(l&&l.type==='break'){const cu=colorUpNew(t.idx+1);if(cu.length)N.push(`<span class="note y">Можно убрать фишки ${cu.join(', ')}</span>`);if(S.addonOn)N.push('<span class="note y">Время аддона</span>');}
+  if(!nx)N.push('<span class="note y">Последний уровень — дальше добавлю уровни автоматически</span>');
   $('#notes').innerHTML=N.join('');
   // side
   const pa=payouts(x.pool);let h='';
@@ -672,16 +702,17 @@ function renderPlayers(x,pa){
   $('#pEmpty').style.display=ord.length?'none':'block';
   const byId=id=>S.players.find(p=>p.id===id);
   $('#plist').innerHTML=ord.map(p=>{
-    const st=p.place===1&&isT()?'<span class="badge win">🏆 Победитель</span>':p.status==='in'?'<span class="badge in">в игре</span>':`<span class="badge out">${isT()?p.place+' место':'вылетел'}</span>`;
+    const st=p.place===1&&isT()?'<span class="badge win">🏆 Победитель</span>':p.status==='in'?'<span class="badge in">в игре</span>':`<span class="badge out">${isT()?p.place+' место':'вылет'}</span>`;
     const meta=[`вложил <b class="money">${money(invested(p))}</b>`];if(p.rebuys)meta.push('докупов: '+p.rebuys);if(p.addons)meta.push('аддон');
     if(isT()&&S.bountyOn&&p.knocks)meta.push('выбил: '+p.knocks);if(p.seat)meta.push('место за столом: '+p.seat);
-    if(p.bustedBy&&byId(p.bustedBy))meta.push('выбил его: '+esc(byId(p.bustedBy).name));
+    if(p.bustedBy&&byId(p.bustedBy))meta.push('выбил(а): '+esc(byId(p.bustedBy).name));
     let a='';
-    if(p.status==='in'){ if(!(isT()&&p.place===1))a+=`<button class="btn sm red" data-a="bust" data-id="${p.id}">Вылетел</button>`;
-      a+=`<button class="btn sm" data-a="rebuy" data-id="${p.id}">＋ Докуп</button>`;
-      if(S.addonOn&&!p.addons)a+=`<button class="btn sm" data-a="addon" data-id="${p.id}">＋ Аддон</button>`;}
-    else a+=`<button class="btn sm pri" data-a="rebuy" data-id="${p.id}">Докупился</button><button class="btn sm" data-a="back" data-id="${p.id}" title="Ошибочно выбит — вернуть без докупа">Вернуть</button>`;
-    if(p.rebuys)a+=`<button class="btn sm ghost" data-a="unrebuy" data-id="${p.id}" title="Отменить докуп">−докуп</button>`;
+    const winner=isT()&&p.place===1;
+    if(p.status==='in'){ if(!winner&&x.inP>1)a+=`<button class="btn sm red" data-a="bust" data-id="${p.id}">💥 Вылет</button>`;
+      if(!winner)a+=`<button class="btn sm" data-a="rebuy" data-id="${p.id}">＋ Докуп</button>`;
+      if(S.addonOn&&!p.addons&&!winner)a+=`<button class="btn sm" data-a="addon" data-id="${p.id}">＋ Аддон</button>`;}
+    else a+=`<button class="btn sm pri" data-a="rebuy" data-id="${p.id}">💸 Докуп и в игру</button><button class="btn sm" data-a="back" data-id="${p.id}" title="Ошибочно выбит — вернуть без докупа">Вернуть</button>`;
+    if(p.rebuys&&p.status==='in')a+=`<button class="btn sm ghost" data-a="unrebuy" data-id="${p.id}" title="Отменить докуп">−докуп</button>`;
     a+=`<button class="btn sm ghost" data-a="del" data-id="${p.id}" title="Удалить">✕</button>`;
     return`<div class="pl ${p.status}"><div class="av" style="${avStyle(p.name)}">${esc(p.name.slice(0,1).toUpperCase())}</div>
       <div><div class="pname">${esc(p.name)} ${st}</div><div class="pmeta">${meta.join('<span>·</span>')}</div></div><div class="pacts">${a}</div></div>`;}).join('');
@@ -698,7 +729,7 @@ function renderSeats(){const sc=$('#seatCard');const ps=S.players.filter(p=>p.se
 function nets(x,pa){ // [{p,inv,win,bnt,net,chips}]
   if(isT()){return S.players.map(p=>{const prize=p.place&&p.place<=pa.length?pa[p.place-1]:0;
       const bnt=S.bountyOn?((p.knocks||0)+(p.place===1?1:0))*S.bounty:0;return{p,inv:invested(p),win:prize,bnt,net:prize+bnt-invested(p)};});}
-  const r=rate();return S.players.map(p=>{const ch=p.status==='out'?0:(p.finalChips??null);const val=ch==null?0:ch*r;return{p,inv:invested(p),chips:ch,win:val,net:ch==null?null:val-invested(p)};});}
+  const r=rate();return S.players.map(p=>{const ch=p.status==='out'?0:(p.finalChips??null);const val=ch==null?0:Math.round(ch*r);return{p,inv:invested(p),chips:ch,win:val,net:ch==null?null:val-invested(p)};});}
 function transfers(list){const cr=[],db=[];list.forEach(o=>{if(o.net>0.5)cr.push({n:o.p.name,v:o.net});else if(o.net<-0.5)db.push({n:o.p.name,v:-o.net});});
   cr.sort((a,b)=>b.v-a.v);db.sort((a,b)=>b.v-a.v);const res=[];let i=0,j=0;
   while(i<db.length&&j<cr.length){const a=Math.min(db[i].v,cr[j].v);res.push([db[i].n,cr[j].n,a]);db[i].v-=a;cr[j].v-=a;if(db[i].v<0.5)i++;if(cr[j].v<0.5)j++;}return res;}
@@ -719,6 +750,8 @@ function renderResults(x,pa){const box=$('#resBox');if(document.activeElement&&d
     if(!missing&&diff!==0)h+=`<div class="hint" style="color:var(--red)">Фишек ${diff>0?'больше':'меньше'}, чем выдано, на ${fmt(Math.abs(diff))}. Пересчитайте — иначе расчёт не сойдётся.</div>`;
     h+=`</div>`;
     if(missing){box.innerHTML=h+`<div class="card small muted">Расчёт переводов появится, когда будут введены фишки всех, кто остался в игре (осталось: ${missing}).</div>`+logCard()+archiveHTML();return;}}
+  if(!isT()){const sumCh=R.reduce((a,o)=>a+(o.chips||0),0);if(sumCh!==x.chips){box.innerHTML=h+'<div class="card small muted">Кто кому переводит — появится, когда сумма фишек совпадёт с выданной.</div>'+logCard()+archiveHTML();return;}}
+  if(isT()&&x.inP>1&&S.players.length>1){box.innerHTML=h+'<div class="card small muted">Кто кому переводит — появится, когда определится победитель.</div>'+logCard()+archiveHTML();return;}
   const tr=transfers(R.filter(o=>o.net!=null));
   h+=`<div class="card"><h3>💸 Кто кому переводит</h3>${tr.length?tr.map(([a,b,v])=>`<div class="xfer"><span>${esc(a)}</span><span class="arr">→</span><span>${esc(b)}</span><span class="amt">${money(v)}</span></div>`).join(''):'<div class="muted">Все при своих.</div>'}
     <div class="row" style="margin-top:12px"><button class="btn pri" id="copyRes">📋 Скопировать итоги для чата</button></div></div>`;
@@ -782,9 +815,9 @@ function loadSettings(){$$('[data-s]').forEach(e=>{if(!(e.dataset.s in S))return
 let nid=S.players.reduce((m,p)=>Math.max(m,p.id),0)+1;
 function snap(){S.hist.push(JSON.stringify({players:S.players,seats:S.seats,logLen:S.log.length}));if(S.hist.length>40)S.hist.shift();}
 function settle(){const inP=S.players.filter(p=>p.status==='in');S.players.forEach(p=>{if(p.status==='in')p.place=null;});
-  if(isT()&&inP.length===1&&S.players.length>1){inP[0].place=1;toast('🏆 Победитель: '+inP[0].name);say('Победитель — '+inP[0].name);}
+  if(isT()&&inP.length===1&&S.players.length>1){inP[0].place=1;if(S.lastWinner!==inP[0].id){S.lastWinner=inP[0].id;toast('🏆 Победитель: '+inP[0].name);say('Победитель — '+inP[0].name);}}else S.lastWinner=null;
   const out=S.players.filter(p=>p.status==='out').sort((a,b)=>b.outAt-a.outAt);out.forEach((p,i)=>p.place=inP.length+1+i);}
-function addPlayers(names){const doAdd=()=>{snap();names.forEach(n=>{S.players.push({id:nid++,name:n,status:'in',rebuys:0,addons:0,place:null,knocks:0,bustedBy:null,outAt:0,seat:null,finalChips:null});
+function addPlayers(names){const doAdd=()=>{snap();names.forEach(n=>{S.players.push({id:nid++,name:n,status:'in',rebuys:0,addons:0,place:null,knocks:0,bustedBy:null,outAt:0,seat:null,finalChips:null,paid:S.buyin,chipsIn:S.startStack});
     if(!S.roster.some(r=>r.toLowerCase()===n.toLowerCase()))S.roster.push(n);});
     logEv('join',(names.length>1?'За стол сели: ':'За стол сел(а) ')+names.join(', ')+(T().startedAt!=null?' (поздняя регистрация)':''));settle();save();render();};
   if(S.lateRegUntil&&T().startedAt!=null&&curLvl()>S.lateRegUntil)confirmB('Регистрация закрыта',`Поздняя регистрация была до ${S.lateRegUntil} уровня. Всё равно добавить?`,doAdd,'Добавить');else doAdd();}
@@ -794,18 +827,18 @@ $('#rosterBox').addEventListener('click',e=>{const x=e.target.closest('[data-rx]
   const r=e.target.closest('[data-r]');if(r){addPlayers([r.dataset.r]);return;}
   if(e.target.closest('[data-rall]')){const have=new Set(S.players.map(p=>p.name.toLowerCase()));addPlayers(S.roster.filter(n=>!have.has(n.toLowerCase())));}});
 function doBust(p,by){snap();p.status='out';p.outAt=Date.now();p.finalChips=0;p.bustedBy=by||null;const k=by?S.players.find(q=>q.id===by):null;if(k)k.knocks=(k.knocks||0)+1;
-  settle();logEv('bust',p.name+' вылетел'+(isT()?' · '+p.place+' место':'')+(k?' · выбил '+k.name:''));const w=S.players.find(q=>q.place===1&&q.status==='in');if(w)logEv('win','Победитель: '+w.name);save();render();toast(p.name+(isT()?' — '+p.place+' место':' вылетел'));}
-function doRebuy(p){const f=()=>{snap();p.rebuys++;logEv('rebuy',p.name+(p.status==='out'?' докупился и вернулся в игру':' докупился')+' · докуп №'+p.rebuys+' (+'+fmt(S.rebuyStack)+' фишек, '+money(S.rebuyCost)+')');if(p.status==='out'){p.status='in';p.finalChips=null;p.bustedBy=null;}settle();save();render();toast(p.name+' докупился');};
+  settle();logEv('bust',p.name+' — вылет'+(isT()?' · '+p.place+' место':'')+(k?' · выбил(а) '+k.name:''));const w=S.players.find(q=>q.place===1&&q.status==='in');if(w){logEv('win','Победитель: '+w.name);if(T().running)pause();}save();render();toast(p.name+(isT()?' — '+p.place+' место':' — вылет'));}
+function doRebuy(p){const f=()=>{snap();p.rebuys++;p.paid=invested(p)+S.rebuyCost;p.chipsIn=chipsOf(p)+S.rebuyStack;(p.rb=p.rb||[]).push([S.rebuyCost,S.rebuyStack]);logEv('rebuy',p.name+(p.status==='out'?' — докуп, снова в игре':' — докуп')+' · №'+p.rebuys+' (+'+fmt(S.rebuyStack)+' фишек, '+money(S.rebuyCost)+')');if(p.status==='out'){p.status='in';p.finalChips=null;p.bustedBy=null;}settle();save();render();toast(p.name+' — докуп');};
   const why=canRebuy(p);if(why)confirmB('Докуп вне правил',why+' Всё равно оформить?',f,'Оформить');else f();}
 $('#plist').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const p=S.players.find(x=>x.id==b.dataset.id);if(!p)return;const a=b.dataset.a;
   if(a==='bust'){const others=S.players.filter(q=>q.status==='in'&&q!==p);
-    if(isT()&&S.bountyOn&&others.length){modal(`<h3>${esc(p.name)} вылетел</h3><p>Кто выбил? Баунти ${money(S.bounty)} уйдёт ему.</p><select id="byWho">${others.map(q=>`<option value="${q.id}">${esc(q.name)}</option>`).join('')}<option value="">— никто / не важно</option></select>`,
+    if(isT()&&S.bountyOn&&others.length){modal(`<h3>Вылет: ${esc(p.name)}</h3><p>Кто выбил? Баунти ${money(S.bounty)} достанется ему.</p><select id="byWho">${others.map(q=>`<option value="${q.id}">${esc(q.name)}</option>`).join('')}<option value="">— никто / не важно</option></select>`,
       [{t:'Отмена'},{t:'Готово',cls:'pri',fn:()=>doBust(p,+$('#byWho').value||null)}]);}
     else doBust(p);return;}
   if(a==='rebuy')return doRebuy(p);
   if(a==='back'){snap();logEv('back',p.name+' возвращён в игру (ошибочный вылет)');if(p.bustedBy){const k=S.players.find(q=>q.id===p.bustedBy);if(k&&k.knocks)k.knocks--;}p.status='in';p.finalChips=null;p.bustedBy=null;settle();save();render();return;}
-  if(a==='addon'){snap();p.addons++;logEv('addon',p.name+' взял аддон');save();render();toast(p.name+': аддон');return;}
-  if(a==='unrebuy'){snap();p.rebuys--;logEv('undo','Отменён докуп: '+p.name);save();render();return;}
+  if(a==='addon'){snap();p.addons++;p.paid=invested(p)+S.addonCost;p.chipsIn=chipsOf(p)+S.addonStack;logEv('addon',p.name+' взял аддон');save();render();toast(p.name+': аддон');return;}
+  if(a==='unrebuy'){snap();const last=(p.rb&&p.rb.pop())||[S.rebuyCost,S.rebuyStack];p.paid=invested(p)-last[0];p.chipsIn=chipsOf(p)-last[1];p.rebuys--;logEv('undo','Отменён докуп: '+p.name);save();render();return;}
   if(a==='del')confirmB('Удалить игрока?',`«${esc(p.name)}» и все его взносы уйдут из банка.`,()=>{snap();logEv('del',p.name+' удалён из игры');S.players=S.players.filter(x=>x!==p);settle();save();render();},'Удалить','red');});
 function undo(){const h=S.hist.pop();if(!h)return;const o=JSON.parse(h);S.players=o.players;S.seats=o.seats;
   if(o.logLen!=null)S.log.forEach((e,i)=>{if(i>=o.logLen&&!['level','break','pause','resume','start','reset'].includes(e.type))e.undone=true;});logEv('undo','Отменено последнее действие');save();render();toast('Отменено');}
@@ -831,15 +864,19 @@ const PACES={hyper:{levelMin:5,grow:0,maxMin:5,breakEvery:60,breakMin:5,depth:40
   deep:{levelMin:15,grow:5,maxMin:30,breakEvery:75,breakMin:10,depth:150,n:'Медленный: глубокие стеки, 15→20→25→30 минут.'},
   slow:{levelMin:25,grow:10,maxMin:45,breakEvery:90,breakMin:15,depth:200,n:'Слоуролл: длинные уровни 25→35→45 минут, очень глубоко.'}};
 $('#paceBox').addEventListener('click',e=>{const b=e.target.closest('[data-pace]');if(!b)return;const P=PACES[b.dataset.pace];
-  confirmB(b.textContent.trim(),P.n+' Сгенерировать структуру на '+S.gen.hours+' ч?',()=>{const{n,...rest}=P;Object.assign(S.gen,rest,{pace:b.dataset.pace});S.levels=generate();const t=T();t.idx=0;t.remaining=Lms(0);if(t.running)t.endsAt=Date.now()+t.remaining;save();render();toast('Структура готова');},'Сгенерировать');});
-$('#genBtn').onclick=()=>confirmB('Сгенерировать структуру?','Текущая структура блайндов будет заменена.',()=>{S.levels=generate();const t=T();t.idx=0;t.remaining=Lms(0);if(t.running)t.endsAt=Date.now()+t.remaining;save();render();toast('Структура готова');});
+  confirmB(b.textContent.trim(),P.n+' Сгенерировать структуру на '+S.gen.hours+' ч?',()=>{const{n,...rest}=P;Object.assign(S.gen,rest,{pace:b.dataset.pace});regen();save();render();toast('Структура готова');},'Сгенерировать');});
+$('#genBtn').onclick=()=>confirmB('Сгенерировать структуру?','Текущая структура блайндов будет заменена.'+(T().startedAt!=null?' Игра уже идёт — продолжим с того же номера уровня.':''),()=>{regen();save();render();toast('Структура готова');});
 $('#slist').addEventListener('change',e=>{const i=+e.target.dataset.i,f=e.target.dataset.f;if(!f)return;let v=Math.max(0,+e.target.value||0);if(f==='min')v=Math.max(1,v);
-  S.levels[i][f]=v;if(f==='bb'&&!S.levels[i].sb)S.levels[i].sb=Math.round(v/2);
-  if(f==='min'&&i===T().idx&&!T().running&&T().startedAt==null)T().remaining=v*60000;e.target.blur();save();render();});
+  S.levels[i][f]=v;const lv=S.levels[i];if(f==='bb'&&(!lv.sb||lv.sb>v))lv.sb=Math.round(v/2);if(f==='sb'&&lv.sb>lv.bb){lv.bb=lv.sb*2;toast('Большой блайнд не может быть меньше малого — поправил');}
+  if(f==='min'&&i===T().idx){const t=T(),old=(+e.target.defaultValue||v)*60000,d=v*60000-old;if(t.running)t.endsAt=Math.max(Date.now()+1000,t.endsAt+d);else t.remaining=Math.max(1000,rem()+d);}
+  e.target.blur();save();render();});
 $('#slist').addEventListener('click',e=>{const b=e.target.closest('[data-sa]');if(!b)return;const i=+b.dataset.i,a=b.dataset.sa,Ls=S.levels;
   if(a==='go'){goto(i,true);toast('Переход выполнен');return;}
-  if(a==='up'&&i>0)[Ls[i-1],Ls[i]]=[Ls[i],Ls[i-1]];if(a==='dn'&&i<Ls.length-1)[Ls[i+1],Ls[i]]=[Ls[i],Ls[i+1]];
-  if(a==='del'&&Ls.length>1){Ls.splice(i,1);if(T().idx>=Ls.length)T().idx=Ls.length-1;}save();render();});
+  const t=T();
+  if(a==='up'&&i>0){[Ls[i-1],Ls[i]]=[Ls[i],Ls[i-1]];if(t.idx===i)t.idx--;else if(t.idx===i-1)t.idx++;}
+  if(a==='dn'&&i<Ls.length-1){[Ls[i+1],Ls[i]]=[Ls[i],Ls[i+1]];if(t.idx===i)t.idx++;else if(t.idx===i+1)t.idx--;}
+  if(a==='del'&&Ls.length>1){Ls.splice(i,1);if(i<t.idx)t.idx--;else if(i===t.idx){t.idx=Math.min(t.idx,Ls.length-1);t.remaining=Lms(t.idx);if(t.running)t.endsAt=Date.now()+t.remaining;}}
+  save();render();});
 $('#addLvl').onclick=()=>{const last=[...S.levels].reverse().find(l=>l.type==='level')||{sb:10,bb:20,min:15,ante:0};S.levels.push({type:'level',sb:last.sb*2,bb:last.bb*2,ante:(last.ante||0)*2,min:last.min});save();render();};
 $('#addBrk').onclick=()=>{S.levels.push({type:'break',min:10});save();render();};
 
@@ -858,12 +895,13 @@ $('#calcP').addEventListener('change',e=>{S.calc.players=Math.max(2,+e.target.va
 $('#calcR').addEventListener('change',e=>{S.calc.reserve=Math.max(0,+e.target.value||0);save();render();});
 $('#calcOut').addEventListener('click',e=>{const b=e.target.closest('#applyStack');if(!b)return;const s=+b.dataset.st;
   confirmB('Новый стартовый стек',`Стартовый стек и докуп станут ${fmt(s)} фишек. Курс: ${fmt(S.buyin)} ${esc(S.currency)} = ${fmt(s)} фишек. Перегенерировать блайнды под этот стек?`,
-    ()=>{S.startStack=s;S.rebuyStack=s;if(S.addonStack)S.addonStack=s;S.gen.players=S.calc.players;S.gen.rebuys=S.calc.reserve;S.levels=generate();T().idx=0;T().remaining=Lms(0);loadSettings();save();render();toast('Готово: стек и блайнды обновлены');},'Да, и блайнды тоже');});
+    ()=>{S.startStack=s;S.rebuyStack=s;if(S.addonStack)S.addonStack=s;S.gen.players=S.calc.players;S.gen.rebuys=S.calc.reserve;regen();loadSettings();save();render();toast('Готово: стек и блайнды обновлены');},'Да, и блайнды тоже');});
 
 /* ===== Settings actions ===== */
 $$('[data-s]').forEach(e=>e.addEventListener(e.type==='checkbox'?'change':'input',()=>{const k=e.dataset.s;
   S[k]=e.type==='checkbox'?e.checked:e.type==='number'?Math.max(0,+e.value||0):e.value;save();render();}));
-$$('[data-mode]').forEach(b=>b.onclick=()=>{S.mode=b.dataset.mode;settle();save();render();});
+$$('[data-mode]').forEach(b=>b.onclick=()=>{const m=b.dataset.mode;if(m===S.mode)return;const go=()=>{S.mode=m;S.lastWinner=null;settle();logEv('reset','Формат: '+(m==='tournament'?'турнир':'кэш'));save();render();};
+  if(S.players.length)confirmB('Сменить формат?','Игра уже идёт. Взносы и вылеты сохранятся, но итоги будут считаться по-другому: '+(m==='tournament'?'призовые места вместо подсчёта фишек.':'по фишкам на руках вместо призовых мест.'),go,'Сменить');else go();});
 $('#payIn').addEventListener('change',e=>{const a=e.target.value.split(/[,;\s]+/).map(Number).filter(n=>n>0);if(!a.length)return render();S.payouts=a;save();render();
   const s=a.reduce((x,y)=>x+y,0);if(Math.abs(s-100)>.01)toast('Сумма выплат '+s+'%, а не 100%');});
 $('#voiceSel').addEventListener('change',e=>{S.voiceName=e.target.value;save();say('Уровень 2. Блайнды 20 на 40.');});
@@ -877,7 +915,7 @@ function resetTimerOnly(){const t=T();logEv('reset','Таймер сброшен
 $('#newGame').onclick=()=>confirmB('Завершить вечер?','Итоги сохранятся в историю, список участников очистится (сохранённые игроки останутся для быстрого добавления), таймер начнётся с первого уровня.',newGame,'Завершить');
 function resetMenu(){modal(`<h3>Сброс</h3><p>Что сделать?</p>`,[{t:'↺ Перезапустить текущий уровень',cls:'',fn:()=>goto(T().idx,true)},{t:'⏮ Таймер с начала (игроки и докупы остаются)',fn:resetTimerOnly},{t:'🏁 Завершить вечер и начать новый',cls:'red',fn:()=>{setTimeout(()=>$('#newGame').click(),0);}},{t:'Отмена',cls:'ghost'}]);$('#mbox .mbtns').classList.add('col');}
 $('#bReset').onclick=resetMenu;
-$('#resetAll').onclick=()=>confirmB('Сбросить всё?','Удалятся игроки, сохранённый список, набор фишек, структура и настройки.',()=>{S=defaults();S.levels=generate();nid=1;save();loadSettings();render();},'Сбросить','red');
+$('#resetAll').onclick=()=>confirmB('Сбросить всё?','Удалятся игроки, сохранённый список, набор фишек, структура и настройки.',()=>{S=defaults();S.levels=generate();nid=1;awake(false);save();loadSettings();render();},'Сбросить','red');
 
 /* ===== File storage ===== */
 const idb=(()=>{let p;const db=()=>p||(p=new Promise((res,rej)=>{const r=indexedDB.open('pokerTimer',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}));
@@ -921,30 +959,33 @@ function fit(){const st=$('.stage'),sin=$('.sin');if(!st||!$('#v-timer').classLi
   let k=1.3;st.style.setProperty('--k',k);while(over()&&k>.25){k-=.03;st.style.setProperty('--k',k.toFixed(2));}}
 let fitT;const refit=()=>{clearTimeout(fitT);fitT=setTimeout(fit,60);};addEventListener('resize',refit);
 try{new ResizeObserver(refit).observe($('.stage'));}catch(e){}
-document.addEventListener('fullscreenchange',()=>setTimeout(fit,80));
+document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&tvFs)tv(false);setTimeout(fit,80);});
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fit);
 
 /* ===== Nav / controls ===== */
-function show(v){$$('.tab').forEach(t=>t.classList.toggle('on',t.dataset.v===v));$$('.view').forEach(x=>x.classList.toggle('on',x.id==='v-'+v));if(location.hash!=='#'+v)history.replaceState(null,'','#'+v);if(v==='timer')requestAnimationFrame(fit);}
+function show(v){$$('.tab').forEach(t=>t.classList.toggle('on',t.dataset.v===v));$$('.view').forEach(x=>x.classList.toggle('on',x.id==='v-'+v));try{if(location.hash!=='#'+v)history.replaceState(null,'','#'+v);}catch(e){}if(v==='timer')requestAnimationFrame(fit);}
 $$('.tab').forEach(t=>t.onclick=()=>show(t.dataset.v));
 const h0=location.hash.slice(1);if(['players','results','structure','chips','settings'].includes(h0))show(h0);
-$('#bPlay').onclick=toggle;$('#bNext').onclick=()=>goto(T().idx+1);$('#bPrev').onclick=()=>goto(T().idx-1,true);
+$('#bPlay').onclick=toggle;$('#bNext').onclick=()=>step(1);$('#bPrev').onclick=()=>step(-1);
 $('#bPlus').onclick=()=>addTime(60000);$('#bMinus').onclick=()=>addTime(-60000);
 const lock=()=>{document.body.classList.toggle('locked');render();toast(document.body.classList.contains('locked')?'Кнопки заблокированы':'Разблокировано');};
 $('#bLock').onclick=lock;
 async function fs(){try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();else await document.exitFullscreen();}catch(e){toast('Полный экран недоступен здесь');}}
-function tv(on){document.body.classList.toggle('tv',on);if(on){show('timer');}requestAnimationFrame(fit);}
-$('#fsBtn').onclick=fs;$('#tvBtn').onclick=()=>{tv(true);if(!document.fullscreenElement)fs();};$('#tvExit').onclick=()=>{tv(false);if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});};
-document.addEventListener('keydown',e=>{if(e.target.matches('input,select,textarea')||$('#modal').classList.contains('on'))return;
+let tvFs=false;function tv(on){document.body.classList.toggle('tv',on);if(on){show('timer');}else tvFs=false;requestAnimationFrame(fit);}
+$('#fsBtn').onclick=fs;$('#tvBtn').onclick=()=>{tv(true);if(!document.fullscreenElement){tvFs=true;fs();}};$('#tvExit').onclick=()=>{tv(false);if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});};
+document.addEventListener('keydown',e=>{
+  if($('#modal').classList.contains('on')){if(e.key==='Escape'){closeModal();}else if(e.key==='Enter'&&!e.target.matches('textarea')){const b=$('#mbox .mbtns .pri');if(b){e.preventDefault();b.click();}}return;}
+  if(e.target.matches('input,select,textarea'))return;
   const k=e.key.toLowerCase(),locked=document.body.classList.contains('locked');
+  if((e.ctrlKey||e.metaKey)&&(k==='z'||k==='я')){e.preventDefault();return undo();}
+  if(e.ctrlKey||e.metaKey||e.altKey)return;
   if(k==='l'||k==='д')return lock();
   if(k==='escape'&&document.body.classList.contains('tv'))return tv(false);
   if(k==='t'||k==='е')return tv(!document.body.classList.contains('tv'));
   if(k==='f'||k==='а')return fs();
-  if((k==='r'||k==='к')&&!locked&&!e.ctrlKey&&!e.metaKey)return resetMenu();
-  if((e.ctrlKey||e.metaKey)&&(k==='z'||k==='я')){e.preventDefault();return undo();}
+  if((k==='r'||k==='к')&&!locked)return resetMenu();
   if(locked)return;
-  if(e.code==='Space'){e.preventDefault();toggle();}else if(e.key==='ArrowRight')goto(T().idx+1);else if(e.key==='ArrowLeft')goto(T().idx-1,true);});
+  if(e.code==='Space'){e.preventDefault();if(e.target.blur)e.target.blur();toggle();}else if(e.key==='ArrowRight')step(1);else if(e.key==='ArrowLeft')step(-1);});
 
 if(!S.levels||!S.levels.length)S.levels=generate();
 save();loadSettings();render();setInterval(tick,250);if(T().running)awake(true);
