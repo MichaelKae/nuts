@@ -29,7 +29,10 @@ body{background:
 button,input,select{font:inherit;color:inherit}
 input,select{background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:12px;padding:10px 12px;width:100%;transition:border .15s}
 input:focus,select:focus{outline:none;border-color:var(--acc)}
-input[type=checkbox]{width:20px;height:20px;accent-color:var(--acc)}
+input[type=checkbox]{appearance:none;-webkit-appearance:none;width:38px;height:22px;border-radius:22px;background:rgba(255,255,255,.12);border:1px solid var(--line);position:relative;cursor:pointer;flex-shrink:0;transition:background .15s;margin:0;padding:0}
+input[type=checkbox]::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#cfd8d3;transition:transform .15s}
+input[type=checkbox]:checked{background:var(--acc);border-color:var(--acc)} input[type=checkbox]:checked::after{transform:translateX(16px);background:#05140d}
+input[type=checkbox]:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 input[type=color]{padding:2px;height:38px;width:46px}
 .btn{cursor:pointer;border:1px solid var(--line);background:var(--glass2);border-radius:12px;padding:10px 16px;font-weight:600;
   transition:transform .08s,background .15s,border-color .15s;white-space:nowrap}
@@ -65,7 +68,10 @@ h2{font-family:var(--disp);font-weight:700;font-size:22px;margin:0 0 16px;letter
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
 label.f{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted);font-weight:500}
-label.chk{display:flex;gap:10px;align-items:center;cursor:pointer}
+label.chk{display:flex;gap:12px;align-items:center;cursor:pointer;font-size:14px;font-weight:600;line-height:1.35}
+label.chk small{display:block;color:var(--dim);font-weight:500;font-size:12.5px;margin-top:2px}
+.toggles{display:flex;flex-direction:column;gap:14px;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.subgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,240px));gap:12px;margin:-4px 0 0 50px}
 .hint{font-size:12.5px;color:var(--dim);margin-top:6px;line-height:1.45}
 .money{color:var(--gold)}
 .pos{color:var(--acc)} .neg{color:var(--red)}
@@ -287,7 +293,7 @@ body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
 <body>
 <div class="app">
   <nav>
-    <div class="brand" title="Nuts · версия 3.12 · by MichaelKae"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v3.12</span></div>
+    <div class="brand" title="Nuts · версия 3.13 · by MichaelKae"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v3.13</span></div>
     <button class="tab on" data-v="timer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg><span>Таймер</span></button>
     <button class="tab" data-v="players"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14.6c2.6.2 4.4 1.9 5 4.9"/></svg><span>Игроки</span></button>
     <button class="tab" data-v="results"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 14v4M8 21h8"/></svg><span>Итоги</span></button>
@@ -461,20 +467,21 @@ body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
             <option value="short">Если стек не больше стартового</option>
             <option value="any">В любой момент</option></select></label>
           <label class="f">Макс. докупов на игрока (0 — без лимита)<input type="number" min="0" data-s="maxRebuys"></label>
-          <label class="chk"><input type="checkbox" data-s="halfRebuy"> Разрешить докуп на 50% (половина стека за полцены, в лимит идёт как 0,5)</label>
           <label class="f">Докупы до уровня (0 — всю игру)<input type="number" min="0" data-s="rebuyUntil"></label>
           <label class="f">Поздняя регистрация до уровня (0 — всю игру)<input type="number" min="0" data-s="lateRegUntil"></label>
         </div>
-        <div class="grid" style="margin-top:14px">
-          <label class="chk"><input type="checkbox" data-s="addonOn"> Аддон (разовая докупка фишек в стек)</label>
-          <label class="f">Аддон, деньги<input type="number" min="0" data-s="addonCost"></label>
-          <label class="f">Аддон, фишки<input type="number" min="0" data-s="addonStack"></label>
+        <div class="toggles">
+          <label class="chk"><input type="checkbox" data-s="halfRebuy"><span>Докуп на 50%<small>Половина стека за полцены. В лимит докупов идёт как 0,5.</small></span></label>
+          <label class="chk"><input type="checkbox" data-s="addonOn"><span>Аддон<small>Разовая докупка фишек в стек, обычно на перерыве.</small></span></label>
+          <div class="subgrid" id="addonFields">
+            <label class="f">Аддон, деньги<input type="number" min="0" data-s="addonCost"></label>
+            <label class="f">Аддон, фишки<input type="number" min="0" data-s="addonStack"></label>
+          </div>
+          <label class="chk trn-only"><input type="checkbox" data-s="bountyOn"><span>Баунти<small>Часть каждого взноса достаётся тому, кто выбил игрока. Победитель забирает и свою «голову».</small></span></label>
+          <div class="subgrid trn-only" id="bountyFields">
+            <label class="f">Баунти из бай-ина, деньги<input type="number" min="0" data-s="bounty"></label>
+          </div>
         </div>
-        <div class="grid trn-only" style="margin-top:14px">
-          <label class="chk"><input type="checkbox" data-s="bountyOn"> Баунти (награда за выбивание)</label>
-          <label class="f">Баунти из бай-ина, деньги<input type="number" min="0" data-s="bounty"></label>
-        </div>
-        <div class="hint trn-only">Баунти — часть каждого взноса, которая достаётся тому, кто выбил игрока. Остальное идёт в призовой фонд. Победитель забирает и свою «голову».</div>
       </div>
       <div class="card trn-only">
         <h3>Выплаты</h3>
@@ -498,7 +505,7 @@ body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
       </div>
       <div class="card">
         <div class="about"><div class="logo">♠</div><div>
-          <div style="font-family:var(--disp);font-weight:800;font-size:20px">Nuts <span class="muted small" style="font-family:var(--ui)">v3.12</span></div>
+          <div style="font-family:var(--disp);font-weight:800;font-size:20px">Nuts <span class="muted small" style="font-family:var(--ui)">v3.13</span></div>
           <div class="muted small">Покерный таймер для домашних игр · автор <a href="https://github.com/MichaelKae" target="_blank" rel="noopener">MichaelKae</a> · <a href="https://github.com/MichaelKae/nuts" target="_blank" rel="noopener">GitHub</a></div>
         </div></div>
       </div>
@@ -521,7 +528,7 @@ body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
           <button class="btn red" id="newGame">Завершить вечер и начать новый</button>
           <button class="btn red" id="resetAll">Сбросить всё</button>
         </div>
-        <div class="hint">Nuts · версия 3.12. При завершении итоги вечера сохраняются в историю (вкладка «Итоги»). Игроки, наборы и структура остаются.</div>
+        <div class="hint">Nuts · версия 3.13. При завершении итоги вечера сохраняются в историю (вкладка «Итоги»). Игроки, наборы и структура остаются.</div>
       </div>
     </section>
   </main>
@@ -598,19 +605,19 @@ const sndWarn=()=>beep([[660,.18],[660,.18]]);
 function ruVoices(){try{return speechSynthesis.getVoices().filter(v=>/^ru/i.test(v.lang));}catch(e){return[];}}
 function pickVoice(){const vs=ruVoices();if(!vs.length)return null;const byName=vs.find(v=>v.name===S.voiceName);if(byName)return byName;
   return vs.find(v=>/dmitry/i.test(v.name)&&/natural|online/i.test(v.name))||vs.find(v=>/natural|online/i.test(v.name)&&/dmitry|pavel|maxim|yuri/i.test(v.name))||vs.find(v=>/pavel|dmitry|maxim|yuri|aleksandr|alexander/i.test(v.name))||vs.find(v=>/google/i.test(v.name))||vs.find(v=>/natural|online/i.test(v.name))||vs[0];}
-const VP=window.NUTS_VOICE||null,VPN=VP?new Set(VP.nums):null,VPB=VP?new Set(VP.brk):null;
+const VP=window.NUTS_VOICE||null,VPN=VP?new Set(VP.nums):null,VPB=VP?new Set(VP.brk):null,VPP=VP?new Set(VP.pairs||[]):null;
 const usePack=()=>!!VP&&(!S.voiceName||S.voiceName==='__pack__');
 let voiceSig='';function fillVoices(){const sel=$('#voiceSel');if(!sel)return;const vs=ruVoices(),cur=usePack()?null:pickVoice();const sig=vs.map(v=>v.name).join('|')+'#'+(usePack()?'__pack__':cur?cur.name:'');if(sig===voiceSig)return;voiceSig=sig;
   const opts=(VP?[`<option value="__pack__" ${usePack()?'selected':''}>${esc(VP.name)} — встроенный, одинаковый везде</option>`]:[]).concat(vs.map(v=>`<option value="${esc(v.name)}" ${cur&&v.name===cur.name?'selected':''}>${esc(v.name)}</option>`));
   sel.innerHTML=opts.length?opts.join(''):'<option>Русских голосов в системе нет</option>';sel.disabled=!opts.length;}
 let vq=[],vA=null;
-function clipOk(n){if(!VP)return false;if(n.startsWith('n_'))return VPN.has(+n.slice(2));if(n.startsWith('lvl_'))return +n.slice(4)>=1&&+n.slice(4)<=VP.lvl;if(n.startsWith('brk_'))return VPB.has(+n.slice(4));return true;}
+function clipOk(n){if(!VP)return false;if(n.startsWith('n_'))return VPN.has(+n.slice(2));if(n.startsWith('lvl_'))return +n.slice(4)>=1&&+n.slice(4)<=VP.lvl;if(n.startsWith('brk_'))return VPB.has(+n.slice(4));if(n.startsWith('bl_')){const [a,b]=n.slice(3).split('_').map(Number);return b===a*2&&VPP.has(b);}return true;}
 function vNext(){const n=vq.shift();if(!n){vA=null;return;}const a=new Audio('voice/'+n+'.mp3');vA=a;a.onended=()=>setTimeout(vNext,70);a.onerror=()=>vNext();const pr=a.play();if(pr&&pr.catch)pr.catch(()=>{vq=[];});}
 function speak(parts,text){if(!S.voice)return;if(usePack()&&parts&&parts.every(clipOk)){try{speechSynthesis.cancel();}catch(e){}if(vA){try{vA.pause();}catch(e){}}vq=parts.slice();vNext();return;}say(text);}
 try{speechSynthesis.onvoiceschanged=fillVoices;}catch(e){}
 function say(t){if(!S.voice||!t)return;try{const u=new SpeechSynthesisUtterance(t);u.lang='ru-RU';const v=pickVoice();if(v)u.voice=v;u.rate=1;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}}
 function announce(i){const l=L(i);if(!l)return; if(l.type==='break'){const cu=colorUpNew(i+1);speak(['brk_'+l.min].concat(cu.length?['colorup',...cu.map(v=>'n_'+v)]:[]),'Перерыв '+l.min+' минут'+(cu.length?'. Можно убрать фишки '+cu.join(', '):''));}
-  else speak(['lvl_'+lvlNum(i),'blinds','n_'+l.sb,'na','n_'+l.bb].concat(l.ante?['ante','n_'+l.ante]:[]),'Уровень '+lvlNum(i)+'. Блайнды '+l.sb+' на '+l.bb+(l.ante?', анте '+l.ante:'')+'.');}
+  else{const pair='bl_'+l.sb+'_'+l.bb,bl=clipOk(pair)?[pair]:['blinds','n_'+l.sb,'na','n_'+l.bb];speak(['lvl_'+lvlNum(i)].concat(bl,l.ante?['ante','n_'+l.ante]:[]),'Уровень '+lvlNum(i)+'. Блайнды '+l.sb+' на '+l.bb+(l.ante?', анте '+l.ante:'')+'.');}}
 
 /* ===== Wake lock ===== */
 let wl=null;
@@ -891,6 +898,7 @@ function renderChips(){
 function renderSettingsState(){$$('[data-mode]').forEach(b=>b.classList.toggle('pri',b.dataset.mode===S.mode));
   $('#modeHint').textContent=isT()?'Турнир: банк делится между призовыми местами, места фиксируются по вылетам.':'Кэш: блайнды растут, докупы по правилам. В конце вводите фишки — приложение посчитает деньги по курсу и переводы.';
   $$('.trn-only').forEach(e=>e.style.display=isT()?'':'none');
+  $('#addonFields').style.display=S.addonOn?'':'none';$('#bountyFields').style.display=isT()&&S.bountyOn?'':'none';
   const pi=$('#payIn');pi.disabled=S.payoutsAuto;if(document.activeElement!==pi)pi.value=payoutPcts().join(', ');}
 function loadSettings(){$$('[data-s]').forEach(e=>{if(!(e.dataset.s in S))return;if(e.type==='checkbox')e.checked=!!S[e.dataset.s];else e.value=S[e.dataset.s];});}
 
@@ -1075,7 +1083,7 @@ $$('[data-mode]').forEach(b=>b.onclick=()=>{const m=b.dataset.mode;if(m===S.mode
   if(S.players.length)confirmB('Сменить формат?','Игра уже идёт. Взносы и вылеты сохранятся, но итоги будут считаться по-другому: '+(m==='tournament'?'призовые места вместо подсчёта фишек.':'по фишкам на руках вместо призовых мест.'),go,'Сменить');else go();});
 $('#payIn').addEventListener('change',e=>{const a=e.target.value.split(/[,;\s]+/).map(Number).filter(n=>n>0);if(!a.length)return render();S.payouts=a;save();render();
   const s=a.reduce((x,y)=>x+y,0);if(Math.abs(s-100)>.01)toast('Сумма выплат '+s+'%, а не 100%');});
-$('#voiceSel').addEventListener('change',e=>{S.voiceName=e.target.value;voiceSig='';save();const v=S.voice;S.voice=true;speak(['lvl_2','blinds','n_20','na','n_40'],'Уровень 2. Блайнды 20 на 40.');S.voice=v;});
+$('#voiceSel').addEventListener('change',e=>{S.voiceName=e.target.value;voiceSig='';save();const v=S.voice;S.voice=true;speak(['lvl_2','bl_20_40'],'Уровень 2. Блайнды 20 на 40.');S.voice=v;});
 $('#testSnd').onclick=()=>{const s=S.sound,v=S.voice;S.sound=S.voice=true;sndLevel();announce(T().idx);S.sound=s;S.voice=v;};
 function archiveGame(){if(!S.players.length)return;S.archive.unshift({at:Date.now(),mode:S.mode,text:resultsText(),log:S.log});if(S.archive.length>100)S.archive.length=100;}
 function eveningText(a){if(!a)return'';let t=a.text;if(a.log&&a.log.length){t+='\nХронология (время на часах, в скобках — сколько прошло по таймеру):\n';a.log.forEach(e=>{if(e.undone)return;t+=`${hhmm(e.at)}  (${fmtHM(e.el)} по таймеру)  [${e.lvl==='☕'?'перерыв':'ур. '+e.lvl}]  ${e.text}\n`;});}return t;}
