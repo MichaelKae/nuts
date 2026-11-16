@@ -8,6 +8,7 @@
 <meta name="author" content="MichaelKae">
 <meta name="description" content="Покерный таймер для домашних игр: блайнды, докупы, кэш и турниры, расчёт переводов, хронология вечера.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2334d399'/%3E%3Cstop offset='1' stop-color='%23a3e635'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Ctext x='16' y='23' font-size='20' text-anchor='middle' fill='%2305140d'%3E♠%3C/text%3E%3C/svg%3E">
+<script src="voice/manifest.js" onerror="window.NUTS_VOICE=null"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;700;800&display=swap" rel="stylesheet">
 <style>
@@ -176,9 +177,16 @@ select option,select optgroup{background:#0d1a15;color:#f1f6f3}
 .chiprow .chip{width:34px;height:34px;font-size:9.5px;border-width:3px}
 .tvcombos{display:none;position:absolute;left:clamp(16px,3vw,48px);top:50%;transform:translateY(-50%);text-align:left;opacity:.5;font-weight:300;font-size:clamp(13px,1.25vw,22px);line-height:1.55;color:var(--muted);pointer-events:none}
 .tvcombos b{font-weight:600;color:var(--text)}
-@media (min-width:1150px){body.tv.combos-on .tvcombos{display:block}}
-.helpfab{position:absolute;top:14px;right:14px;z-index:4}
-body.tv .helpfab{opacity:.3;right:auto;left:14px} body.tv .helpfab:hover{opacity:1}
+@media (min-width:1150px){body.tv.combos-on .tvcombos{display:block} body.tv .tvstats{display:block} body.tv .tvbar{display:none}}
+.tvstats{display:none;position:absolute;right:clamp(16px,3vw,48px);top:50%;transform:translateY(-50%);text-align:right;pointer-events:none;min-width:clamp(150px,14vw,260px)}
+.tvstats .r{margin-bottom:clamp(8px,1.4vh,18px)}
+.tvstats .l{color:var(--dim);font-size:clamp(10px,.85vw,14px);font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+.tvstats .v{font-family:var(--disp);font-weight:700;font-size:clamp(16px,1.9vw,34px);font-variant-numeric:tabular-nums;color:var(--text);opacity:.85}
+.tvstats .v.money{color:var(--gold);opacity:1}
+.tvstats .pay{font-size:clamp(12px,1vw,17px);color:var(--muted);font-weight:600}
+.fabs{position:absolute;top:14px;right:14px;z-index:4;display:flex;gap:6px}
+#guideFab{width:34px;padding:7px 0;font-weight:800}
+body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
 .qp{display:flex;flex-wrap:wrap;gap:6px}
 .qchip{cursor:pointer;border:1px solid var(--line);background:var(--glass2);color:var(--text);border-radius:20px;padding:6px 11px;font-size:13px;font-weight:700;display:inline-flex;gap:6px;align-items:center}
 .qchip:hover{border-color:var(--acc)} .qchip .d{width:8px;height:8px;border-radius:50%;background:var(--acc)}
@@ -279,7 +287,7 @@ body.tv .helpfab{opacity:.3;right:auto;left:14px} body.tv .helpfab:hover{opacity
 <body>
 <div class="app">
   <nav>
-    <div class="brand" title="Nuts · версия 3.11 · by MichaelKae"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v3.11</span></div>
+    <div class="brand" title="Nuts · версия 3.12 · by MichaelKae"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v3.12</span></div>
     <button class="tab on" data-v="timer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg><span>Таймер</span></button>
     <button class="tab" data-v="players"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14.6c2.6.2 4.4 1.9 5 4.9"/></svg><span>Игроки</span></button>
     <button class="tab" data-v="results"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 14v4M8 21h8"/></svg><span>Итоги</span></button>
@@ -294,7 +302,7 @@ body.tv .helpfab{opacity:.3;right:auto;left:14px} body.tv .helpfab:hover{opacity
   <main>
     <!-- TIMER -->
     <section class="view on" id="v-timer">
-      <div class="stage"><div class="tvcombos" id="tvcombos"></div><button class="btn sm ghost helpfab" id="helpFab" title="Комбинации и правила (C)">🃏 Комбинации</button><div class="sin">
+      <div class="stage"><div class="tvcombos" id="tvcombos"></div><div class="tvstats" id="tvstats"></div><div class="fabs"><button class="btn sm ghost" id="guideFab" title="Что умеет приложение (?)">?</button><button class="btn sm ghost" id="helpFab" title="Комбинации и правила (C)">🃏 Комбинации</button></div><div class="sin">
         <div class="tname" id="tName"></div>
         <div class="lvlchip" id="lvlChip"></div>
         <div class="clock" id="clock">00:00</div>
@@ -317,7 +325,7 @@ body.tv .helpfab{opacity:.3;right:auto;left:14px} body.tv .helpfab:hover{opacity
           <button class="btn cb lockable" id="bReset" title="Сброс / заново (R)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v5h5"/></svg></button>
           <button class="btn cb" id="bLock" title="Блокировка кнопок (L)">🔓</button>
         </div>
-        <div class="kbd">Пробел — старт/пауза · ←/→ — уровни · C — комбинации · R — сброс · T — ТВ · F — полный экран · L — блокировка</div>
+        <div class="kbd">Пробел — старт/пауза · ←/→ — уровни · C — комбинации · ? — справка · R — сброс · T — ТВ · F — полный экран · L — блокировка</div>
       </div></div>
       <a class="wm-in" href="https://github.com/MichaelKae/nuts" target="_blank" rel="noopener">♠ Nuts · by MichaelKae</a>
       <aside class="side" id="side"></aside>
@@ -486,11 +494,11 @@ body.tv .helpfab{opacity:.3;right:auto;left:14px} body.tv .helpfab:hover{opacity
         </div>
         <div class="grid" style="margin-top:12px"><label class="f">Голос<select id="voiceSel"></select></label></div>
         <div class="row" style="margin-top:12px"><button class="btn sm" id="testSnd">🔊 Проверить</button></div>
-        <div class="hint">По умолчанию выбирается мужской голос. Самый живой мужской — «Microsoft Dmitry Online (Natural)», он есть в браузере Edge. В Яндекс Браузере и Chrome на Windows мужской — «Microsoft Pavel».</div>
+        <div class="hint">Если рядом с приложением лежит папка voice, по умолчанию звучит встроенный голос — одинаковый в любом браузере и на телефоне. Иначе выбирается мужской голос браузера. Самый живой мужской — «Microsoft Dmitry Online (Natural)», он есть в браузере Edge. В Яндекс Браузере и Chrome на Windows мужской — «Microsoft Pavel».</div>
       </div>
       <div class="card">
         <div class="about"><div class="logo">♠</div><div>
-          <div style="font-family:var(--disp);font-weight:800;font-size:20px">Nuts <span class="muted small" style="font-family:var(--ui)">v3.11</span></div>
+          <div style="font-family:var(--disp);font-weight:800;font-size:20px">Nuts <span class="muted small" style="font-family:var(--ui)">v3.12</span></div>
           <div class="muted small">Покерный таймер для домашних игр · автор <a href="https://github.com/MichaelKae" target="_blank" rel="noopener">MichaelKae</a> · <a href="https://github.com/MichaelKae/nuts" target="_blank" rel="noopener">GitHub</a></div>
         </div></div>
       </div>
@@ -513,7 +521,7 @@ body.tv .helpfab{opacity:.3;right:auto;left:14px} body.tv .helpfab:hover{opacity
           <button class="btn red" id="newGame">Завершить вечер и начать новый</button>
           <button class="btn red" id="resetAll">Сбросить всё</button>
         </div>
-        <div class="hint">Nuts · версия 3.11. При завершении итоги вечера сохраняются в историю (вкладка «Итоги»). Игроки, наборы и структура остаются.</div>
+        <div class="hint">Nuts · версия 3.12. При завершении итоги вечера сохраняются в историю (вкладка «Итоги»). Игроки, наборы и структура остаются.</div>
       </div>
     </section>
   </main>
@@ -532,7 +540,7 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 /* ===== State ===== */
 function freshTimer(){return {idx:0,running:false,endsAt:0,remaining:null,startedAt:null,pausedTotal:0,pausedAt:null,warned:false};}
 function defaults(){ return {
-  name:'Покер с коллегами', currency:'₽', mode:'cash',
+  name:'Покерный вечер', currency:'₽', mode:'cash',
   buyin:1000, startStack:2000, rebuyCost:1000, rebuyStack:2000,
   maxRebuys:3, rebuyUntil:0, lateRegUntil:4, rebuyWhen:'bust', halfRebuy:false, showCombos:true,
   addonOn:false, addonCost:1000, addonStack:2000,
@@ -546,7 +554,7 @@ function defaults(){ return {
 };}
 let S; try{S=JSON.parse(localStorage.getItem(KEY));}catch(e){S=null}
 S=Object.assign(defaults(),S||{});migrate();
-function migrate(){if(S.chips){if(!S.sets||!S.sets.length||(S.sets.length===1&&S.sets[0].id===1&&S.chips.length))S.sets=[{id:1,name:'Мой набор',on:true,chips:S.chips}];delete S.chips;}if(!S.archive)S.archive=[];(S.players||[]).forEach(p=>{if(p.paid==null){p.paid=S.buyin+p.rebuys*S.rebuyCost+p.addons*S.addonCost;p.chipsIn=S.startStack+p.rebuys*S.rebuyStack+p.addons*S.addonStack;}});S.gen=Object.assign({grow:0,maxMin:25,depth:100,pace:''},S.gen);if(!S.log)S.log=[];}
+function migrate(){if(S.chips){if(!S.sets||!S.sets.length||(S.sets.length===1&&S.sets[0].id===1&&S.chips.length))S.sets=[{id:1,name:'Мой набор',on:true,chips:S.chips}];delete S.chips;}if(!S.archive)S.archive=[];if(S.name==='Покер с коллегами')S.name='Покерный вечер';(S.players||[]).forEach(p=>{if(p.paid==null){p.paid=S.buyin+p.rebuys*S.rebuyCost+p.addons*S.addonCost;p.chipsIn=S.startStack+p.rebuys*S.rebuyStack+p.addons*S.addonStack;}});S.gen=Object.assign({grow:0,maxMin:25,depth:100,pace:''},S.gen);if(!S.log)S.log=[];}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}scheduleFile();}
 
 /* ===== Utils ===== */
@@ -590,12 +598,19 @@ const sndWarn=()=>beep([[660,.18],[660,.18]]);
 function ruVoices(){try{return speechSynthesis.getVoices().filter(v=>/^ru/i.test(v.lang));}catch(e){return[];}}
 function pickVoice(){const vs=ruVoices();if(!vs.length)return null;const byName=vs.find(v=>v.name===S.voiceName);if(byName)return byName;
   return vs.find(v=>/dmitry/i.test(v.name)&&/natural|online/i.test(v.name))||vs.find(v=>/natural|online/i.test(v.name)&&/dmitry|pavel|maxim|yuri/i.test(v.name))||vs.find(v=>/pavel|dmitry|maxim|yuri|aleksandr|alexander/i.test(v.name))||vs.find(v=>/google/i.test(v.name))||vs.find(v=>/natural|online/i.test(v.name))||vs[0];}
-let voiceSig='';function fillVoices(){const sel=$('#voiceSel');if(!sel)return;const vs=ruVoices(),cur=pickVoice();const sig=vs.map(v=>v.name).join('|')+'#'+(cur?cur.name:'');if(sig===voiceSig)return;voiceSig=sig;
-  sel.innerHTML=vs.length?vs.map(v=>`<option ${cur&&v.name===cur.name?'selected':''}>${esc(v.name)}</option>`).join(''):'<option>Русских голосов в системе нет</option>';sel.disabled=!vs.length;}
+const VP=window.NUTS_VOICE||null,VPN=VP?new Set(VP.nums):null,VPB=VP?new Set(VP.brk):null;
+const usePack=()=>!!VP&&(!S.voiceName||S.voiceName==='__pack__');
+let voiceSig='';function fillVoices(){const sel=$('#voiceSel');if(!sel)return;const vs=ruVoices(),cur=usePack()?null:pickVoice();const sig=vs.map(v=>v.name).join('|')+'#'+(usePack()?'__pack__':cur?cur.name:'');if(sig===voiceSig)return;voiceSig=sig;
+  const opts=(VP?[`<option value="__pack__" ${usePack()?'selected':''}>${esc(VP.name)} — встроенный, одинаковый везде</option>`]:[]).concat(vs.map(v=>`<option value="${esc(v.name)}" ${cur&&v.name===cur.name?'selected':''}>${esc(v.name)}</option>`));
+  sel.innerHTML=opts.length?opts.join(''):'<option>Русских голосов в системе нет</option>';sel.disabled=!opts.length;}
+let vq=[],vA=null;
+function clipOk(n){if(!VP)return false;if(n.startsWith('n_'))return VPN.has(+n.slice(2));if(n.startsWith('lvl_'))return +n.slice(4)>=1&&+n.slice(4)<=VP.lvl;if(n.startsWith('brk_'))return VPB.has(+n.slice(4));return true;}
+function vNext(){const n=vq.shift();if(!n){vA=null;return;}const a=new Audio('voice/'+n+'.mp3');vA=a;a.onended=()=>setTimeout(vNext,70);a.onerror=()=>vNext();const pr=a.play();if(pr&&pr.catch)pr.catch(()=>{vq=[];});}
+function speak(parts,text){if(!S.voice)return;if(usePack()&&parts&&parts.every(clipOk)){try{speechSynthesis.cancel();}catch(e){}if(vA){try{vA.pause();}catch(e){}}vq=parts.slice();vNext();return;}say(text);}
 try{speechSynthesis.onvoiceschanged=fillVoices;}catch(e){}
-function say(t){if(!S.voice)return;try{const u=new SpeechSynthesisUtterance(t);u.lang='ru-RU';const v=pickVoice();if(v)u.voice=v;u.rate=1;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}}
-function announce(i){const l=L(i);if(!l)return; if(l.type==='break'){const cu=colorUpNew(i+1);say('Перерыв '+l.min+' минут'+(cu.length?'. Можно убрать фишки '+cu.join(', '):''));}
-  else say('Уровень '+lvlNum(i)+'. Блайнды '+l.sb+' на '+l.bb+(l.ante?', анте '+l.ante:'')+'.');}
+function say(t){if(!S.voice||!t)return;try{const u=new SpeechSynthesisUtterance(t);u.lang='ru-RU';const v=pickVoice();if(v)u.voice=v;u.rate=1;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}}
+function announce(i){const l=L(i);if(!l)return; if(l.type==='break'){const cu=colorUpNew(i+1);speak(['brk_'+l.min].concat(cu.length?['colorup',...cu.map(v=>'n_'+v)]:[]),'Перерыв '+l.min+' минут'+(cu.length?'. Можно убрать фишки '+cu.join(', '):''));}
+  else speak(['lvl_'+lvlNum(i),'blinds','n_'+l.sb,'na','n_'+l.bb].concat(l.ante?['ante','n_'+l.ante]:[]),'Уровень '+lvlNum(i)+'. Блайнды '+l.sb+' на '+l.bb+(l.ante?', анте '+l.ante:'')+'.');}
 
 /* ===== Wake lock ===== */
 let wl=null;
@@ -624,7 +639,7 @@ function goto(i,silent){const t=T();i=Math.max(0,Math.min(S.levels.length-1,i));
 function addTime(ms){const t=T();if(t.startedAt!=null)logEv('time',(ms>0?'+':'−')+Math.abs(ms/60000)+' мин к уровню');if(t.running)t.endsAt=Math.max(Date.now()+1000,t.endsAt+ms);else t.remaining=Math.max(1000,rem()+ms);if(rem()>60000)t.warned=false;save();render();}
 function tick(){const t=T();
   if(t.running){const r=t.endsAt-Date.now();
-    if(r<=60000&&!t.warned&&Lms(t.idx)>60000){t.warned=true;sndWarn();save();}
+    if(r<=60000&&!t.warned&&Lms(t.idx)>60000){t.warned=true;sndWarn();setTimeout(()=>speak(['warn'],'Осталась одна минута.'),700);save();}
     if(r<=0){ if(t.idx>=S.levels.length-1){extendLevels();logEv('level','Структура закончилась — добавлен уровень');toast('Структура закончилась — добавил уровень, игра продолжается');}
       {let over=-r,i=t.idx+1;while(over>=Lms(i)&&i<S.levels.length-1){over-=Lms(i);i++;}
         t.idx=i;t.endsAt=Date.now()+Lms(i)-over;t.warned=false;lvlLog(i);save();sndLevel();announce(i);render();}}}
@@ -704,7 +719,7 @@ function renderClock(){const t=T(),l=L(t.idx),r=rem();
   $('#bar').style.width=(100*(1-Math.max(0,r)/(Lms(t.idx)||1)))+'%';
   const el=t.startedAt==null?0:(t.running?Date.now():(t.pausedAt||Date.now()))-t.startedAt-t.pausedTotal;
   let ms=Math.max(0,r),found=false;if(l&&l.type!=='break'){for(let i=t.idx+1;i<S.levels.length;i++){if(L(i).type==='break'){found=true;break;}ms+=Lms(i);}}
-  const e1=$('#sElapsed'),e2=$('#sBreak');if(e1)e1.textContent=fmtT(el);if(e2)e2.textContent=l&&l.type==='break'?'сейчас':found?fmtT(ms):'—';
+  const brT=l&&l.type==='break'?'сейчас':found?fmtT(ms):'—';for(const id of ['#sElapsed','#tvElapsed']){const e=$(id);if(e)e.textContent=fmtT(el);}for(const id of ['#sBreak','#tvBreak']){const e=$(id);if(e)e.textContent=brT;}
   document.title=(t.running?fmtT(r)+' · ':'')+'Nuts';}
 
 function render(){
@@ -745,6 +760,10 @@ function render(){
   h+=`<h4>Игроки · нажмите для действий</h4><div class="qp">${qs.map(p=>`<button class="qchip ${p.status==='out'?'out':''} ${isT()&&p.place===1?'win':''}" data-qp="${p.id}"><span class="d"></span>${esc(p.name)}${p.rebuys?`<sup>+${p.rebuys}</sup>`:''}</button>`).join('')}<button class="qchip add" data-qadd="1">＋ Игрок</button></div>`;
   h+=`<h4>Время</h4><div class="kv"><span>До перерыва</span><b id="sBreak"></b></div><div class="kv"><span>Идёт игра</span><b id="sElapsed"></b></div>`;
   $('#side').innerHTML=h;document.body.classList.toggle('combos-on',!!S.showCombos);$('#tvcombos').innerHTML=HANDS.map((x,i)=>i===0?`<b>${x[0]}</b>`:x[0]).join('<br>');if(popId!=null)hidePop();
+  {const pa2=isT()?payouts(x.pool):[],rows=[[isT()?'Призовой фонд':'Банк',money(isT()?x.pool:x.money),'money']];
+   if(isT()&&pa2.length)rows.push(['Выплаты',pa2.map((a,i)=>`${i+1}: ${money(a)}`).join('<br>'),'pay']);
+   rows.push(['Игроков',x.inP+' / '+x.n],['Средний стек',x.inP?fmt(x.avg):'—'],['В больших блайндах',x.inP&&bb?Math.round(x.avg/bb):'—'],['Докупов',x.reb],['До перерыва','<span id="tvBreak">—</span>'],['Идёт игра','<span id="tvElapsed">—</span>']);
+   $('#tvstats').innerHTML=rows.map(([l,v,c])=>`<div class="r"><div class="l">${l}</div><div class="v ${c||''}">${v}</div></div>`).join('');}
   $('#tvbar').innerHTML=`<div><div class="blab">${isT()?'Призовой':'Банк'}</div><div class="v money">${money(isT()?x.pool:x.money)}</div></div><div><div class="blab">Игроков</div><div class="v">${x.inP} / ${x.n}</div></div><div><div class="blab">Средний стек</div><div class="v">${x.inP?fmt(x.avg):'—'}</div></div>`;
   renderClock();renderPlayers(x,pa);renderResults(x,pa);renderStructure();renderChips();renderSettingsState();fillVoices();requestAnimationFrame(fit);
 }
@@ -924,7 +943,16 @@ const HANDS=[['Роял-флеш','Royal flush','Туз, король, дама,
   ['Две пары','Two pair','Две разные пары. Сначала сравнивают старшую пару, потом младшую, потом кикер.','J♥ J♣ 4♠ 4♦ A♥',4],
   ['Пара','One pair','Две карты одного достоинства.','10♠ 10♥ K♦ 6♣ 3♠',2],
   ['Старшая карта','High card','Ничего не собралось — решает самая старшая карта.','A♣ Q♦ 9♠ 5♥ 3♣',1]];
-const HELP={hands:['Комбинации',()=>HANDS.map((h,i)=>{const cs=h[3].split(' ');return`<div class="hand"><div class="rk">${i+1}</div><div><div class="nm">${h[0]}<small>${h[1]}</small></div><div class="ds">${h[2]}</div></div><div class="cards">${cs.map((c,j)=>card(c,j>=h[4])).join('')}</div></div>`;}).join('')+
+const HELP={guide:['Что умеет Nuts',()=>`<div class="hsec">
+  <p>Nuts — таймер и учёт домашней игры в покер. Работает в браузере на ноутбуке, телефоне и ТВ, в том числе без интернета. Все данные хранятся только у вас.</p>
+  <h4>⏱ Таймер</h4><ul><li><b>Старт/пауза</b> — большая кнопка или пробел. Уровни меняются сами, со звуком и голосом; за минуту до конца — предупреждение.</li><li><b>⏮ ⏭</b> — соседний уровень, <b>±1м</b> — подвинуть время, <b>⟲</b> — перезапуск уровня, таймер с начала или завершение вечера.</li><li><b>📺 ТВ</b> — крупный режим для телевизора, <b>🔒</b> — блокировка кнопок от случайных нажатий.</li><li>Когда структура кончилась, уровни добавляются автоматически.</li></ul>
+  <h4>👥 Игроки</h4><ul><li>Добавляйте по имени или из сохранённых. На экране таймера — <b>наведите на игрока</b> для быстрых действий, <b>кликните</b> для подробностей.</li><li><b>Вылет</b>, <b>докуп</b> (в т.ч. на 50%), <b>аддон</b>, <b>вернуть</b> при ошибке, <b>отменить</b> последнее действие (Ctrl+Z).</li><li><b>🎲 Рассадка</b> — случайные места и дилер.</li></ul>
+  <h4>🏆 Итоги</h4><ul><li><b>Кэш</b>: введите фишки в конце — Nuts посчитает деньги по курсу и <b>кто кому переводит</b>.</li><li><b>Турнир</b>: места по вылетам, выплаты призовым, баунти.</li><li><b>Хронология</b> вечера, <b>история</b> прошлых игр, отчёт в чат одной кнопкой.</li></ul>
+  <h4>📈 Блайнды и 🪙 фишки</h4><ul><li>Генератор структуры под длительность игры и темп — от гипертурбо до слоуролла.</li><li>Ваши наборы фишек, калькулятор стартового стека, подсказки, когда убирать мелочь.</li></ul>
+  <h4>⚙️ Настройки</h4><ul><li>Формат, взносы и курс, правила докупа, поздняя регистрация, выплаты, голос, хранение в файл.</li></ul>
+  <h4>⌨️ Клавиши</h4><p>Пробел — старт/пауза · ←/→ — уровни · R — сброс · T — ТВ · F — полный экран · L — блокировка · C — комбинации · ? — эта справка · Ctrl+Z — отмена</p>
+  <p class="small">Nuts · by <a href="https://github.com/MichaelKae" target="_blank" rel="noopener" style="color:var(--acc)">MichaelKae</a></p></div>`],
+  hands:['Комбинации',()=>HANDS.map((h,i)=>{const cs=h[3].split(' ');return`<div class="hand"><div class="rk">${i+1}</div><div><div class="nm">${h[0]}<small>${h[1]}</small></div><div class="ds">${h[2]}</div></div><div class="cards">${cs.map((c,j)=>card(c,j>=h[4])).join('')}</div></div>`;}).join('')+
     `<div class="hsec"><h4>Важно помнить</h4><ul><li>В холдеме у каждого <b>2 своих карты + 5 общих</b>. Комбинация — <b>лучшие 5 из 7</b>, можно даже все 5 со стола.</li><li><b>Масти равны</b> — пиковый флеш не сильнее червового.</li><li>При равных комбинациях решает <b>кикер</b> — старшая из оставшихся карт (на картах выше они тусклые).</li><li>Если всё совпало до пятой карты — банк <b>делится поровну</b>.</li></ul></div>`],
   deal:['Ход раздачи',()=>`<div class="hsec">
     <h4>1. Блайнды</h4><p>Слева от <b>дилера (баттона)</b> малый блайнд, дальше большой — ставят обязательные ставки до раздачи.</p>
@@ -943,16 +971,16 @@ const HELP={hands:['Комбинации',()=>HANDS.map((h,i)=>{const cs=h[3].sp
     <h4>Полезное</h4><ul><li>Ставку объявляют <b>голосом</b> или кладут фишки одним движением — «доносить» фишки нельзя.</li><li>Карты не показывают до вскрытия и не обсуждают, пока раздача идёт.</li><li>Сначала ставки, потом следующая карта — никто не ходит вне очереди.</li></ul></div>`]};
 let helpTab='hands';
 function renderHelp(){$('#htabs').innerHTML=Object.entries(HELP).map(([k,v])=>`<button class="btn sm ${k===helpTab?'pri':''}" data-ht="${k}">${v[0]}</button>`).join('');$('#hbody').innerHTML=HELP[helpTab][1]();}
-function openHelp(){renderHelp();$('#help').classList.add('on');}
+function openHelp(tab){if(typeof tab==='string')helpTab=tab;renderHelp();$('#help').classList.add('on');}
 const closeHelp=()=>$('#help').classList.remove('on');
-$('#helpFab').onclick=openHelp;$('#helpClose').onclick=closeHelp;
+$('#helpFab').onclick=()=>openHelp('hands');$('#guideFab').onclick=()=>openHelp('guide');$('#helpClose').onclick=closeHelp;
 $('#help').addEventListener('click',e=>{if(e.target.id==='help')return closeHelp();const t=e.target.closest('[data-ht]');if(t){helpTab=t.dataset.ht;renderHelp();}});
 
 /* ===== Player actions ===== */
 let nid=S.players.reduce((m,p)=>Math.max(m,p.id),0)+1;
 function snap(){S.hist.push(JSON.stringify({players:S.players,seats:S.seats,logLen:S.log.length}));if(S.hist.length>40)S.hist.shift();}
 function settle(){const inP=S.players.filter(p=>p.status==='in');S.players.forEach(p=>{if(p.status==='in')p.place=null;});
-  if(isT()&&inP.length===1&&S.players.length>1){inP[0].place=1;if(S.lastWinner!==inP[0].id){S.lastWinner=inP[0].id;toast('🏆 Победитель: '+inP[0].name);say('Победитель — '+inP[0].name);}}else S.lastWinner=null;
+  if(isT()&&inP.length===1&&S.players.length>1){inP[0].place=1;if(S.lastWinner!==inP[0].id){S.lastWinner=inP[0].id;toast('🏆 Победитель: '+inP[0].name);speak(['win'],'Победитель — '+inP[0].name);}}else S.lastWinner=null;
   const out=S.players.filter(p=>p.status==='out').sort((a,b)=>b.outAt-a.outAt);out.forEach((p,i)=>p.place=inP.length+1+i);}
 function addPlayers(names){const doAdd=()=>{snap();names.forEach(n=>{S.players.push({id:nid++,name:n,status:'in',rebuys:0,addons:0,place:null,knocks:0,bustedBy:null,outAt:0,seat:null,finalChips:null,paid:S.buyin,chipsIn:S.startStack});
     if(!S.roster.some(r=>r.toLowerCase()===n.toLowerCase()))S.roster.push(n);});
@@ -1047,7 +1075,7 @@ $$('[data-mode]').forEach(b=>b.onclick=()=>{const m=b.dataset.mode;if(m===S.mode
   if(S.players.length)confirmB('Сменить формат?','Игра уже идёт. Взносы и вылеты сохранятся, но итоги будут считаться по-другому: '+(m==='tournament'?'призовые места вместо подсчёта фишек.':'по фишкам на руках вместо призовых мест.'),go,'Сменить');else go();});
 $('#payIn').addEventListener('change',e=>{const a=e.target.value.split(/[,;\s]+/).map(Number).filter(n=>n>0);if(!a.length)return render();S.payouts=a;save();render();
   const s=a.reduce((x,y)=>x+y,0);if(Math.abs(s-100)>.01)toast('Сумма выплат '+s+'%, а не 100%');});
-$('#voiceSel').addEventListener('change',e=>{S.voiceName=e.target.value;save();say('Уровень 2. Блайнды 20 на 40.');});
+$('#voiceSel').addEventListener('change',e=>{S.voiceName=e.target.value;voiceSig='';save();const v=S.voice;S.voice=true;speak(['lvl_2','blinds','n_20','na','n_40'],'Уровень 2. Блайнды 20 на 40.');S.voice=v;});
 $('#testSnd').onclick=()=>{const s=S.sound,v=S.voice;S.sound=S.voice=true;sndLevel();announce(T().idx);S.sound=s;S.voice=v;};
 function archiveGame(){if(!S.players.length)return;S.archive.unshift({at:Date.now(),mode:S.mode,text:resultsText(),log:S.log});if(S.archive.length>100)S.archive.length=100;}
 function eveningText(a){if(!a)return'';let t=a.text;if(a.log&&a.log.length){t+='\nХронология (время на часах, в скобках — сколько прошло по таймеру):\n';a.log.forEach(e=>{if(e.undone)return;t+=`${hhmm(e.at)}  (${fmtHM(e.el)} по таймеру)  [${e.lvl==='☕'?'перерыв':'ур. '+e.lvl}]  ${e.text}\n`;});}return t;}
@@ -1098,7 +1126,8 @@ $('#fileExport').onclick=async()=>{const name='poker-data-'+new Date().toISOStri
 function fit(){const st=$('.stage'),sin=$('.sin');if(!st||!$('#v-timer').classList.contains('on'))return;
   if(innerWidth<=760&&!(innerHeight<=500)){st.style.setProperty('--k',1);return;}
   const cs=getComputedStyle(st),H=st.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom),W=st.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);
-  const over=()=>sin.offsetHeight>H||$('#clock').scrollWidth>W+1||$('#blinds').scrollWidth>W+1;
+  const tvs=$('#tvstats'),tvc=$('#tvcombos');let Wc=W;if(document.body.classList.contains('tv')&&tvs&&getComputedStyle(tvs).display!=='none'){const side=Math.max(tvs.offsetWidth,tvc&&getComputedStyle(tvc).display!=='none'?tvc.offsetWidth:0)+40;Wc=W-2*side;}
+  const over=()=>sin.offsetHeight>H||$('#clock').scrollWidth>Wc+1||$('#blinds').scrollWidth>Wc+1;
   let k=1.3;st.style.setProperty('--k',k);while(over()&&k>.25){k-=.03;st.style.setProperty('--k',k.toFixed(2));}}
 let fitT;const refit=()=>{clearTimeout(fitT);fitT=setTimeout(fit,60);};addEventListener('resize',refit);
 try{new ResizeObserver(refit).observe($('.stage'));}catch(e){}
@@ -1128,7 +1157,8 @@ document.addEventListener('keydown',e=>{
   if(k==='escape'&&document.body.classList.contains('tv'))return tv(false);
   if(k==='t'||k==='е')return tv(!document.body.classList.contains('tv'));
   if(k==='f'||k==='а')return fs();
-  if(k==='c'||k==='с')return openHelp();
+  if(k==='c'||k==='с')return openHelp('hands');
+  if(e.key==='?'||e.key===',')return openHelp('guide');
   if((k==='r'||k==='к')&&!locked)return resetMenu();
   if(locked)return;
   if(e.code==='Space'){e.preventDefault();if(e.target.blur)e.target.blur();toggle();}else if(e.key==='ArrowRight')step(1);else if(e.key==='ArrowLeft')step(-1);});
