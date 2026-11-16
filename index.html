@@ -11,7 +11,7 @@
 <script src="voice/manifest.js" onerror="window.NUTS_VOICE=null"></script>
 <script src="firebase-config.js" onerror="window.NUTS_FB=window.NUTS_FB||null"></script>
 <script>
-window.NUTS_VER='4.2';
+window.NUTS_VER='4.3';
 window.NutsNet=(()=>{
   const SDK='https://www.gstatic.com/firebasejs/10.12.2/';
   const load=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('Нет связи с '+new URL(src).host));document.head.appendChild(s);});
@@ -354,7 +354,7 @@ body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
 <body>
 <div class="app">
   <nav>
-    <div class="brand" title="Nuts · версия 4.2 · by MichaelKae"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v4.2</span></div>
+    <div class="brand" title="Nuts · версия 4.3 · by MichaelKae"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v4.3</span></div>
     <button class="tab on" data-v="timer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg><span>Таймер</span></button>
     <button class="tab" data-v="players"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14.6c2.6.2 4.4 1.9 5 4.9"/></svg><span>Игроки</span></button>
     <button class="tab" data-v="results"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 14v4M8 21h8"/></svg><span>Итоги</span></button>
@@ -532,7 +532,7 @@ body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
           <label class="f">Поздняя регистрация до уровня (0 — всю игру)<input type="number" min="0" data-s="lateRegUntil"></label>
         </div>
         <div class="toggles">
-          <label class="chk"><input type="checkbox" data-s="halfRebuy"><span>Докуп на 50%<small>Половина стека за полцены. В лимит докупов идёт как 0,5.</small></span></label>
+          <label class="chk"><input type="checkbox" data-s="halfRebuy"><span>Докуп на половину стека<small>При докупе можно выбрать: весь стек или половина за полцены. Половина идёт в лимит как 0,5.</small></span></label>
           <label class="chk"><input type="checkbox" data-s="addonOn"><span>Аддон<small>Разовая докупка фишек в стек, обычно на перерыве.</small></span></label>
           <div class="subgrid" id="addonFields">
             <label class="f">Аддон, деньги<input type="number" min="0" data-s="addonCost"></label>
@@ -566,7 +566,7 @@ body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
       </div>
       <div class="card">
         <div class="about"><div class="logo">♠</div><div>
-          <div style="font-family:var(--disp);font-weight:800;font-size:20px">Nuts <span class="muted small" style="font-family:var(--ui)">v4.2</span></div>
+          <div style="font-family:var(--disp);font-weight:800;font-size:20px">Nuts <span class="muted small" style="font-family:var(--ui)">v4.3</span></div>
           <div class="muted small">Покерный таймер для домашних игр · автор <a href="https://github.com/MichaelKae" target="_blank" rel="noopener">MichaelKae</a> · <a href="https://github.com/MichaelKae/nuts" target="_blank" rel="noopener">GitHub</a></div>
         </div></div>
       </div>
@@ -594,7 +594,7 @@ body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
           <button class="btn red" id="newGame">Завершить вечер и начать новый</button>
           <button class="btn red" id="resetAll">Сбросить всё</button>
         </div>
-        <div class="hint">Nuts · версия 4.2. При завершении итоги вечера сохраняются в историю (вкладка «Итоги»). Игроки, наборы и структура остаются.</div>
+        <div class="hint">Nuts · версия 4.3. При завершении итоги вечера сохраняются в историю (вкладка «Итоги»). Игроки, наборы и структура остаются.</div>
       </div>
     </section>
   </main>
@@ -617,7 +617,7 @@ function freshTimer(){return {idx:0,running:false,endsAt:0,remaining:null,starte
 function defaults(){ return {
   name:'Покерный вечер', currency:'₽', mode:'cash',
   buyin:1000, startStack:2000, rebuyCost:1000, rebuyStack:2000,
-  maxRebuys:3, rebuyUntil:0, lateRegUntil:4, rebuyWhen:'bust', halfRebuy:false, showCombos:true,
+  maxRebuys:3, rebuyUntil:0, lateRegUntil:4, rebuyWhen:'bust', halfRebuy:true, showCombos:true,
   addonOn:false, addonCost:1000, addonStack:2000,
   bountyOn:false, bounty:200,
   payoutsAuto:true, payouts:[50,30,20], sound:true, voice:true,
@@ -629,7 +629,7 @@ function defaults(){ return {
 };}
 let S; try{S=JSON.parse(localStorage.getItem(KEY));}catch(e){S=null}
 S=Object.assign(defaults(),S||{});migrate();
-function migrate(){if(S.chips){if(!S.sets||!S.sets.length||(S.sets.length===1&&S.sets[0].id===1&&S.chips.length))S.sets=[{id:1,name:'Мой набор',on:true,chips:S.chips}];delete S.chips;}if(!S.archive)S.archive=[];if(S.name==='Покер с коллегами')S.name='Покерный вечер';(S.players||[]).forEach(p=>{if(p.paid==null){p.paid=S.buyin+p.rebuys*S.rebuyCost+p.addons*S.addonCost;p.chipsIn=S.startStack+p.rebuys*S.rebuyStack+p.addons*S.addonStack;}});S.gen=Object.assign({grow:0,maxMin:25,depth:100,pace:''},S.gen);if(!S.log)S.log=[];}
+function migrate(){if(S.chips){if(!S.sets||!S.sets.length||(S.sets.length===1&&S.sets[0].id===1&&S.chips.length))S.sets=[{id:1,name:'Мой набор',on:true,chips:S.chips}];delete S.chips;}if(!S.archive)S.archive=[];if(!S.mig42){S.halfRebuy=true;S.mig42=1;}if(S.name==='Покер с коллегами')S.name='Покерный вечер';(S.players||[]).forEach(p=>{if(p.paid==null){p.paid=S.buyin+p.rebuys*S.rebuyCost+p.addons*S.addonCost;p.chipsIn=S.startStack+p.rebuys*S.rebuyStack+p.addons*S.addonStack;}});S.gen=Object.assign({grow:0,maxMin:25,depth:100,pace:''},S.gen);if(!S.log)S.log=[];}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}scheduleFile();try{publishSoon();}catch(e){}}
 
 /* ===== Utils ===== */
@@ -859,9 +859,9 @@ function renderPlayers(x,pa){
     let a='';
     const winner=isT()&&p.place===1;
     if(p.status==='in'){ if(!winner&&x.inP>1)a+=`<button class="btn sm red" data-a="bust" data-id="${p.id}">💥 Вылет</button>`;
-      if(!winner&&S.rebuyWhen!=='bust'){a+=`<button class="btn sm" data-a="rebuy" data-id="${p.id}" title="${S.rebuyWhen==='short'?'Если стек не больше стартового':'Докуп в любой момент'}">＋ Докуп</button>`;if(S.halfRebuy)a+=`<button class="btn sm" data-a="rebuy50" data-id="${p.id}">＋ 50%</button>`;}
+      if(!winner&&S.rebuyWhen!=='bust'){a+=`<button class="btn sm" data-a="rebuy" data-id="${p.id}" title="${S.rebuyWhen==='short'?'Если стек не больше стартового':'Докуп в любой момент'}">＋ Докуп</button>`;}
       if(S.addonOn&&!p.addons&&!winner)a+=`<button class="btn sm" data-a="addon" data-id="${p.id}">＋ Аддон</button>`;}
-    else a+=`<button class="btn sm pri" data-a="rebuy" data-id="${p.id}">💸 Докуп и в игру</button>${S.halfRebuy?`<button class="btn sm" data-a="rebuy50" data-id="${p.id}">💸 50% и в игру</button>`:''}<button class="btn sm" data-a="back" data-id="${p.id}" title="Ошибочно выбит — вернуть без докупа">Вернуть</button>`;
+    else a+=`<button class="btn sm pri" data-a="rebuy" data-id="${p.id}">💸 Докуп и в игру</button><button class="btn sm" data-a="back" data-id="${p.id}" title="Ошибочно выбит — вернуть без докупа">Вернуть</button>`;
     if(p.rebuys&&p.status==='in')a+=`<button class="btn sm ghost" data-a="unrebuy" data-id="${p.id}" title="Отменить докуп">−докуп</button>`;
     a+=`<button class="btn sm ghost" data-a="del" data-id="${p.id}" title="Удалить">✕</button>`;
     return`<div class="pl ${p.status}"><div class="av" style="${avStyle(p.name)}">${esc(p.name.slice(0,1).toUpperCase())}</div>
@@ -973,8 +973,8 @@ function loadSettings(){$$('[data-s]').forEach(e=>{if(!(e.dataset.s in S))return
 /* ===== Quick actions from timer ===== */
 const canHover=(()=>{try{return matchMedia('(hover:hover) and (pointer:fine)').matches;}catch(e){return true;}})();
 function pActions(p){const x=totals(),winner=isT()&&p.place===1,B=[];
-  if(p.status==='in'){if(!winner&&x.inP>1)B.push(['bust','💥 Вылет','red']);if(!winner&&S.rebuyWhen!=='bust'){B.push(['rebuy','＋ Докуп','']);if(S.halfRebuy)B.push(['rebuy50','＋ Докуп 50%','']);}if(S.addonOn&&!p.addons&&!winner)B.push(['addon','＋ Аддон','']);}
-  else{B.push(['rebuy','💸 Докуп и в игру','pri']);if(S.halfRebuy)B.push(['rebuy50','💸 Докуп 50% и в игру','']);B.push(['back','↩ Вернуть без докупа','']);}
+  if(p.status==='in'){if(!winner&&x.inP>1)B.push(['bust','💥 Вылет','red']);if(!winner&&S.rebuyWhen!=='bust'){B.push(['rebuy','＋ Докуп','']);}if(S.addonOn&&!p.addons&&!winner)B.push(['addon','＋ Аддон','']);}
+  else{B.push(['rebuy','💸 Докуп и в игру','pri']);B.push(['back','↩ Вернуть без докупа','']);}
   return B;}
 const pStatus=p=>isT()&&p.place===1?'🏆 победитель':p.status==='in'?'в игре':(isT()?p.place+' место':'вылет');
 let popId=null,popT=null;
@@ -1071,6 +1071,8 @@ $('#rosterBox').addEventListener('click',e=>{const x=e.target.closest('[data-rx]
 function doBust(p,by){snap();p.status='out';p.outAt=Date.now();p.finalChips=0;p.bustedBy=by||null;const k=by?S.players.find(q=>q.id===by):null;if(k)k.knocks=(k.knocks||0)+1;
   settle();logEv('bust',p.name+' — вылет'+(isT()?' · '+p.place+' место':'')+(k?' · выбил(а) '+k.name:''));const w=S.players.find(q=>q.place===1&&q.status==='in');if(w){logEv('win','Победитель: '+w.name);if(T().running)pause();}save();render();toast(p.name+(isT()?' — '+p.place+' место':' — вылет'));}
 function applyRebuy(p,k=1){const cost=Math.round(S.rebuyCost*k),stack=Math.round(S.rebuyStack*k),lbl=k<1?' — докуп 50%':' — докуп';{snap();p.rebuys++;if(k<1)p.halfs=(p.halfs||0)+1;p.paid=invested(p)+cost;p.chipsIn=chipsOf(p)+stack;(p.rb=p.rb||[]).push([cost,stack,k]);logEv('rebuy',p.name+(p.status==='out'?lbl+', снова в игре':lbl)+' · №'+p.rebuys+' (+'+fmt(stack)+' фишек, '+money(cost)+')');if(p.status==='out'){p.status='in';p.finalChips=null;p.bustedBy=null;}settle();save();render();toast(p.name+lbl);}}
+function rebuyAsk(p){if(!S.halfRebuy)return doRebuy(p,1);
+  modal(`<h3>Докуп: ${esc(p.name)}</h3><p>На сколько докупается?</p>`,[{t:`💸 Весь стек · +${fmt(S.rebuyStack)} фишек за ${money(S.rebuyCost)}`,cls:'pri',fn:()=>{setTimeout(()=>doRebuy(p,1),0);}},{t:`💸 Половина · +${fmt(Math.round(S.rebuyStack/2))} фишек за ${money(Math.round(S.rebuyCost/2))}`,fn:()=>{setTimeout(()=>doRebuy(p,.5),0);}},{t:'Отмена',cls:'ghost'}]);$('#mbox .mbtns').classList.add('col');}
 function doRebuy(p,k=1){const f=()=>applyRebuy(p,k);
   const check=()=>{const why=canRebuy(p,k);if(why)confirmB('Докуп вне правил',why+' Всё равно оформить?',f,'Оформить');else f();};
   if(p.status==='in'&&S.rebuyWhen==='bust')return confirmB('Докуп только после вылета',`По правилам этого вечера ${esc(p.name)} может докупиться только после вылета. Всё равно оформить?`,check,'Оформить');
@@ -1082,7 +1084,7 @@ function playerAct(p,a){
     if(isT()&&S.bountyOn&&others.length){modal(`<h3>Вылет: ${esc(p.name)}</h3><p>Кто выбил? Баунти ${money(S.bounty)} достанется ему.</p><select id="byWho">${others.map(q=>`<option value="${q.id}">${esc(q.name)}</option>`).join('')}<option value="">— никто / не важно</option></select>`,
       [{t:'Отмена'},{t:'Готово',cls:'pri',fn:()=>doBust(p,+$('#byWho').value||null)}]);}
     else doBust(p);return;}
-  if(a==='rebuy')return doRebuy(p);
+  if(a==='rebuy')return rebuyAsk(p);
   if(a==='rebuy50')return doRebuy(p,0.5);
   if(a==='back'){snap();logEv('back',p.name+' возвращён в игру (ошибочный вылет)');if(p.bustedBy){const k=S.players.find(q=>q.id===p.bustedBy);if(k&&k.knocks)k.knocks--;}p.status='in';p.finalChips=null;p.bustedBy=null;settle();save();render();return;}
   if(a==='addon'){snap();p.addons++;p.paid=invested(p)+S.addonCost;p.chipsIn=chipsOf(p)+S.addonStack;logEv('addon',p.name+' взял аддон');save();render();toast(p.name+': аддон');return;}
@@ -1222,7 +1224,7 @@ function remoteState(){const t=T(),l=L(t.idx),nx=L(t.idx+1),x=totals(),off=NET.n
     first:t.idx<=0,last:t.idx>=S.levels.length-1,tot:S.levels.filter(z=>z.type==='level').length,
     pl:S.players.map(p=>({id:p.id,n:p.name,st:p.status,rb:p.rebuys||0,hf:p.halfs||0,ad:p.addons||0,pl:p.place||0})),
     x:{inP:x.inP,n:x.n,reb:x.reb,bank:Math.round(isT()?x.pool:x.money),avg:Math.round(x.avg)},
-    r:{when:S.rebuyWhen,half:!!S.halfRebuy,addon:!!S.addonOn,max:S.maxRebuys||0,until:S.rebuyUntil||0,lvl:curLvl(),bounty:isT()&&!!S.bountyOn,late:S.lateRegUntil||0,start:S.startStack},
+    r:{when:S.rebuyWhen,half:!!S.halfRebuy,addon:!!S.addonOn,max:S.maxRebuys||0,until:S.rebuyUntil||0,lvl:curLvl(),bounty:isT()&&!!S.bountyOn,late:S.lateRegUntil||0,start:S.startStack,rc:S.rebuyCost,rs:S.rebuyStack},
     undo:S.hist.length>0,at:NET.now()};}
 function publish(){if(!remoteOn||!NET)return;NET.set('rooms/'+S.remote.room+'/state',remoteState()).catch(()=>{});}
 async function hostConnect(){if(!NutsNet.configured())return;
@@ -1345,8 +1347,8 @@ function render0(){
     const P=[...st.pl].sort((a,b)=>(a.st===b.st?0:a.st==='in'?-1:1)||(a.pl||0)-(b.pl||0)),r=st.r,T=st.mode==='tournament';
     h+=`<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:10px"><h3 style="margin:0">Игроки</h3><button class="btn sm" data-c="undo" ${st.undo?'':'disabled'}>↶ Отменить</button></div>`+
     P.map(p=>{const win=T&&p.pl===1,acts=[];
-      if(p.st==='in'){if(!win&&st.x.inP>1)acts.push(['bust','💥','red']);if(!win&&r.when!=='bust'){acts.push(['rebuy','💸',''] );if(r.half)acts.push(['rebuy50','50%',''])}if(r.addon&&!p.ad&&!win)acts.push(['addon','➕','']);}
-      else{acts.push(['rebuy','💸 В игру','pri']);if(r.half)acts.push(['rebuy50','50%',''])}
+      if(p.st==='in'){if(!win&&st.x.inP>1)acts.push(['bust','💥','red']);if(!win&&r.when!=='bust')acts.push(['rebuy','💸','']);if(r.addon&&!p.ad&&!win)acts.push(['addon','➕','']);}
+      else{acts.push(['rebuy','💸 В игру','pri']);acts.push(['back','↩','']);}
       return`<div class="rpl ${p.st}"><span class="nm">${win?'🏆 ':''}${esc(p.n)}<small>${p.st==='out'?(T&&p.pl?p.pl+' место':'вылет'):''}${p.rb?' +'+p.rb:''}</small></span>${acts.map(([a,t,c])=>`<button class="btn ${c}" data-p="${p.id}" data-a="${a}">${t}</button>`).join('')}</div>`;}).join('')+(P.length?'':'<div class="muted small" style="padding:6px 2px">Игроков пока нет — добавьте ниже.</div>')+
     `<div class="row" style="margin-top:10px;flex-wrap:nowrap"><input id="rAdd" placeholder="Новый игрок" autocomplete="off"><button class="btn pri" data-c="add">＋</button></div></div>`;
   }else h+=`<div class="card small muted" style="text-align:center">Режим зрителя. <a href="#" id="rBeAdmin" style="color:var(--acc)">Стать пультом</a></div>`;
@@ -1357,6 +1359,8 @@ setInterval(tickR,250);
 function playerCmd(p,a){const r=st.r,k=a==='rebuy50'?.5:1,go=extra=>send(Object.assign({t:'p',id:p.id,a},extra||{}));
   if(a==='bust'){if(r.bounty){const others=st.pl.filter(x=>x.st==='in'&&x.id!==p.id);return sheet('Вылет: '+esc(p.n),'Кто выбил?',others.map(o=>({t:o.n,fn:()=>go({k:o.id})})).concat([{t:'Никто / не важно',fn:()=>go()},{t:'Отмена',cls:'ghost'}]));}
     return sheet('Вылет: '+esc(p.n)+'?','',[{t:'💥 Да, вылет',cls:'red',fn:()=>go()},{t:'Отмена',cls:'ghost'}]);}
+  if(a==='rebuy'&&r.half&&!playerCmd.k){const cur=st.cur||'₽';return sheet('Докуп: '+esc(p.n),'На сколько докупается?',[{t:`💸 Весь стек · +${fmt(r.rs)} за ${fmt(r.rc)} ${cur}`,cls:'pri',fn:()=>{playerCmd.k=1;try{playerCmd(p,'rebuy');}finally{playerCmd.k=0;}}},{t:`💸 Половина · +${fmt(r.rs/2)} за ${fmt(r.rc/2)} ${cur}`,fn:()=>{playerCmd.k=1;try{playerCmd(p,'rebuy50');}finally{playerCmd.k=0;}}},{t:'Отмена',cls:'ghost'}]);}
+  if(a==='back')return sheet('Вернуть '+esc(p.n)+'?','Без докупа — если вылет отметили по ошибке.',[{t:'↩ Вернуть в игру',cls:'pri',fn:()=>go()},{t:'Отмена',cls:'ghost'}]);
   if(a==='rebuy'||a==='rebuy50'){const units=p.rb-p.hf*.5,why=[];
     if(r.max&&units+k>r.max)why.push(`лимит докупов (${r.max}) исчерпан`);if(r.until&&r.lvl>r.until)why.push(`окно докупов закрылось после ${r.until} уровня`);
     if(p.st==='in'&&r.when==='bust')why.push('докуп только после вылета');
