@@ -11,7 +11,7 @@
 <script src="voice/manifest.js" onerror="window.NUTS_VOICE=null"></script>
 <script src="firebase-config.js" onerror="window.NUTS_FB=window.NUTS_FB||null"></script>
 <script>
-window.NUTS_VER='4.4';
+window.NUTS_VER='4.5';
 window.NutsNet=(()=>{
   const SDK='https://www.gstatic.com/firebasejs/10.12.2/';
   const load=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('Нет связи с '+new URL(src).host));document.head.appendChild(s);});
@@ -356,7 +356,7 @@ body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
 <body>
 <div class="app">
   <nav>
-    <div class="brand" title="Nuts · версия 4.4 · by MichaelKae"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v4.4</span></div>
+    <div class="brand" title="Nuts · версия 4.5 · by MichaelKae"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v4.5</span></div>
     <button class="tab on" data-v="timer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg><span>Таймер</span></button>
     <button class="tab" data-v="players"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14.6c2.6.2 4.4 1.9 5 4.9"/></svg><span>Игроки</span></button>
     <button class="tab" data-v="results"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 14v4M8 21h8"/></svg><span>Итоги</span></button>
@@ -568,7 +568,7 @@ body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
       </div>
       <div class="card">
         <div class="about"><div class="logo">♠</div><div>
-          <div style="font-family:var(--disp);font-weight:800;font-size:20px">Nuts <span class="muted small" style="font-family:var(--ui)">v4.4</span></div>
+          <div style="font-family:var(--disp);font-weight:800;font-size:20px">Nuts <span class="muted small" style="font-family:var(--ui)">v4.5</span></div>
           <div class="muted small">Покерный таймер для домашних игр · автор <a href="https://github.com/MichaelKae" target="_blank" rel="noopener">MichaelKae</a> · <a href="https://github.com/MichaelKae/nuts" target="_blank" rel="noopener">GitHub</a></div>
         </div></div>
       </div>
@@ -596,7 +596,7 @@ body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
           <button class="btn red" id="newGame">Завершить вечер и начать новый</button>
           <button class="btn red" id="resetAll">Сбросить всё</button>
         </div>
-        <div class="hint">Nuts · версия 4.4. При завершении итоги вечера сохраняются в историю (вкладка «Итоги»). Игроки, наборы и структура остаются.</div>
+        <div class="hint">Nuts · версия 4.5. При завершении итоги вечера сохраняются в историю (вкладка «Итоги»). Игроки, наборы и структура остаются.</div>
       </div>
     </section>
   </main>
@@ -1253,19 +1253,20 @@ function runCmd(c){const p=c.id!=null?S.players.find(q=>q.id===c.id):null,x=tota
     else if(c.a==='addon'){if(!p.addons&&p.status==='in')playerAct(p,'addon');}
     else if(c.a==='back'){if(p.status==='out')playerAct(p,'back');}}
   render();}
-async function hostDisconnect(){if(NET&&S.remote){try{await NET.remove('rooms/'+S.remote.room+'/state');await NET.remove('rooms/'+S.remote.room+'/admins');}catch(e){}}
-  rUnsub.forEach(f=>f());rUnsub=[];remoteOn=false;admins={};if(S.remote)S.remote.on=false;save();renderRemotePill();refreshRemoteModal();}
+async function hostDisconnect(){rUnsub.forEach(f=>f());rUnsub=[];
+  if(NET&&S.remote){const R0='rooms/'+S.remote.room;for(const k of ['state','admins','join','cmds']){try{await NET.remove(R0+'/'+k);}catch(e){}}logEv('seats','Комната '+S.remote.room+' закрыта');}
+  remoteOn=false;admins={};S.remote=null;save();renderRemotePill();refreshRemoteModal();}
 function renderRemotePill(){const el=$('#remotePill');const n=Object.keys(admins).length;el.style.display=remoteOn?'':'none';el.textContent=remoteOn?'📱 '+S.remote.room+(n?' · '+n:''):'';}
 let rmOpen=false;
 async function refreshRemoteModal(){if(!rmOpen||!$('#modal').classList.contains('on')||!$('#rmBody'))return;const b=$('#rmBody');
   if(!NutsNet.configured()){b.innerHTML=`<p>Пульт ещё не настроен: нужен файл <b>firebase-config.js</b> рядом с приложением (его делает автор по инструкции).</p>`;return;}
-  if(!remoteOn){b.innerHTML=`<p>Создайте комнату — на экране появятся QR-код и PIN. Телефон сканирует код, вводит PIN и становится пультом.</p>${remoteErr?`<p style="color:var(--red)">${esc(remoteErr)}</p>`:''}<button class="btn pri" id="rmStart" style="width:100%">📡 Создать комнату</button>`;return;}
+  if(!remoteOn){b.innerHTML=`<p>Создайте комнату — на экране появятся QR-код и PIN. Телефон сканирует код, вводит PIN и становится пультом. Каждая новая комната получает новый код и PIN.</p>${remoteErr?`<p style="color:var(--red)">${esc(remoteErr)}</p>`:''}<button class="btn pri" id="rmStart" style="width:100%">📡 Создать комнату</button>`;return;}
   const url=NutsNet.joinUrl(S.remote.room),ad=Object.entries(admins);
   b.innerHTML=`<div class="qrbox" id="rmQr"><div style="height:200px;display:grid;place-items:center;color:#555;font-size:13px">QR…</div></div>
     <div class="row" style="justify-content:center;gap:28px;margin-top:12px"><div><div class="blab" style="text-align:center">Комната</div><div class="rcode">${S.remote.room}</div></div><div><div class="blab" style="text-align:center">PIN пульта</div><div class="rcode" style="color:var(--gold)">${S.remote.pin}</div></div></div>
     <p class="small" style="text-align:center;margin:8px 0 0;word-break:break-all">${esc(url)}</p>
     <div class="rlist">${ad.length?ad.map(([u,v])=>`<div><span>📱 ${esc(v.name||'Пульт')}</span><button class="btn sm ghost red" data-rmkick="${u}">Отключить</button></div>`).join(''):'<div class="muted small">Пультов пока нет. Зрители подключаются по тому же коду без PIN.</div>'}</div>
-    <div class="row" style="margin-top:12px"><button class="btn sm" id="rmPin">🔄 Новый PIN</button><button class="btn sm red" id="rmStop">Закрыть комнату</button></div>`;
+    <div class="row" style="margin-top:12px"><button class="btn sm" id="rmPin">🔄 Новый PIN</button><button class="btn sm red" id="rmStop" title="Отключит все телефоны. Следующая комната получит новый код и PIN">Закрыть комнату</button></div>`;
   let svg;try{svg=await NutsNet.qrSvg(url);}catch(e){svg='<div style="color:#333;font-size:13px;padding:20px;text-align:center">QR не загрузился — откройте ссылку ниже на телефоне</div>';}const qb=$('#rmQr');if(qb)qb.innerHTML=svg;}
 function remoteModal(){rmOpen=true;modal(`<h3>📱 Пульт с телефона</h3><div id="rmBody"></div>`,[{t:'Готово',cls:'pri',fn:()=>{rmOpen=false;}}]);refreshRemoteModal();}
 document.addEventListener('click',async e=>{const t=e.target;
@@ -1341,7 +1342,7 @@ function render0(){
     <button class="btn pri" id="rjAdmin" style="width:100%;margin-bottom:8px" ${joining?'disabled':''}>${joining?'Жду подтверждения…':'📱 Подключиться пультом'}</button>
     <button class="btn" id="rjView" style="width:100%">👀 Просто смотреть</button></div>`;return;}
   const stale=st&&st.ver&&st.ver!==window.NUTS_VER?`<div class="card" style="border-color:rgba(251,191,36,.4)">На главном экране версия ${esc(st.ver)}, а здесь ${window.NUTS_VER}. <button class="btn sm gold" id="rReload">Обновить</button></div>`:'';
-  if(!st){root.innerHTML=header()+`<div class="card muted">Ждём экран игры… Убедитесь, что на ноутбуке открыта комната ${room}.</div>${foot()}`;return;}
+  if(!st){root.innerHTML=header()+`<div class="card muted">Ждём экран игры… Убедитесь, что на ноутбуке открыта комната ${room}. Если комнату закрыли — отсканируйте новый QR-код.</div>${foot()}`;return;}
   const l=st.lv,nx=st.nx,brk=l&&l.ty==='break';
   let h=header()+`<div class="card rtimer"><div class="lvlchip ${brk?'brk':''}">${l?(brk?'☕ Перерыв':'Уровень '+l.n+' из '+st.tot):''}</div>
     <div class="clock" id="rClock">--:--</div><div class="blinds ${brk?'brk':''}">${l?(brk?'Перерыв':fmt(l.sb)+' / '+fmt(l.bb)):''}</div>
