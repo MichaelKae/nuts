@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#06100c">
+<title>Nuts — покерный таймер</title>
+<meta name="description" content="Покерный таймер для домашних игр: блайнды, докупы, кэш и турниры, расчёт переводов, хронология вечера.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2334d399'/%3E%3Cstop offset='1' stop-color='%23a3e635'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Ctext x='16' y='23' font-size='20' text-anchor='middle' fill='%2305140d'%3E♠%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#06100c; --glass:rgba(255,255,255,.045); --glass2:rgba(255,255,255,.08); --line:rgba(255,255,255,.09);
+  --text:#f1f6f3; --muted:#8ea69a; --dim:#5d7268;
+  --acc:#34d399; --acc2:#a3e635; --gold:#fbbf24; --red:#f87171; --blue:#60a5fa;
+  --r:18px; --ui:"Manrope",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; --disp:"Unbounded","Manrope",system-ui,sans-serif;
+  --safe-b:env(safe-area-inset-bottom,0px); --safe-t:env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;color:var(--text);font-family:var(--ui);background:var(--bg)}
+body{background:
+  radial-gradient(1200px 700px at 70% -10%,rgba(52,211,153,.16),transparent 60%),
+  radial-gradient(900px 600px at -10% 110%,rgba(163,230,53,.08),transparent 60%),
+  radial-gradient(700px 500px at 110% 100%,rgba(251,191,36,.06),transparent 60%),var(--bg);
+  background-attachment:fixed}
+button,input,select{font:inherit;color:inherit}
+input,select{background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:12px;padding:10px 12px;width:100%;transition:border .15s}
+input:focus,select:focus{outline:none;border-color:var(--acc)}
+input[type=checkbox]{width:20px;height:20px;accent-color:var(--acc)}
+input[type=color]{padding:2px;height:38px;width:46px}
+.btn{cursor:pointer;border:1px solid var(--line);background:var(--glass2);border-radius:12px;padding:10px 16px;font-weight:600;
+  transition:transform .08s,background .15s,border-color .15s;white-space:nowrap}
+.btn:hover{background:rgba(255,255,255,.13)}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn.pri{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#05140d;border:none;box-shadow:0 8px 30px -8px rgba(52,211,153,.6)}
+.btn.gold{background:linear-gradient(135deg,#fcd34d,#f59e0b);color:#2a1a00;border:none}
+.btn.ghost{background:transparent}
+.btn.red{color:var(--red);border-color:rgba(248,113,113,.3)}
+.btn.sm{padding:7px 11px;font-size:13px;border-radius:10px}
+.app{display:flex;flex-direction:column;height:100%}
+
+/* nav */
+nav{display:flex;gap:4px;align-items:center;padding:10px 14px;padding-top:calc(10px + var(--safe-t));border-bottom:1px solid var(--line);
+  background:rgba(6,16,12,.7);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);z-index:10}
+.brand{font-family:var(--disp);font-weight:800;font-size:15px;margin-right:14px;display:flex;align-items:center;gap:8px;letter-spacing:.02em}
+.brand i{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--acc),var(--acc2));display:grid;place-items:center;font-style:normal;color:#05140d;font-size:15px}
+.tab{cursor:pointer;border:none;background:none;color:var(--muted);padding:9px 14px;border-radius:11px;font-weight:600;display:flex;align-items:center;gap:7px}
+.tab svg{width:18px;height:18px}
+.tab.on{color:var(--text);background:var(--glass2)}
+.tab:hover{color:var(--text)}
+.sp{flex:1}
+.modepill{white-space:nowrap;font-size:12px;font-weight:700;padding:5px 10px;border-radius:20px;background:rgba(251,191,36,.12);color:var(--gold);border:1px solid rgba(251,191,36,.25);margin-right:6px}
+main{flex:1;overflow:auto;position:relative}
+.view{display:none;padding:22px;max-width:1120px;margin:0 auto;animation:fade .25s}
+.view.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+h2{font-family:var(--disp);font-weight:700;font-size:22px;margin:0 0 16px;letter-spacing:.01em}
+.card{background:var(--glass);border:1px solid var(--line);border-radius:var(--r);padding:18px;margin-bottom:16px;backdrop-filter:blur(8px)}
+.card h3{margin:0 0 12px;font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px}
+.muted{color:var(--muted)} .small{font-size:13px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted);font-weight:500}
+label.chk{display:flex;gap:10px;align-items:center;cursor:pointer}
+.hint{font-size:12.5px;color:var(--dim);margin-top:6px;line-height:1.45}
+.money{color:var(--gold)}
+.pos{color:var(--acc)} .neg{color:var(--red)}
+.num{font-variant-numeric:tabular-nums}
+
+/* timer */
+#v-timer.on{display:flex;max-width:none;padding:0;position:absolute;inset:0}
+.stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px 18px 18px;text-align:center;min-width:0;position:relative;overflow:hidden;--k:1}
+.sin{display:flex;flex-direction:column;align-items:center;width:100%}
+.tname{font-family:var(--disp);font-weight:500;color:var(--muted);font-size:clamp(13px,1.6vw,20px);letter-spacing:.08em;text-transform:uppercase}
+.lvlchip{margin-top:10px;display:inline-flex;gap:8px;align-items:center;padding:6px 14px;border-radius:30px;background:var(--glass2);border:1px solid var(--line);
+  font-weight:700;font-size:clamp(13px,1.4vw,18px)}
+.lvlchip.brk{background:rgba(96,165,250,.14);color:var(--blue);border-color:rgba(96,165,250,.3)}
+.clock{font-family:var(--disp);font-weight:800;line-height:.95;font-variant-numeric:tabular-nums;letter-spacing:-.03em;
+  font-size:calc(var(--k)*min(16vw,28vh));margin:10px 0 4px;transition:color .3s;
+  background:linear-gradient(180deg,#fff 30%,#cfe9dc);-webkit-background-clip:text;background-clip:text;color:transparent}
+.clock.warn{background:linear-gradient(180deg,#fde68a,#f59e0b);-webkit-background-clip:text;background-clip:text;animation:pulse 1s infinite}
+.clock.paused{opacity:.4}
+@keyframes pulse{50%{opacity:.75}}
+.bar{width:min(900px,92%);height:6px;border-radius:6px;background:rgba(255,255,255,.07);overflow:hidden;margin:6px 0 18px}
+.bar div{height:100%;width:0;background:linear-gradient(90deg,var(--acc),var(--acc2));box-shadow:0 0 18px var(--acc);transition:width .25s linear}
+.blab{color:var(--muted);font-size:clamp(11px,1.1vw,14px);font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.blinds{font-family:var(--disp);font-weight:800;line-height:1;font-variant-numeric:tabular-nums;font-size:calc(var(--k)*min(9.5vw,16vh));margin-top:4px}
+.blinds.brk{color:var(--blue)}
+.ante{color:var(--muted);font-weight:700;font-size:clamp(15px,2vw,28px);min-height:1.3em;margin-top:6px}
+.pn{display:flex;justify-content:space-between;width:min(900px,92%);margin-top:14px;gap:12px}
+.pn>div{background:var(--glass);border:1px solid var(--line);border-radius:14px;padding:10px 16px;min-width:0}
+.pn .v{font-family:var(--disp);font-weight:700;font-size:clamp(16px,2.4vw,32px);font-variant-numeric:tabular-nums;white-space:nowrap}
+.notes{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:14px;min-height:30px}
+.note{font-size:13px;font-weight:600;padding:6px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--line);color:var(--muted)}
+.note.g{color:var(--acc);border-color:rgba(52,211,153,.3)} .note.y{color:var(--gold);border-color:rgba(251,191,36,.3)} .note.r{color:var(--red);border-color:rgba(248,113,113,.3)}
+.ctrls{display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap}
+.cb{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;padding:0;font-size:14px}
+.cb svg{width:22px;height:22px}
+.play{width:auto;min-width:150px;height:54px;border-radius:30px;font-size:17px;display:flex;gap:8px;align-items:center;justify-content:center}
+.play svg{width:20px;height:20px}
+.kbd{font-size:12px;color:var(--dim);margin-top:12px}
+.side{width:310px;flex-shrink:0;border-left:1px solid var(--line);padding:20px;overflow:auto;background:rgba(0,0,0,.18)}
+.side h4{margin:18px 0 8px;color:var(--dim);font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.14em}
+.side h4:first-child{margin-top:0}
+.kv{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;font-size:15px;gap:10px}
+.kv span{color:var(--muted)} .kv b{font-variant-numeric:tabular-nums;text-align:right}
+.big{font-family:var(--disp);font-size:30px;font-weight:800;color:var(--gold);font-variant-numeric:tabular-nums}
+.tvbar{display:none}
+.tvexit{position:fixed;top:14px;right:14px;z-index:30;opacity:.15;display:none}
+.tvexit:hover{opacity:1}
+body.tv nav,body.tv .side,body.tv .ctrls,body.tv .kbd{display:none!important}
+body.tv .tvexit{display:block}
+body.tv,body.tv main{overflow:hidden}
+body.tv .clock{font-size:calc(var(--k)*min(24vw,40vh))}
+body.tv .blinds{font-size:calc(var(--k)*min(13vw,22vh))}
+body.tv .tvbar{display:flex;gap:clamp(16px,4vw,60px);justify-content:center;margin-top:22px;flex-wrap:wrap}
+body.tv .tvbar div{text-align:center} body.tv .tvbar .v{font-family:var(--disp);font-weight:700;font-size:clamp(20px,3vw,44px)}
+body.locked .ctrls .lockable{opacity:.25;pointer-events:none}
+
+/* players */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px}
+.stat{background:var(--glass);border:1px solid var(--line);border-radius:16px;padding:14px 16px}
+.stat .l{color:var(--muted);font-size:12.5px;font-weight:600}
+.stat .v{font-family:var(--disp);font-size:24px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums}
+.roster{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.rchip{display:inline-flex;align-items:center;gap:4px;border:1px dashed rgba(255,255,255,.2);border-radius:20px;padding:5px 6px 5px 12px;font-size:14px;font-weight:600;cursor:pointer;background:none}
+.rchip:hover{border-color:var(--acc);color:var(--acc)}
+.rchip .x{opacity:.4;padding:0 6px;border-radius:50%} .rchip .x:hover{opacity:1;color:var(--red)}
+.plist{display:flex;flex-direction:column;gap:8px}
+.pl{display:grid;grid-template-columns:38px 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid var(--line)}
+.pl.out{opacity:.62}
+.av{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-weight:800;font-size:15px;color:#05140d}
+.pname{font-weight:700;font-size:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pmeta{font-size:13px;color:var(--muted);margin-top:3px;display:flex;gap:12px;flex-wrap:wrap}
+.badge{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:20px}
+.badge.in{background:rgba(52,211,153,.14);color:var(--acc)} .badge.out{background:rgba(248,113,113,.12);color:var(--red)} .badge.win{background:rgba(251,191,36,.16);color:var(--gold)}
+.pacts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.table-ov{position:relative;width:min(560px,100%);aspect-ratio:1.9/1;margin:20px auto 10px}
+.felt{position:absolute;inset:14% 10%;border-radius:999px;background:radial-gradient(ellipse at center,#14684a,#0b3d2c 70%);border:8px solid #3a2a1a;box-shadow:inset 0 0 40px rgba(0,0,0,.5),0 10px 40px rgba(0,0,0,.4)}
+.seat{position:absolute;transform:translate(-50%,-50%);text-align:center;font-size:12.5px;font-weight:700;width:86px}
+.seat .s{width:36px;height:36px;border-radius:50%;margin:0 auto 4px;display:grid;place-items:center;background:var(--glass2);border:1px solid var(--line);font-size:13px}
+.seat.d .s{background:#fff;color:#000}
+
+/* results */
+table{width:100%;border-collapse:collapse}
+th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--dim);font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em}
+td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
+.tscroll{overflow-x:auto}
+.xfer{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid var(--line);margin-bottom:8px;font-weight:600}
+.xfer .arr{color:var(--dim)} .xfer .amt{margin-left:auto;font-family:var(--disp);color:var(--gold)}
+.chipin{max-width:130px}
+.setcard .sname{max-width:260px;font-weight:700}
+.agg{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.agg .col{display:flex;gap:8px;align-items:center;font-weight:700;font-size:14px}
+.fstate{padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--line);font-size:14px;line-height:1.5}
+.fstate.ok{border-color:rgba(52,211,153,.35)} .fstate.warn{border-color:rgba(251,191,36,.35)}
+.arch{padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid var(--line);margin-bottom:8px}
+.arch pre{white-space:pre-wrap;font-family:var(--ui);font-size:13px;color:var(--muted);margin:8px 0 0}
+.mbtns.col{flex-direction:column;align-items:stretch}
+.timeline{display:flex;flex-direction:column;gap:2px;max-height:520px;overflow:auto;margin-top:6px}
+.ev{display:grid;grid-template-columns:48px 52px 26px 1fr auto;gap:8px;align-items:baseline;padding:8px 10px;border-radius:10px;font-size:14px}
+.ev:nth-child(odd){background:rgba(255,255,255,.025)}
+.ev .et{font-family:var(--disp);font-size:12.5px;color:var(--acc);font-variant-numeric:tabular-nums}
+.ev .el{font-size:11.5px;color:var(--dim);font-weight:700}
+.ev .ew{font-size:11.5px;color:var(--dim)}
+.ev.bust .ex{color:#fecaca} .ev.win .ex{color:var(--gold);font-weight:700} .ev.rebuy .ex{color:#d9f99d}
+.ev.level .ex,.ev.break .ex,.ev.pause .ex,.ev.resume .ex,.ev.reset .ex{color:var(--muted)}
+.hidetimer .ev.level,.hidetimer .ev.break,.hidetimer .ev.pause,.hidetimer .ev.resume{display:none}
+.ev.undone .ex{text-decoration:line-through;opacity:.5}
+@media (max-width:760px){.ev{grid-template-columns:42px 1fr auto}.ev .el,.ev .ei{display:none}}
+
+/* structure */
+.struct td{padding:6px 6px}
+.struct input{padding:7px 9px;max-width:100px}
+.struct tr.brk td{background:rgba(96,165,250,.05)}
+.struct tr.cur td{background:rgba(52,211,153,.08)}
+.cu{font-size:11px;color:var(--gold);font-weight:700}
+
+/* chips */
+.chip{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-size:10.5px;font-weight:800;
+  border:4px dashed #fff;box-shadow:0 2px 8px rgba(0,0,0,.4),inset 0 0 0 3px rgba(0,0,0,.15);flex-shrink:0}
+.stackvis{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;margin-top:6px}
+.stackvis .col{text-align:center;font-size:13px;font-weight:700}
+
+/* modal, toast */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal.on{display:flex}
+.mbox{background:#0d1a15;border:1px solid var(--line);border-radius:20px;padding:22px;max-width:440px;width:100%;box-shadow:0 30px 80px rgba(0,0,0,.5);animation:fade .2s}
+.mbox h3{margin:0 0 10px;font-family:var(--disp);font-size:18px}
+.mbox p{margin:0 0 16px;line-height:1.5;color:var(--muted)}
+.mbtns{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:16px}
+.toast{position:fixed;bottom:calc(24px + var(--safe-b));left:50%;transform:translate(-50%,20px);background:#13241d;border:1px solid var(--line);
+  padding:12px 18px;border-radius:14px;opacity:0;transition:.25s;pointer-events:none;z-index:60;font-weight:600;box-shadow:0 10px 40px rgba(0,0,0,.4)}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* responsive */
+@media (max-width:980px){ .side{width:260px} }
+@media (max-width:760px){
+  .app{flex-direction:column-reverse}
+  nav{border-bottom:none;border-top:1px solid var(--line);padding:6px 6px calc(6px + var(--safe-b));justify-content:space-around}
+  .brand,.sp,.modepill,.tabtxt-hide{display:none}
+  .tab{flex-direction:column;gap:3px;font-size:10.5px;padding:6px 4px;flex:1}
+  .tab svg{width:21px;height:21px}
+  #fsBtn,#tvBtn{display:none}
+  main{padding-top:var(--safe-t)}
+  .view{padding:14px}
+  #v-timer.on{flex-direction:column;position:static;min-height:100%}
+  .stage{overflow:visible}
+  .clock{font-size:min(24vw,30vh)} .blinds{font-size:min(14vw,16vh)}
+  .side{width:auto;border-left:none;border-top:1px solid var(--line)}
+  .stage{padding-top:22px}
+  .kbd{display:none}
+  .pl{grid-template-columns:38px 1fr}
+  .pacts{grid-column:1/-1;justify-content:flex-start}
+  .cb{width:40px;height:40px;font-size:11.5px}
+  .cb svg{width:18px;height:18px}
+  .ctrls{gap:5px;flex-wrap:nowrap}
+  .play{min-width:92px;height:46px;font-size:15px;padding:0 10px}
+}
+@media (orientation:landscape) and (max-height:500px){
+  nav{padding:4px 8px;overflow-x:auto} .brand,.modepill{display:none} .tab{padding:6px 10px;font-size:13px} .side{display:none} .stage{padding:8px}
+  .pn,.notes,.kbd{display:none} .ctrls{margin-top:8px}
+  #v-timer.on{position:absolute;inset:0;flex-direction:row}
+  .landnav{display:flex!important}
+}
+.landnav{display:none;position:fixed;top:8px;left:8px;z-index:20}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav>
+    <div class="brand" title="Nuts · версия 3.3"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v3.3</span></div>
+    <button class="tab on" data-v="timer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg><span>Таймер</span></button>
+    <button class="tab" data-v="players"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14.6c2.6.2 4.4 1.9 5 4.9"/></svg><span>Игроки</span></button>
+    <button class="tab" data-v="results"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 14v4M8 21h8"/></svg><span>Итоги</span></button>
+    <button class="tab" data-v="structure"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V14M10 20V10M16 20V6M22 20H2"/></svg><span>Блайнды</span></button>
+    <button class="tab" data-v="chips"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg><span>Фишки</span></button>
+    <button class="tab" data-v="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span>Настройки</span></button>
+    <div class="sp"></div>
+    <span class="modepill" id="modePill"></span>
+    <button class="btn sm ghost" id="tvBtn" title="Режим ТВ (T)">📺 ТВ</button>
+    <button class="btn sm ghost" id="fsBtn" title="Полный экран (F)">⛶</button>
+  </nav>
+  <main>
+    <!-- TIMER -->
+    <section class="view on" id="v-timer">
+      <div class="stage"><div class="sin">
+        <div class="tname" id="tName"></div>
+        <div class="lvlchip" id="lvlChip"></div>
+        <div class="clock" id="clock">00:00</div>
+        <div class="bar"><div id="bar"></div></div>
+        <div class="blab">Блайнды</div>
+        <div class="blinds" id="blinds"></div>
+        <div class="ante" id="ante"></div>
+        <div class="pn">
+          <div style="text-align:left"><div class="blab">Было</div><div class="v" id="prevV">—</div></div>
+          <div style="text-align:right"><div class="blab">Далее</div><div class="v" id="nextV">—</div></div>
+        </div>
+        <div class="tvbar" id="tvbar"></div>
+        <div class="notes" id="notes"></div>
+        <div class="ctrls">
+          <button class="btn cb lockable" id="bPrev" title="Предыдущий уровень (←)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+          <button class="btn cb lockable" id="bMinus" title="−1 минута">−1м</button>
+          <button class="btn pri play lockable" id="bPlay"></button>
+          <button class="btn cb lockable" id="bPlus" title="+1 минута">+1м</button>
+          <button class="btn cb lockable" id="bNext" title="Следующий уровень (→)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
+          <button class="btn cb lockable" id="bReset" title="Сброс / заново (R)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v5h5"/></svg></button>
+          <button class="btn cb" id="bLock" title="Блокировка кнопок (L)">🔓</button>
+        </div>
+        <div class="kbd">Пробел — старт/пауза · ←/→ — уровни · R — сброс · T — ТВ · F — полный экран · L — блокировка</div>
+      </div></div>
+      <aside class="side" id="side"></aside>
+    </section>
+
+    <!-- PLAYERS -->
+    <section class="view" id="v-players">
+      <div class="stats" id="pStats"></div>
+      <div class="card">
+        <h3>Добавить игрока</h3>
+        <form id="addF" class="row">
+          <input id="addName" placeholder="Имя или несколько через запятую" style="flex:1;min-width:180px" autocomplete="off">
+          <button class="btn pri" type="submit">Добавить</button>
+        </form>
+        <div id="rosterBox"></div>
+      </div>
+      <div class="card">
+        <div class="row" style="justify-content:space-between;margin-bottom:12px">
+          <h3 style="margin:0">Участники</h3>
+          <div class="row">
+            <button class="btn sm" id="undoBtn">↶ Отменить</button>
+            <button class="btn sm" id="seatBtn">🎲 Рассадка</button>
+          </div>
+        </div>
+        <div class="plist" id="plist"></div>
+        <div id="pEmpty" class="muted small" style="padding:8px 2px">Пока никого. Добавьте игроков выше или выберите из сохранённых.</div>
+      </div>
+      <div class="card" id="seatCard" style="display:none">
+        <h3>Рассадка</h3>
+        <div class="table-ov" id="tableOv"><div class="felt"></div></div>
+        <div class="hint" style="text-align:center">Белая фишка — дилер на первую раздачу.</div>
+      </div>
+    </section>
+
+    <!-- RESULTS -->
+    <section class="view" id="v-results">
+      <h2>Итоги вечера</h2>
+      <div id="resBox"></div>
+    </section>
+
+    <!-- STRUCTURE -->
+    <section class="view" id="v-structure">
+      <h2>Структура блайндов</h2>
+      <div class="card">
+        <h3>⚡ Генератор</h3>
+        <div class="muted small" style="margin-bottom:8px">Темп</div>
+        <div class="row" id="paceBox" style="margin-bottom:16px">
+          <button class="btn sm" data-pace="hyper">⚡ Гипертурбо</button>
+          <button class="btn sm" data-pace="turbo">🔥 Турбо</button>
+          <button class="btn sm" data-pace="standard">♠ Стандарт</button>
+          <button class="btn sm" data-pace="deep">🌊 Медленный</button>
+          <button class="btn sm" data-pace="slow">🐢 Слоуролл</button>
+        </div>
+        <div class="grid">
+          <label class="f">Сколько играем, часов<input type="number" step="0.5" min="0.5" data-g="hours"></label>
+          <label class="f">Уровень, минут<input type="number" min="3" data-g="levelMin"></label>
+          <label class="f">Перерыв каждые, минут (0 — без)<input type="number" min="0" data-g="breakEvery"></label>
+          <label class="f">Длина перерыва, минут<input type="number" min="1" data-g="breakMin"></label>
+          <label class="f">После перерыва уровни длиннее на, мин<input type="number" min="0" data-g="grow"></label>
+          <label class="f">Но не длиннее, мин<input type="number" min="3" data-g="maxMin"></label>
+          <label class="f">Стартовая глубина, ББ<input type="number" min="10" data-g="depth"></label>
+          <label class="f">Игроков<input type="number" min="2" data-g="players"></label>
+          <label class="f">Ожидаем ребаев всего<input type="number" min="0" data-g="rebuys"></label>
+        </div>
+        <div class="hint" id="genHint"></div>
+        <div class="row" style="margin-top:12px"><button class="btn pri" id="genBtn">Сгенерировать</button></div>
+      </div>
+      <div class="card struct">
+        <div class="tscroll"><table>
+          <thead><tr><th>#</th><th>Малый</th><th>Большой</th><th>Анте</th><th>Мин</th><th></th></tr></thead>
+          <tbody id="slist"></tbody>
+        </table></div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn sm" id="addLvl">+ Уровень</button>
+          <button class="btn sm" id="addBrk">+ Перерыв</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- CHIPS -->
+    <section class="view" id="v-chips">
+      <h2>Фишки и курс</h2>
+      <div class="card">
+        <h3>💱 Курс</h3>
+        <div class="big" id="rateBig"></div>
+        <div class="hint">Задаётся бай-ином и стартовым стеком в настройках. По этому курсу в кэше считаются деньги в конце.</div>
+      </div>
+      <div id="setsBox"></div>
+      <div class="card">
+        <h3>🧮 Калькулятор стека</h3>
+        <div class="grid">
+          <label class="f">Игроков<input type="number" min="2" id="calcP"></label>
+          <label class="f">Запас на докупы (стеков)<input type="number" min="0" id="calcR"></label>
+        </div>
+        <div id="calcOut" style="margin-top:14px"></div>
+      </div>
+      <div class="card">
+        <h3>🪙 Раскладка стартового стека</h3>
+        <div id="distOut"></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="view" id="v-settings">
+      <h2>Настройки игры</h2>
+      <div class="card">
+        <h3>Формат</h3>
+        <div class="row" id="modeSel">
+          <button class="btn" data-mode="cash">💵 Кэш (растущие блайнды)</button>
+          <button class="btn" data-mode="tournament">🏆 Турнир</button>
+        </div>
+        <div class="hint" id="modeHint"></div>
+        <div class="grid" style="margin-top:14px">
+          <label class="f">Название<input data-s="name"></label>
+          <label class="f">Валюта<input data-s="currency"></label>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Взносы</h3>
+        <div class="grid">
+          <label class="f">Бай-ин, деньги<input type="number" min="0" data-s="buyin"></label>
+          <label class="f">Стартовый стек, фишки<input type="number" min="0" data-s="startStack"></label>
+          <label class="f">Докуп, деньги<input type="number" min="0" data-s="rebuyCost"></label>
+          <label class="f">Докуп, фишки<input type="number" min="0" data-s="rebuyStack"></label>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Правила</h3>
+        <div class="grid">
+          <label class="f">Макс. докупов на игрока (0 — без лимита)<input type="number" min="0" data-s="maxRebuys"></label>
+          <label class="f">Докупы до уровня (0 — всю игру)<input type="number" min="0" data-s="rebuyUntil"></label>
+          <label class="f">Поздняя регистрация до уровня (0 — всю игру)<input type="number" min="0" data-s="lateRegUntil"></label>
+        </div>
+        <div class="grid" style="margin-top:14px">
+          <label class="chk"><input type="checkbox" data-s="addonOn"> Аддон (разовая докупка фишек в стек)</label>
+          <label class="f">Аддон, деньги<input type="number" min="0" data-s="addonCost"></label>
+          <label class="f">Аддон, фишки<input type="number" min="0" data-s="addonStack"></label>
+        </div>
+        <div class="grid trn-only" style="margin-top:14px">
+          <label class="chk"><input type="checkbox" data-s="bountyOn"> Баунти (награда за выбивание)</label>
+          <label class="f">Баунти из бай-ина, деньги<input type="number" min="0" data-s="bounty"></label>
+        </div>
+        <div class="hint trn-only">Баунти — часть каждого взноса, которая достаётся тому, кто выбил игрока. Остальное идёт в призовой фонд. Победитель забирает и свою «голову».</div>
+      </div>
+      <div class="card trn-only">
+        <h3>Выплаты</h3>
+        <label class="chk"><input type="checkbox" data-s="payoutsAuto"> Автоматически по числу игроков</label>
+        <div style="margin-top:12px"><input id="payIn" placeholder="50, 30, 20"></div>
+        <div class="hint">Проценты призового фонда по местам, через запятую. Авто: до 3 игроков — 100; 4–6 — 65/35; 7–10 — 50/30/20; 11+ — 45/27/17/11.</div>
+      </div>
+      <div class="card">
+        <h3>Звук</h3>
+        <div class="grid">
+          <label class="chk"><input type="checkbox" data-s="sound"> Сигнал при смене уровня и за минуту</label>
+          <label class="chk"><input type="checkbox" data-s="voice"> Озвучивать блайнды голосом</label>
+        </div>
+        <div class="grid" style="margin-top:12px"><label class="f">Голос<select id="voiceSel"></select></label></div>
+        <div class="row" style="margin-top:12px"><button class="btn sm" id="testSnd">🔊 Проверить</button></div>
+        <div class="hint">Самые живые голоса обычно «Google русский» (Chrome) и «Microsoft … Online (Natural)» (Edge).</div>
+      </div>
+      <div class="card">
+        <h3>💾 Хранение на компьютере</h3>
+        <div class="fstate" id="fileState"></div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn pri" id="fileLink">📁 Сохранять в файл…</button>
+          <button class="btn" id="fileOpen">📂 Открыть файл…</button>
+          <button class="btn" id="fileExport">⬇️ Скачать копию</button>
+          <label class="btn" style="cursor:pointer">⬆️ Загрузить копию<input type="file" accept=".json,application/json" id="fileImport" hidden></label>
+        </div>
+        <label class="chk" style="margin-top:14px"><input type="checkbox" data-s="autoExport"> При завершении вечера автоматически скачивать отчёт (итоги + хронология) в папку «Загрузки»</label>
+        <div class="hint">Хронология и история вечеров записываются сами, без всяких настроек — в памяти браузера на этом компьютере. Файл ниже — дополнительная копия на диске.</div>
+        <div class="hint">«Сохранять в файл» — выберите, например, папку «Покер»: после каждого действия данные (игроки, наборы, структура, история вечеров) автоматически пишутся в этот файл. Лучше всего работает в Chrome, Edge и Яндекс Браузере.</div>
+      </div>
+      <div class="card">
+        <h3>Сброс</h3>
+        <div class="row">
+          <button class="btn red" id="newGame">Завершить вечер и начать новый</button>
+          <button class="btn red" id="resetAll">Сбросить всё</button>
+        </div>
+        <div class="hint">Nuts · версия 3.3. При завершении итоги вечера сохраняются в историю (вкладка «Итоги»). Игроки, наборы и структура остаются.</div>
+      </div>
+    </section>
+  </main>
+</div>
+<button class="btn sm tvexit" id="tvExit">✕ Выйти из ТВ</button>
+<div class="modal" id="modal"><div class="mbox" id="mbox"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(()=>{
+const KEY='pokerTimer.v2';
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+
+/* ===== State ===== */
+function freshTimer(){return {idx:0,running:false,endsAt:0,remaining:null,startedAt:null,pausedTotal:0,pausedAt:null,warned:false};}
+function defaults(){ return {
+  name:'Покер с коллегами', currency:'₽', mode:'cash',
+  buyin:1000, startStack:2000, rebuyCost:1000, rebuyStack:2000,
+  maxRebuys:3, rebuyUntil:0, lateRegUntil:4,
+  addonOn:false, addonCost:1000, addonStack:2000,
+  bountyOn:false, bounty:200,
+  payoutsAuto:true, payouts:[50,30,20], sound:true, voice:true,
+  sets:[{id:1,name:'Мой набор',on:true,chips:[{v:10,n:100,c:'#f5f5f4',d:'#2563eb'},{v:20,n:50,c:'#dc2626',d:'#ffffff'},{v:50,n:50,c:'#2563eb',d:'#ffffff'},{v:100,n:50,c:'#16a34a',d:'#ffffff'},{v:500,n:50,c:'#111111',d:'#ffffff'}]}],
+  archive:[], voiceName:'', log:[], autoExport:true,
+  gen:{hours:3,levelMin:12,breakEvery:60,breakMin:10,players:9,rebuys:6,grow:5,maxMin:25,depth:100,pace:'standard'},
+  calc:{players:9,reserve:6},
+  levels:null, roster:[], players:[], seats:null, timer:freshTimer(), hist:[]
+};}
+let S; try{S=JSON.parse(localStorage.getItem(KEY));}catch(e){S=null}
+S=Object.assign(defaults(),S||{});migrate();
+function migrate(){if(S.chips){if(!S.sets||!S.sets.length||(S.sets.length===1&&S.sets[0].id===1&&S.chips.length))S.sets=[{id:1,name:'Мой набор',on:true,chips:S.chips}];delete S.chips;}if(!S.archive)S.archive=[];S.gen=Object.assign({grow:0,maxMin:25,depth:100,pace:''},S.gen);if(!S.log)S.log=[];}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}scheduleFile();}
+
+/* ===== Utils ===== */
+const fmt=n=>Math.round(n||0).toLocaleString('ru-RU');
+const money=n=>fmt(n)+' '+(S.currency||'');
+const sgn=n=>(n>0?'+':n<0?'−':'')+money(Math.abs(n));
+const pad=n=>String(n).padStart(2,'0');
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function fmtT(ms){ms=Math.max(0,ms);const t=Math.ceil(ms/1000),h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=t%60;return h?h+':'+pad(m)+':'+pad(s):pad(m)+':'+pad(s);}
+const L=i=>S.levels[i];
+const Lms=i=>(L(i)?L(i).min:0)*60000;
+const bstr=l=>!l?'—':l.type==='break'?'Перерыв':fmt(l.sb)+' / '+fmt(l.bb);
+function lvlNum(i){let n=0;for(let k=0;k<=i&&k<S.levels.length;k++)if(S.levels[k].type==='level')n++;return n;}
+const curLvl=()=>lvlNum(T().idx);
+const chipsAsc=()=>{const m=new Map();S.sets.filter(st=>st.on).forEach(st=>st.chips.forEach(c=>{if(!(c.v>0))return;const e=m.get(c.v);if(e)e.n+=c.n;else m.set(c.v,{v:c.v,n:c.n,c:c.c,d:c.d});}));return[...m.values()].sort((a,b)=>a.v-b.v);};
+const minChip=()=>(chipsAsc()[0]||{v:1}).v;
+const gcd=(a,b)=>b?gcd(b,a%b):a;
+const hue=s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))%360;return h;};
+const avStyle=n=>`background:linear-gradient(135deg,hsl(${hue(n)},70%,65%),hsl(${(hue(n)+40)%360},70%,55%))`;
+const isT=()=>S.mode==='tournament';
+const editing=sel=>{const a=document.activeElement;return!!(a&&a.matches('input:not([type=checkbox]):not([type=color]),select')&&a.closest(sel));};
+
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),2000);}
+function modal(html,btns){ $('#mbox').innerHTML=html+'<div class="mbtns"></div>'; const bx=$('#mbox .mbtns');
+  btns.forEach(b=>{const e=document.createElement('button');e.className='btn '+(b.cls||'');e.textContent=b.t;e.onclick=()=>{ if(b.fn&&b.fn()===false) return; closeModal(); };bx.appendChild(e);});
+  $('#modal').classList.add('on'); const f=$('#mbox input,#mbox select'); if(f) setTimeout(()=>f.focus(),50); }
+function closeModal(){$('#modal').classList.remove('on');}
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
+function confirmB(title,text,yes,yesT='Да',cls='pri'){modal(`<h3>${title}</h3><p>${text}</p>`,[{t:'Отмена'},{t:yesT,cls,fn:yes}]);}
+
+/* ===== Sound ===== */
+let AC=null;
+function ac(){try{if(!AC)AC=new(window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();}catch(e){}return AC;}
+function beep(p){if(!S.sound)return;const a=ac();if(!a)return;let t=a.currentTime;
+  p.forEach(([f,d])=>{const o=a.createOscillator(),g=a.createGain();o.type='triangle';o.frequency.value=f;
+    g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.45,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+d);
+    o.connect(g).connect(a.destination);o.start(t);o.stop(t+d+.05);t+=d+.07;});}
+const sndLevel=()=>beep([[784,.18],[988,.18],[1319,.5]]);
+const sndWarn=()=>beep([[660,.18],[660,.18]]);
+function ruVoices(){try{return speechSynthesis.getVoices().filter(v=>/^ru/i.test(v.lang));}catch(e){return[];}}
+function pickVoice(){const vs=ruVoices();if(!vs.length)return null;const byName=vs.find(v=>v.name===S.voiceName);if(byName)return byName;
+  return vs.find(v=>/google/i.test(v.name))||vs.find(v=>/natural|online/i.test(v.name))||vs.find(v=>/milena|svetlana|dariya|alena/i.test(v.name))||vs[0];}
+function fillVoices(){const sel=$('#voiceSel');if(!sel)return;const vs=ruVoices(),cur=pickVoice();
+  sel.innerHTML=vs.length?vs.map(v=>`<option ${cur&&v.name===cur.name?'selected':''}>${esc(v.name)}</option>`).join(''):'<option>Русских голосов в системе нет</option>';sel.disabled=!vs.length;}
+try{speechSynthesis.onvoiceschanged=fillVoices;}catch(e){}
+function say(t){if(!S.voice)return;try{const u=new SpeechSynthesisUtterance(t);u.lang='ru-RU';const v=pickVoice();if(v)u.voice=v;u.rate=1;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}}
+function announce(i){const l=L(i);if(!l)return; if(l.type==='break'){const cu=colorUpNew(i+1);say('Перерыв '+l.min+' минут'+(cu.length?'. Можно убрать фишки '+cu.join(', '):''));}
+  else say('Уровень '+lvlNum(i)+'. Блайнды '+l.sb+' на '+l.bb+(l.ante?', анте '+l.ante:'')+'.');}
+
+/* ===== Wake lock ===== */
+let wl=null;
+async function awake(on){try{if(on&&!wl&&navigator.wakeLock){wl=await navigator.wakeLock.request('screen');wl.addEventListener('release',()=>wl=null);}if(!on&&wl){wl.release();wl=null;}}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&T().running)awake(true);});
+
+/* ===== Game log ===== */
+function elapsed(){const t=S.timer;return t.startedAt==null?0:(t.running?Date.now():(t.pausedAt||Date.now()))-t.startedAt-t.pausedTotal;}
+function logEv(type,text){S.log.push({at:Date.now(),el:elapsed(),lvl:L(T().idx)&&L(T().idx).type==='break'?'☕':lvlNum(T().idx),type,text});}
+const LOGI={start:'▶️',pause:'⏸',resume:'▶️',level:'⏫',break:'☕',join:'🪑',bust:'💥',rebuy:'💸',back:'↩️',addon:'➕',del:'🗑',seats:'🎲',win:'🏆',reset:'⟲',undo:'↶',chips:'🧮'};
+
+/* ===== Timer ===== */
+const T=()=>S.timer;
+function rem(){const t=T();if(t.running)return t.endsAt-Date.now();return t.remaining==null?Lms(t.idx):t.remaining;}
+function start(){const t=T();if(t.running)return;ac();const first=t.startedAt==null;if(first)t.startedAt=Date.now();
+  if(first){const l=L(t.idx);logEv('start','Игра началась'+(l&&l.type==='level'?' · блайнды '+fmt(l.sb)+' / '+fmt(l.bb):''));}else logEv('resume','Продолжили');
+  if(t.pausedAt){t.pausedTotal+=Date.now()-t.pausedAt;t.pausedAt=null;}
+  const r=rem();t.endsAt=Date.now()+r;t.running=true;t.warned=r<=60000;awake(true);save();render();}
+function pause(){const t=T();if(!t.running)return;t.remaining=t.endsAt-Date.now();t.running=false;t.pausedAt=Date.now();logEv('pause','Пауза');awake(false);save();render();}
+const toggle=()=>T().running?pause():start();
+function lvlLog(i){const l=L(i);if(!l)return;if(l.type==='break')logEv('break','Перерыв '+l.min+' мин');else logEv('level','Уровень '+lvlNum(i)+': '+fmt(l.sb)+' / '+fmt(l.bb)+(l.ante?', анте '+fmt(l.ante):''));}
+function goto(i,silent){const t=T();i=Math.max(0,Math.min(S.levels.length-1,i));const ch=i!==t.idx;t.idx=i;t.remaining=Lms(i);t.warned=false;if(t.startedAt!=null){if(ch)lvlLog(i);else logEv('reset','Уровень перезапущен');}
+  if(t.running)t.endsAt=Date.now()+t.remaining; if(!silent){sndLevel();announce(i);} save();render();}
+function addTime(ms){const t=T();if(t.running)t.endsAt=Math.max(Date.now()+1000,t.endsAt+ms);else t.remaining=Math.max(1000,rem()+ms);if(rem()>60000)t.warned=false;save();render();}
+function tick(){const t=T();
+  if(t.running){const r=t.endsAt-Date.now();
+    if(r<=60000&&!t.warned&&Lms(t.idx)>60000){t.warned=true;sndWarn();save();}
+    if(r<=0){ if(t.idx>=S.levels.length-1){t.running=false;t.remaining=0;save();render();}
+      else{let over=-r,i=t.idx+1;while(over>=Lms(i)&&i<S.levels.length-1){over-=Lms(i);i++;}
+        t.idx=i;t.endsAt=Date.now()+Lms(i)-over;t.warned=false;lvlLog(i);save();sndLevel();announce(i);render();}}}
+  renderClock();}
+
+/* ===== Structure generator ===== */
+function niceList(){const c=minChip(),out=new Set();
+  for(let p=0;p<8;p++)for(const b of [1,1.2,1.5,1.6,2,2.5,3,4,5,6,8]){const v=Math.round(b*10**p);if(v>=2*c&&(v/2)%c===0)out.add(v);}
+  return [...out].sort((a,b)=>a-b);}
+function generate(){
+  const g=S.gen,N=niceList(),s=S.startStack||1000;
+  const near=x=>N.reduce((a,b)=>Math.abs(Math.log(b/x))<Math.abs(Math.log(a/x))?b:a,N[0]);
+  const above=x=>N.find(v=>v>x)||x*2;
+  const total=s*Math.max(2,g.players)+(S.rebuyStack||s)*Math.max(0,g.rebuys);
+  const startBB=near(Math.max(2*minChip(),s/Math.max(10,g.depth||100)));
+  const plan=[];let t=0,sb=0,lm=Math.max(3,g.levelMin);const H=Math.max(.5,g.hours)*60,mx=Math.max(lm,g.maxMin||lm);
+  while(t<H){plan.push(lm);t+=lm;sb+=lm;if(g.breakEvery>0&&sb>=g.breakEvery&&t<H){plan.push('B');t+=g.breakMin;sb=0;lm=Math.min(mx,lm+(g.grow||0));}}
+  const k=plan.filter(x=>x!=='B').length;
+  const endBB=Math.max(startBB*3,total/15);
+  const q=k>1?Math.pow(endBB/startBB,1/(k-1)):1.5;
+  let prev=0,i=0;const out=[];
+  const push=(bb,m)=>{out.push({type:'level',sb:bb/2,bb,ante:0,min:m});prev=bb;};
+  plan.forEach(x=>{if(x==='B'){out.push({type:'break',min:g.breakMin});return;}
+    let bb=near(startBB*Math.pow(q,i++));if(bb<=prev)bb=above(prev);push(bb,x);});
+  for(let j=0;j<4;j++){let bb=near(prev*q);if(bb<=prev)bb=above(prev);push(bb,lm);}  // запас уровней
+  return out;}
+function colorUpSet(j){ // номиналы, которые можно убрать начиная с уровня j
+  const ch=chipsAsc().map(c=>c.v),amts=[];for(let i=j;i<S.levels.length;i++){const l=S.levels[i];if(l.type==='level')amts.push(l.sb,l.bb,l.ante||0);}
+  if(!amts.length)return[];const res=[];
+  for(let k=0;k<ch.length-1;k++){const rest=ch.slice(k+1);if(amts.every(a=>canPay(a,rest)))res.push(ch[k]);else break;}
+  return res;}
+function canPay(a,coins){if(a===0)return true;const g=coins.reduce(gcd);if(a%g)return false;const n=a/g,c=coins.map(x=>x/g);
+  if(n>20000)return true;const ok=new Uint8Array(n+1);ok[0]=1;for(let i=1;i<=n;i++)for(const x of c)if(x<=i&&ok[i-x]){ok[i]=1;break;}return!!ok[n];}
+function colorUpNew(j){const now=colorUpSet(j);let k=j-2;while(k>=0&&L(k).type!=='break')k--;const before=colorUpSet(k>=0?k+1:0);return now.filter(v=>!before.includes(v));}
+
+/* ===== Chips math ===== */
+const chipTotal=()=>chipsAsc().reduce((a,c)=>a+c.v*c.n,0);
+function distribute(stack,E){const ch=chipsAsc();if(!ch.length||stack<=0)return{ok:false,ch:[]};
+  const u=ch.map(c=>Math.floor(c.n/Math.max(1,E)));
+  const capped=ch.map((c,i)=>i<ch.length-1?Math.min(u[i],Math.max(4,Math.ceil(stack*.22/c.v))):u[i]);
+  for(const base of [capped,u]){const c=[...base];let ex=c.reduce((a,k,i)=>a+k*ch[i].v,0)-stack;if(ex<0)continue;
+    for(let i=ch.length-1;i>=0&&ex>0;i--){const k=Math.min(c[i],Math.floor(ex/ch[i].v));c[i]-=k;ex-=k*ch[i].v;}
+    if(ex===0)return{ok:true,ch,c};}
+  return{ok:false,ch};}
+function suggestStack(E){const ch=chipsAsc();const max=ch.reduce((a,c)=>a+Math.floor(c.n/E)*c.v,0);
+  for(const step of [500,100,50,10]){for(let s=Math.floor(max/step)*step;s>=step;s-=step){if(distribute(s,E).ok)return{s,max};}}
+  return{s:0,max};}
+
+/* ===== Game math ===== */
+const invested=p=>S.buyin+p.rebuys*S.rebuyCost+p.addons*S.addonCost;
+function totals(){const P=S.players,reb=P.reduce((a,p)=>a+p.rebuys,0),add=P.reduce((a,p)=>a+p.addons,0),inP=P.filter(p=>p.status==='in').length;
+  const money=P.reduce((a,p)=>a+invested(p),0),entries=P.length+reb;
+  const bountyTot=isT()&&S.bountyOn?entries*S.bounty:0;
+  const chips=P.length*S.startStack+reb*S.rebuyStack+add*S.addonStack;
+  return{n:P.length,reb,add,inP,money,entries,bountyTot,pool:money-bountyTot,chips,avg:inP?chips/inP:0};}
+function payoutPcts(){if(!S.payoutsAuto)return S.payouts;const n=S.players.length;
+  return n<=3?[100]:n<=6?[65,35]:n<=10?[50,30,20]:[45,27,17,11];}
+const payouts=pool=>payoutPcts().map(p=>Math.round(pool*p/100));
+const rate=()=>S.startStack?S.buyin/S.startStack:0; // деньги за 1 фишку
+function canRebuy(p){if(S.maxRebuys&&p.rebuys>=S.maxRebuys)return'У '+p.name+' уже '+p.rebuys+' докупа(ов) — это лимит.';
+  if(S.rebuyUntil&&curLvl()>S.rebuyUntil)return'Окно докупов закрылось после '+S.rebuyUntil+' уровня.';return'';}
+
+/* ===== Render ===== */
+function renderClock(){const t=T(),l=L(t.idx),r=rem();
+  const c=$('#clock');const tx=fmtT(r);if(c.textContent.length!==tx.length){c.textContent=tx;requestAnimationFrame(fit);}else c.textContent=tx;c.classList.toggle('warn',r<=60000&&l&&l.type==='level'&&t.running);c.classList.toggle('paused',!t.running&&t.startedAt!=null);
+  $('#bar').style.width=(100*(1-Math.max(0,r)/(Lms(t.idx)||1)))+'%';
+  const el=t.startedAt==null?0:(t.running?Date.now():(t.pausedAt||Date.now()))-t.startedAt-t.pausedTotal;
+  let ms=Math.max(0,r),found=false;if(l&&l.type!=='break'){for(let i=t.idx+1;i<S.levels.length;i++){if(L(i).type==='break'){found=true;break;}ms+=Lms(i);}}
+  const e1=$('#sElapsed'),e2=$('#sBreak');if(e1)e1.textContent=fmtT(el);if(e2)e2.textContent=l&&l.type==='break'?'сейчас':found?fmtT(ms):'—';
+  document.title=(t.running?fmtT(r)+' · ':'')+'Nuts';}
+
+function render(){
+  const t=T(),l=L(t.idx),x=totals(),nx=L(t.idx+1);
+  $('#modePill').textContent=isT()?'🏆 Турнир':'💵 Кэш';
+  $('#tName').textContent=S.name||'';
+  const lc=$('#lvlChip');lc.className='lvlchip'+(l&&l.type==='break'?' brk':'');lc.textContent=l?(l.type==='break'?'☕ Перерыв':'Уровень '+lvlNum(t.idx)+' из '+S.levels.filter(z=>z.type==='level').length):'';
+  const b=$('#blinds');b.textContent=l&&l.type==='break'?'Перерыв':bstr(l);b.classList.toggle('brk',l&&l.type==='break');
+  $('#ante').textContent=l&&l.type==='level'&&l.ante?'Анте '+fmt(l.ante):'';
+  $('#prevV').textContent=bstr(L(t.idx-1));$('#nextV').textContent=nx?bstr(nx):'Конец';
+  $('#bPlay').innerHTML=t.running?'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>Пауза':'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4v16l13-8z"/></svg>'+(t.startedAt==null?'Старт':'Продолжить');
+  $('#bLock').textContent=document.body.classList.contains('locked')?'🔒':'🔓';
+  // notes
+  const cl=curLvl(),N=[];
+  if(S.rebuyUntil){N.push(cl<=S.rebuyUntil?`<span class="note g">Докупы открыты до ${S.rebuyUntil} ур.</span>`:`<span class="note r">Докупы закрыты</span>`);}
+  if(S.maxRebuys)N.push(`<span class="note">Лимит докупов: ${S.maxRebuys}</span>`);
+  if(S.lateRegUntil){N.push(cl<=S.lateRegUntil?`<span class="note g">Регистрация до ${S.lateRegUntil} ур.</span>`:`<span class="note">Регистрация закрыта</span>`);}
+  if(l&&l.type==='break'){const cu=colorUpNew(t.idx+1);if(cu.length)N.push(`<span class="note y">Можно убрать фишки ${cu.join(', ')}</span>`);if(S.addonOn)N.push('<span class="note y">Время аддона</span>');}
+  $('#notes').innerHTML=N.join('');
+  // side
+  const pa=payouts(x.pool);let h='';
+  if(isT()){h+=`<h4>Призовой фонд</h4><div class="big">${money(x.pool)}</div>`;
+    h+=pa.map((a,i)=>{const w=S.players.find(p=>p.place===i+1);return`<div class="kv"><span>${i+1} место${w?' · '+esc(w.name):''}</span><b class="money">${money(a)}</b></div>`;}).join('');
+    if(S.bountyOn)h+=`<div class="kv"><span>Баунти за голову</span><b>${money(S.bounty)}</b></div>`;
+    h+=`<h4>Турнир</h4><div class="kv"><span>Игроков</span><b>${x.inP} / ${x.n}</b></div><div class="kv"><span>Входов</span><b>${x.entries}</b></div>`;
+  }else{h+=`<h4>Банк</h4><div class="big">${money(x.money)}</div>`;
+    h+=`<div class="kv"><span>Курс</span><b>${fmt(S.buyin)} = ${fmt(S.startStack)} фиш.</b></div>`;
+    h+=`<h4>Стол</h4><div class="kv"><span>Игроков</span><b>${x.inP} / ${x.n}</b></div>`;}
+  h+=`<div class="kv"><span>Докупов</span><b>${x.reb}</b></div>`;if(S.addonOn)h+=`<div class="kv"><span>Аддонов</span><b>${x.add}</b></div>`;
+  h+=`<div class="kv"><span>Фишек в игре</span><b>${fmt(x.chips)}</b></div>`;
+  const bb=l&&l.type==='level'?l.bb:nx&&nx.bb;
+  h+=`<div class="kv"><span>Средний стек</span><b>${x.inP?fmt(x.avg):'—'}</b></div><div class="kv"><span>Средний стек в ББ</span><b>${x.inP&&bb?Math.round(x.avg/bb):'—'}</b></div>`;
+  h+=`<h4>Время</h4><div class="kv"><span>До перерыва</span><b id="sBreak"></b></div><div class="kv"><span>Идёт игра</span><b id="sElapsed"></b></div>`;
+  $('#side').innerHTML=h;
+  $('#tvbar').innerHTML=`<div><div class="blab">${isT()?'Призовой':'Банк'}</div><div class="v money">${money(isT()?x.pool:x.money)}</div></div><div><div class="blab">Игроков</div><div class="v">${x.inP} / ${x.n}</div></div><div><div class="blab">Средний стек</div><div class="v">${x.inP?fmt(x.avg):'—'}</div></div>`;
+  renderClock();renderPlayers(x,pa);renderResults(x,pa);renderStructure();renderChips();renderSettingsState();fillVoices();requestAnimationFrame(fit);
+}
+
+function renderPlayers(x,pa){
+  $('#pStats').innerHTML=[['В игре',x.inP+' / '+x.n],[isT()?'Призовой':'Банк',money(isT()?x.pool:x.money)],['Докупов',x.reb],['Фишек в игре',fmt(x.chips)],['Средний стек',x.inP?fmt(x.avg):'—']]
+    .map(([l,v])=>`<div class="stat"><div class="l">${l}</div><div class="v">${v}</div></div>`).join('');
+  const inGame=new Set(S.players.map(p=>p.name.toLowerCase()));const rs=S.roster.filter(n=>!inGame.has(n.toLowerCase()));
+  $('#rosterBox').innerHTML=rs.length?`<div class="hint" style="margin-top:14px">Сохранённые игроки — нажмите, чтобы добавить:</div><div class="roster">${rs.map(n=>`<span class="rchip" data-r="${esc(n)}">＋ ${esc(n)}<span class="x" data-rx="${esc(n)}" title="Забыть">✕</span></span>`).join('')}<span class="rchip" data-rall="1" style="border-style:solid">Добавить всех</span></div>`:'';
+  const ord=[...S.players].sort((a,b)=>(a.status===b.status?0:a.status==='in'?-1:1)||((a.place||0)-(b.place||0)));
+  $('#pEmpty').style.display=ord.length?'none':'block';
+  const byId=id=>S.players.find(p=>p.id===id);
+  $('#plist').innerHTML=ord.map(p=>{
+    const st=p.place===1&&isT()?'<span class="badge win">🏆 Победитель</span>':p.status==='in'?'<span class="badge in">в игре</span>':`<span class="badge out">${isT()?p.place+' место':'вылетел'}</span>`;
+    const meta=[`вложил <b class="money">${money(invested(p))}</b>`];if(p.rebuys)meta.push('докупов: '+p.rebuys);if(p.addons)meta.push('аддон');
+    if(isT()&&S.bountyOn&&p.knocks)meta.push('выбил: '+p.knocks);if(p.seat)meta.push('место за столом: '+p.seat);
+    if(p.bustedBy&&byId(p.bustedBy))meta.push('выбил его: '+esc(byId(p.bustedBy).name));
+    let a='';
+    if(p.status==='in'){ if(!(isT()&&p.place===1))a+=`<button class="btn sm red" data-a="bust" data-id="${p.id}">Вылетел</button>`;
+      a+=`<button class="btn sm" data-a="rebuy" data-id="${p.id}">＋ Докуп</button>`;
+      if(S.addonOn&&!p.addons)a+=`<button class="btn sm" data-a="addon" data-id="${p.id}">＋ Аддон</button>`;}
+    else a+=`<button class="btn sm pri" data-a="rebuy" data-id="${p.id}">Докупился</button><button class="btn sm" data-a="back" data-id="${p.id}" title="Ошибочно выбит — вернуть без докупа">Вернуть</button>`;
+    if(p.rebuys)a+=`<button class="btn sm ghost" data-a="unrebuy" data-id="${p.id}" title="Отменить докуп">−докуп</button>`;
+    a+=`<button class="btn sm ghost" data-a="del" data-id="${p.id}" title="Удалить">✕</button>`;
+    return`<div class="pl ${p.status}"><div class="av" style="${avStyle(p.name)}">${esc(p.name.slice(0,1).toUpperCase())}</div>
+      <div><div class="pname">${esc(p.name)} ${st}</div><div class="pmeta">${meta.join('<span>·</span>')}</div></div><div class="pacts">${a}</div></div>`;}).join('');
+  $('#undoBtn').disabled=!S.hist.length;
+  renderSeats();}
+
+function renderSeats(){const sc=$('#seatCard');const ps=S.players.filter(p=>p.seat).sort((a,b)=>a.seat-b.seat);
+  if(!S.seats||!ps.length){sc.style.display='none';return;} sc.style.display='block';
+  const n=S.seats.n,ov=$('#tableOv');ov.querySelectorAll('.seat').forEach(e=>e.remove());
+  for(let i=1;i<=n;i++){const ang=Math.PI/2+(i-1)*2*Math.PI/n;const xx=50+46*Math.cos(ang),yy=50+44*Math.sin(ang);
+    const p=S.players.find(q=>q.seat===i);const d=document.createElement('div');d.className='seat'+(S.seats.dealer===i?' d':'');
+    d.style.left=xx+'%';d.style.top=yy+'%';d.innerHTML=`<div class="s">${S.seats.dealer===i?'D':i}</div>${p?esc(p.name):'<span class="muted">—</span>'}`;ov.appendChild(d);}}
+
+function nets(x,pa){ // [{p,inv,win,bnt,net,chips}]
+  if(isT()){return S.players.map(p=>{const prize=p.place&&p.place<=pa.length?pa[p.place-1]:0;
+      const bnt=S.bountyOn?((p.knocks||0)+(p.place===1?1:0))*S.bounty:0;return{p,inv:invested(p),win:prize,bnt,net:prize+bnt-invested(p)};});}
+  const r=rate();return S.players.map(p=>{const ch=p.status==='out'?0:(p.finalChips??null);const val=ch==null?0:ch*r;return{p,inv:invested(p),chips:ch,win:val,net:ch==null?null:val-invested(p)};});}
+function transfers(list){const cr=[],db=[];list.forEach(o=>{if(o.net>0.5)cr.push({n:o.p.name,v:o.net});else if(o.net<-0.5)db.push({n:o.p.name,v:-o.net});});
+  cr.sort((a,b)=>b.v-a.v);db.sort((a,b)=>b.v-a.v);const res=[];let i=0,j=0;
+  while(i<db.length&&j<cr.length){const a=Math.min(db[i].v,cr[j].v);res.push([db[i].n,cr[j].n,a]);db[i].v-=a;cr[j].v-=a;if(db[i].v<0.5)i++;if(cr[j].v<0.5)j++;}return res;}
+
+function renderResults(x,pa){const box=$('#resBox');if(document.activeElement&&document.activeElement.classList.contains('chipin'))return;
+  if(!S.players.length){box.innerHTML='<div class="card muted">Добавьте игроков — здесь появятся итоги и расчёт, кто кому переводит.</div>'+logCard()+archiveHTML();return;}
+  const R=nets(x,pa);let h='';
+  if(isT()){const done=x.inP<=1;
+    h+=`<div class="stats"><div class="stat"><div class="l">Призовой фонд</div><div class="v money">${money(x.pool)}</div></div><div class="stat"><div class="l">Входов</div><div class="v">${x.entries}</div></div>${S.bountyOn?`<div class="stat"><div class="l">Баунти всего</div><div class="v">${money(x.bountyTot)}</div></div>`:''}<div class="stat"><div class="l">Статус</div><div class="v" style="font-size:18px">${done?'✅ Завершён':'⏳ Идёт'}</div></div></div>`;
+    if(!done)h+=`<div class="card small muted">Турнир ещё идёт — итоги предварительные. Места появятся по мере вылетов.</div>`;
+    const ord=[...R].sort((a,b)=>(a.p.place||99)-(b.p.place||99));
+    h+=`<div class="card"><div class="tscroll"><table><thead><tr><th>Место</th><th>Игрок</th><th class="r">Вложил</th><th class="r">Приз</th>${S.bountyOn?'<th class="r">Баунти</th>':''}<th class="r">Итог</th></tr></thead><tbody>`+
+      ord.map(o=>`<tr><td>${o.p.place||'—'}</td><td>${esc(o.p.name)}</td><td class="r">${money(o.inv)}</td><td class="r money">${o.win?money(o.win):''}</td>${S.bountyOn?`<td class="r">${o.bnt?money(o.bnt):''}</td>`:''}<td class="r ${o.net>0?'pos':o.net<0?'neg':''}">${sgn(o.net)}</td></tr>`).join('')+`</tbody></table></div></div>`;
+  }else{const r=rate();const sumCh=R.reduce((a,o)=>a+(o.chips||0),0);const missing=R.filter(o=>o.chips==null).length;const diff=sumCh-x.chips;
+    h+=`<div class="stats"><div class="stat"><div class="l">Банк</div><div class="v money">${money(x.money)}</div></div><div class="stat"><div class="l">Выдано фишек</div><div class="v">${fmt(x.chips)}</div></div><div class="stat"><div class="l">Посчитано фишек</div><div class="v ${missing?'':diff===0?'pos':'neg'}">${fmt(sumCh)}</div></div><div class="stat"><div class="l">Курс</div><div class="v" style="font-size:17px">1 фишка = ${(+r.toFixed(3)).toLocaleString('ru-RU')} ${esc(S.currency)}</div></div></div>`;
+    h+=`<div class="card"><h3>Сколько фишек у каждого в конце</h3><div class="hint" style="margin:-6px 0 10px">У вылетевших — 0. Введите стеки тех, кто доиграл.</div><div class="tscroll"><table><thead><tr><th>Игрок</th><th class="r">Вложил</th><th class="r">Фишки</th><th class="r">В деньгах</th><th class="r">Итог</th></tr></thead><tbody>`+
+      R.map(o=>`<tr><td>${esc(o.p.name)}</td><td class="r">${money(o.inv)}</td><td class="r">${o.p.status==='out'?'0':`<input class="chipin num" type="number" min="0" data-fc="${o.p.id}" value="${o.chips??''}" placeholder="фишки">`}</td><td class="r money">${o.chips!=null?money(o.win):''}</td><td class="r ${o.net>0?'pos':o.net<0?'neg':''}">${o.net==null?'':sgn(o.net)}</td></tr>`).join('')+`</tbody></table></div>`;
+    if(!missing&&diff!==0)h+=`<div class="hint" style="color:var(--red)">Фишек ${diff>0?'больше':'меньше'}, чем выдано, на ${fmt(Math.abs(diff))}. Пересчитайте — иначе расчёт не сойдётся.</div>`;
+    h+=`</div>`;
+    if(missing){box.innerHTML=h+`<div class="card small muted">Расчёт переводов появится, когда будут введены фишки всех, кто остался в игре (осталось: ${missing}).</div>`+logCard()+archiveHTML();return;}}
+  const tr=transfers(R.filter(o=>o.net!=null));
+  h+=`<div class="card"><h3>💸 Кто кому переводит</h3>${tr.length?tr.map(([a,b,v])=>`<div class="xfer"><span>${esc(a)}</span><span class="arr">→</span><span>${esc(b)}</span><span class="amt">${money(v)}</span></div>`).join(''):'<div class="muted">Все при своих.</div>'}
+    <div class="row" style="margin-top:12px"><button class="btn pri" id="copyRes">📋 Скопировать итоги для чата</button></div></div>`;
+  box.innerHTML=h+logCard()+archiveHTML();}
+function logHTML(log,full){if(!log||!log.length)return'';
+  const rows=log.map(e=>`<div class="ev ${e.type}${e.undone?' undone':''}"><span class="et">${fmtHM(e.el)}</span><span class="el">${e.lvl==='☕'?'☕':e.lvl?'ур. '+e.lvl:''}</span><span class="ei">${LOGI[e.type]||'•'}</span><span class="ex">${esc(e.text)}</span><span class="ew">${new Date(e.at).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</span></div>`).reverse().join('');
+  return`<div class="timeline">${rows}</div>`;}
+function fmtHM(ms){const m=Math.floor(Math.max(0,ms)/60000);return Math.floor(m/60)+':'+pad(m%60);}
+function logCard(){if(!S.log.length)return'';const bust=S.log.filter(e=>e.type==='bust'&&!e.undone).length,reb=S.log.filter(e=>e.type==='rebuy'&&!e.undone).length;
+  return`<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:10px"><h3 style="margin:0">🕓 Хронология вечера</h3><label class="chk small muted"><input type="checkbox" id="logTimer" ${S.logShowTimer?'checked':''}> паузы и уровни</label></div>
+    <div class="hint" style="margin:-4px 0 12px">Идёт ${fmtHM(elapsed())} · вылетов: ${bust} · докупов: ${reb} · свежие события сверху</div><div class="${S.logShowTimer?'':'hidetimer'}">${logHTML(S.log)}</div></div>`;}
+function archiveHTML(){if(!S.archive.length)return'';return`<div class="card"><h3>📚 Прошлые вечера</h3>${S.archive.map((a,i)=>`<details class="arch"><summary><b>${new Date(a.at).toLocaleString('ru-RU',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})}</b> <span class="muted">· ${a.mode==='tournament'?'турнир':'кэш'}</span></summary><pre>${esc(a.text)}</pre>${a.log&&a.log.length?`<details style="margin-top:8px"><summary class="small muted" style="cursor:pointer">🕓 Хронология (${a.log.length} событий)</summary>${logHTML(a.log)}</details>`:''}<div class="row" style="margin-top:8px"><button class="btn sm" data-acopy="${i}">📋 Копировать</button><button class="btn sm" data-adl="${i}">⬇️ Скачать отчёт</button><button class="btn sm ghost red" data-adel="${i}">Удалить</button></div></details>`).join('')}</div>`;}
+
+function resultsText(){const x=totals(),pa=payouts(x.pool),R=nets(x,pa);const d=new Date().toLocaleDateString('ru-RU');
+  let s=`♠ ${S.name} — ${d}\n${isT()?'Турнир':'Кэш'} · игроков: ${x.n} · докупов: ${x.reb} · ${isT()?'призовой':'банк'}: ${money(isT()?x.pool:x.money)}\n\n`;
+  const ord=[...R].sort((a,b)=>isT()?(a.p.place||99)-(b.p.place||99):(b.net||0)-(a.net||0));
+  ord.forEach((o,i)=>{s+=`${isT()?(o.p.place||'—')+'. ':(i+1)+'. '}${o.p.name}: ${o.net==null?'?':sgn(o.net)}\n`;});
+  const tr=transfers(R.filter(o=>o.net!=null));if(tr.length){s+='\nПереводы:\n';tr.forEach(([a,b,v])=>s+=`${a} → ${b}: ${money(v)}\n`);}return s;}
+
+function renderStructure(){if(editing('#slist'))return;
+  const cur=T().idx;$$('[data-g]').forEach(e=>{if(document.activeElement!==e)e.value=S.gen[e.dataset.g];});$$('[data-pace]').forEach(b=>b.classList.toggle('pri',b.dataset.pace===S.gen.pace));
+  const g=S.gen,E=g.players+g.rebuys;$('#genHint').textContent=`Стартовый стек ${fmt(S.startStack)} (меняется в настройках). Фишек в игре при ${g.players} игроках и ${g.rebuys} докупах: ~${fmt(S.startStack*g.players+S.rebuyStack*g.rebuys)}. Блайнды кратны самой мелкой фишке (${minChip()}), чтобы их можно было поставить.`;
+  const mins=[...new Set(S.levels.filter(l=>l.type==='level').map(l=>l.min))];$('#genHint').textContent+=' Сейчас: '+S.levels.filter(l=>l.type==='level').length+' уровней'+(mins.length>1?', длина '+mins.join('→')+' мин':', по '+mins[0]+' мин')+'.';
+  $('#slist').innerHTML=S.levels.map((l,i)=>{const cls=(l.type==='break'?'brk ':'')+(i===cur?'cur':'');
+    const cu=l.type==='break'?colorUpNew(i+1):[];
+    const act=`<div class="row" style="gap:4px;flex-wrap:nowrap"><button class="btn sm ghost" data-sa="go" data-i="${i}" title="Перейти">▶</button><button class="btn sm ghost" data-sa="up" data-i="${i}">↑</button><button class="btn sm ghost" data-sa="dn" data-i="${i}">↓</button><button class="btn sm ghost" data-sa="del" data-i="${i}">✕</button></div>`;
+    if(l.type==='break')return`<tr class="${cls}"><td>☕</td><td colspan="3"><span class="muted">Перерыв</span> ${cu.length?`<span class="cu">· убрать фишки ${cu.join(', ')}</span>`:''}</td><td><input type="number" min="1" data-f="min" data-i="${i}" value="${l.min}"></td><td>${act}</td></tr>`;
+    return`<tr class="${cls}"><td><b>${lvlNum(i)}</b></td><td><input type="number" min="0" data-f="sb" data-i="${i}" value="${l.sb}"></td><td><input type="number" min="0" data-f="bb" data-i="${i}" value="${l.bb}"></td><td><input type="number" min="0" data-f="ante" data-i="${i}" value="${l.ante||0}"></td><td><input type="number" min="1" data-f="min" data-i="${i}" value="${l.min}"></td><td>${act}</td></tr>`;}).join('');}
+
+function chipEl(c,txt){const d=c.d||'#fff';return`<div class="chip" style="background:${c.c};color:${d};border-color:${d}">${txt??fmt(c.v)}</div>`;}
+function renderSets(){if(editing('#setsBox'))return;
+  const agg=chipsAsc();
+  $('#setsBox').innerHTML=S.sets.map((st,si)=>{const sum=st.chips.reduce((a,c)=>a+c.v*c.n,0);
+    return`<div class="card setcard" style="${st.on?'':'opacity:.55'}"><div class="row" style="justify-content:space-between;margin-bottom:12px">
+      <div class="row"><span style="font-size:20px">🎰</span><input class="sname" data-sn="${si}" value="${esc(st.name)}"><label class="chk small"><input type="checkbox" data-son="${si}" ${st.on?'checked':''}> в игре</label></div>
+      ${si>0?`<button class="btn sm red" data-sdel="${si}">Убрать набор</button>`:''}</div>
+      <div class="tscroll"><table><thead><tr><th></th><th>Номинал</th><th>Штук</th><th>Цвет</th><th>Детали</th><th class="r">Сумма</th><th></th></tr></thead><tbody>
+      ${st.chips.map((c,i)=>`<tr><td>${chipEl(c)}</td><td><input type="number" min="1" data-si="${si}" data-c="v" data-i="${i}" value="${c.v}" style="max-width:100px"></td><td><input type="number" min="0" data-si="${si}" data-c="n" data-i="${i}" value="${c.n}" style="max-width:100px"></td><td><input type="color" data-si="${si}" data-c="c" data-i="${i}" value="${c.c}"></td><td><input type="color" data-si="${si}" data-c="d" data-i="${i}" value="${c.d||'#ffffff'}"></td><td class="r">${fmt(c.v*c.n)}</td><td><button class="btn sm ghost" data-si="${si}" data-cdel="${i}">✕</button></td></tr>`).join('')}
+      </tbody></table></div><div class="row" style="margin-top:12px;justify-content:space-between"><button class="btn sm" data-addchip="${si}">+ Номинал</button><div>В наборе: <b class="num">${fmt(sum)}</b></div></div></div>`;}).join('')+
+    `<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Всего в игре: <span class="money num">${fmt(chipTotal())}</span></h3><button class="btn" id="addSet">＋ Добавить набор</button></div>
+    ${S.sets.filter(x=>x.on).length>1?`<div class="agg" style="margin-top:14px">${agg.map(c=>`<div class="col">${chipEl(c)}× ${c.n}</div>`).join('')}</div>`:'<div class="hint">Коллега принёс свои фишки? Добавьте его набор — калькулятор стека и генератор блайндов учтут всё вместе. Отключите галочку «в игре», если набор сегодня не нужен.</div>'}</div>`;}
+function renderChips(){
+  const r=rate();$('#rateBig').textContent=`${fmt(S.buyin)} ${S.currency} = ${fmt(S.startStack)} фишек`;
+  renderSets();
+  const cp=$('#calcP'),cr=$('#calcR');if(document.activeElement!==cp)cp.value=S.calc.players;if(document.activeElement!==cr)cr.value=S.calc.reserve;
+  const E=S.calc.players+S.calc.reserve,sg=suggestStack(E);
+  $('#calcOut').innerHTML=sg.s?`<div class="row" style="justify-content:space-between"><div><div class="muted small">Рекомендуемый стартовый стек на ${E} стеков (${S.calc.players} игроков + ${S.calc.reserve} в запас)</div><div class="big" style="color:var(--acc)">${fmt(sg.s)}</div><div class="hint">Максимум, который набор выдержит ровно: ~${fmt(sg.max)}. Курс сохранится: бай-ин ${fmt(S.buyin)} ${esc(S.currency)}.</div></div><button class="btn pri" id="applyStack" data-st="${sg.s}">Сделать стартовым</button></div>`:'<div class="muted">Набора не хватает на столько стеков — уменьшите запас.</div>';
+  const d=distribute(S.startStack,E);
+  if(!d.ok){$('#distOut').innerHTML=`<div class="muted">Стек ${fmt(S.startStack)} не собирается ровно из набора на ${E} стеков. Попробуйте рекомендуемый выше.</div>`;return;}
+  const can=Math.min(...d.ch.map((c,i)=>d.c[i]?Math.floor(c.n/d.c[i]):Infinity));
+  $('#distOut').innerHTML=`<div class="stackvis">${d.ch.map((c,i)=>d.c[i]?`<div class="col">${chipEl(c)}<div style="margin-top:6px">× ${d.c[i]}</div><div class="muted small">${fmt(c.v*d.c[i])}</div></div>`:'').join('')}</div>
+    <div class="hint" style="margin-top:12px">Стек ${fmt(S.startStack)} · набора хватит на <b>${can}</b> таких стеков. Докупы выдаются такими же стеками${S.rebuyStack!==S.startStack?' (докуп сейчас '+fmt(S.rebuyStack)+')':''}.</div>`;}
+
+function renderSettingsState(){$$('[data-mode]').forEach(b=>b.classList.toggle('pri',b.dataset.mode===S.mode));
+  $('#modeHint').textContent=isT()?'Турнир: банк делится между призовыми местами, места фиксируются по вылетам.':'Кэш: блайнды растут, докупы по правилам. В конце вводите фишки — приложение посчитает деньги по курсу и переводы.';
+  $$('.trn-only').forEach(e=>e.style.display=isT()?'':'none');
+  const pi=$('#payIn');pi.disabled=S.payoutsAuto;if(document.activeElement!==pi)pi.value=payoutPcts().join(', ');}
+function loadSettings(){$$('[data-s]').forEach(e=>{if(!(e.dataset.s in S))return;if(e.type==='checkbox')e.checked=!!S[e.dataset.s];else e.value=S[e.dataset.s];});}
+
+/* ===== Player actions ===== */
+let nid=S.players.reduce((m,p)=>Math.max(m,p.id),0)+1;
+function snap(){S.hist.push(JSON.stringify({players:S.players,seats:S.seats,logLen:S.log.length}));if(S.hist.length>40)S.hist.shift();}
+function settle(){const inP=S.players.filter(p=>p.status==='in');S.players.forEach(p=>{if(p.status==='in')p.place=null;});
+  if(isT()&&inP.length===1&&S.players.length>1){inP[0].place=1;toast('🏆 Победитель: '+inP[0].name);say('Победитель — '+inP[0].name);}
+  const out=S.players.filter(p=>p.status==='out').sort((a,b)=>b.outAt-a.outAt);out.forEach((p,i)=>p.place=inP.length+1+i);}
+function addPlayers(names){const doAdd=()=>{snap();names.forEach(n=>{S.players.push({id:nid++,name:n,status:'in',rebuys:0,addons:0,place:null,knocks:0,bustedBy:null,outAt:0,seat:null,finalChips:null});
+    if(!S.roster.some(r=>r.toLowerCase()===n.toLowerCase()))S.roster.push(n);});
+    logEv('join',(names.length>1?'За стол сели: ':'За стол сел(а) ')+names.join(', ')+(T().startedAt!=null?' (поздняя регистрация)':''));settle();save();render();};
+  if(S.lateRegUntil&&T().startedAt!=null&&curLvl()>S.lateRegUntil)confirmB('Регистрация закрыта',`Поздняя регистрация была до ${S.lateRegUntil} уровня. Всё равно добавить?`,doAdd,'Добавить');else doAdd();}
+$('#addF').addEventListener('submit',e=>{e.preventDefault();const have=new Set(S.players.map(p=>p.name.toLowerCase()));
+  const ns=$('#addName').value.split(',').map(s=>s.trim()).filter(n=>n&&!have.has(n.toLowerCase()));$('#addName').value='';if(ns.length)addPlayers(ns);});
+$('#rosterBox').addEventListener('click',e=>{const x=e.target.closest('[data-rx]');if(x){S.roster=S.roster.filter(n=>n!==x.dataset.rx);save();render();return;}
+  const r=e.target.closest('[data-r]');if(r){addPlayers([r.dataset.r]);return;}
+  if(e.target.closest('[data-rall]')){const have=new Set(S.players.map(p=>p.name.toLowerCase()));addPlayers(S.roster.filter(n=>!have.has(n.toLowerCase())));}});
+function doBust(p,by){snap();p.status='out';p.outAt=Date.now();p.finalChips=0;p.bustedBy=by||null;const k=by?S.players.find(q=>q.id===by):null;if(k)k.knocks=(k.knocks||0)+1;
+  settle();logEv('bust',p.name+' вылетел'+(isT()?' · '+p.place+' место':'')+(k?' · выбил '+k.name:''));const w=S.players.find(q=>q.place===1&&q.status==='in');if(w)logEv('win','Победитель: '+w.name);save();render();toast(p.name+(isT()?' — '+p.place+' место':' вылетел'));}
+function doRebuy(p){const f=()=>{snap();p.rebuys++;logEv('rebuy',p.name+(p.status==='out'?' докупился и вернулся в игру':' докупился')+' · докуп №'+p.rebuys+' (+'+fmt(S.rebuyStack)+' фишек, '+money(S.rebuyCost)+')');if(p.status==='out'){p.status='in';p.finalChips=null;p.bustedBy=null;}settle();save();render();toast(p.name+' докупился');};
+  const why=canRebuy(p);if(why)confirmB('Докуп вне правил',why+' Всё равно оформить?',f,'Оформить');else f();}
+$('#plist').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const p=S.players.find(x=>x.id==b.dataset.id);if(!p)return;const a=b.dataset.a;
+  if(a==='bust'){const others=S.players.filter(q=>q.status==='in'&&q!==p);
+    if(isT()&&S.bountyOn&&others.length){modal(`<h3>${esc(p.name)} вылетел</h3><p>Кто выбил? Баунти ${money(S.bounty)} уйдёт ему.</p><select id="byWho">${others.map(q=>`<option value="${q.id}">${esc(q.name)}</option>`).join('')}<option value="">— никто / не важно</option></select>`,
+      [{t:'Отмена'},{t:'Готово',cls:'pri',fn:()=>doBust(p,+$('#byWho').value||null)}]);}
+    else doBust(p);return;}
+  if(a==='rebuy')return doRebuy(p);
+  if(a==='back'){snap();logEv('back',p.name+' возвращён в игру (ошибочный вылет)');if(p.bustedBy){const k=S.players.find(q=>q.id===p.bustedBy);if(k&&k.knocks)k.knocks--;}p.status='in';p.finalChips=null;p.bustedBy=null;settle();save();render();return;}
+  if(a==='addon'){snap();p.addons++;logEv('addon',p.name+' взял аддон');save();render();toast(p.name+': аддон');return;}
+  if(a==='unrebuy'){snap();p.rebuys--;logEv('undo','Отменён докуп: '+p.name);save();render();return;}
+  if(a==='del')confirmB('Удалить игрока?',`«${esc(p.name)}» и все его взносы уйдут из банка.`,()=>{snap();logEv('del',p.name+' удалён из игры');S.players=S.players.filter(x=>x!==p);settle();save();render();},'Удалить','red');});
+function undo(){const h=S.hist.pop();if(!h)return;const o=JSON.parse(h);S.players=o.players;S.seats=o.seats;
+  if(o.logLen!=null)S.log.forEach((e,i)=>{if(i>=o.logLen&&!['level','break','pause','resume','start','reset'].includes(e.type))e.undone=true;});logEv('undo','Отменено последнее действие');save();render();toast('Отменено');}
+$('#undoBtn').onclick=undo;
+$('#seatBtn').onclick=()=>{const ps=S.players.filter(p=>p.status==='in');if(ps.length<2){toast('Нужно хотя бы 2 игрока в игре');return;}
+  snap();const seats=[...Array(ps.length).keys()].map(i=>i+1).sort(()=>Math.random()-.5);S.players.forEach(p=>p.seat=null);ps.forEach((p,i)=>p.seat=seats[i]);
+  S.seats={n:ps.length,dealer:1+Math.floor(Math.random()*ps.length)};logEv('seats','Рассадка: '+[...ps].sort((a,b)=>a.seat-b.seat).map(p=>p.seat+'. '+p.name+(p.seat===S.seats.dealer?' (D)':'')).join(', '));save();render();$('#seatCard').scrollIntoView({behavior:'smooth'});};
+$('#resBox').addEventListener('change',e=>{if(e.target.id==='logTimer'){S.logShowTimer=e.target.checked;save();render();}});
+$('#resBox').addEventListener('input',e=>{const i=e.target.closest('[data-fc]');if(!i)return;const p=S.players.find(x=>x.id==i.dataset.fc);p.finalChips=i.value===''?null:Math.max(0,+i.value);save();});
+$('#resBox').addEventListener('change',e=>{if(e.target.closest('[data-fc]')){e.target.blur();render();}});
+$('#resBox').addEventListener('click',async e=>{const ac=e.target.closest('[data-acopy]'),ad=e.target.closest('[data-adel]'),adl=e.target.closest('[data-adl]');
+  if(adl){const a=S.archive[+adl.dataset.adl];if(!downloadText(eveName(a),eveningText(a))){try{await navigator.clipboard.writeText(eveningText(a));toast('Здесь скачивание закрыто — отчёт скопирован');}catch(err){}}return;}
+  if(ad){confirmB('Удалить запись?','Итоги этого вечера будут удалены из истории.',()=>{S.archive.splice(+ad.dataset.adel,1);save();render();},'Удалить','red');return;}
+  if(!ac&&e.target.id!=='copyRes')return;const txt=ac?S.archive[+ac.dataset.acopy].text:resultsText();
+  try{await navigator.clipboard.writeText(txt);toast('Скопировано — вставляйте в чат');}
+  catch(err){modal(`<h3>Итоги</h3><p>Скопируйте вручную:</p><textarea style="width:100%;height:220px;background:#000;color:#fff;border-radius:10px;padding:10px;border:1px solid var(--line)">${esc(txt)}</textarea>`,[{t:'Закрыть'}]);}});
+
+/* ===== Structure actions ===== */
+$$('[data-g]').forEach(e=>e.addEventListener('change',()=>{S.gen[e.dataset.g]=Math.max(0,+e.value||0);S.gen.pace='';save();render();}));
+const PACES={hyper:{levelMin:5,grow:0,maxMin:5,breakEvery:60,breakMin:5,depth:40,n:'Гипертурбо: уровни по 5 минут, неглубокие стеки — всё решается быстро.'},
+  turbo:{levelMin:8,grow:2,maxMin:12,breakEvery:60,breakMin:10,depth:60,n:'Турбо: короткие уровни 8→10→12 минут.'},
+  standard:{levelMin:12,grow:5,maxMin:25,breakEvery:60,breakMin:10,depth:100,n:'Стандарт: начинаем бодро (12 мин), после каждого перерыва уровни длиннее на 5 минут, до 25.'},
+  deep:{levelMin:15,grow:5,maxMin:30,breakEvery:75,breakMin:10,depth:150,n:'Медленный: глубокие стеки, 15→20→25→30 минут.'},
+  slow:{levelMin:25,grow:10,maxMin:45,breakEvery:90,breakMin:15,depth:200,n:'Слоуролл: длинные уровни 25→35→45 минут, очень глубоко.'}};
+$('#paceBox').addEventListener('click',e=>{const b=e.target.closest('[data-pace]');if(!b)return;const P=PACES[b.dataset.pace];
+  confirmB(b.textContent.trim(),P.n+' Сгенерировать структуру на '+S.gen.hours+' ч?',()=>{const{n,...rest}=P;Object.assign(S.gen,rest,{pace:b.dataset.pace});S.levels=generate();const t=T();t.idx=0;t.remaining=Lms(0);if(t.running)t.endsAt=Date.now()+t.remaining;save();render();toast('Структура готова');},'Сгенерировать');});
+$('#genBtn').onclick=()=>confirmB('Сгенерировать структуру?','Текущая структура блайндов будет заменена.',()=>{S.levels=generate();const t=T();t.idx=0;t.remaining=Lms(0);if(t.running)t.endsAt=Date.now()+t.remaining;save();render();toast('Структура готова');});
+$('#slist').addEventListener('change',e=>{const i=+e.target.dataset.i,f=e.target.dataset.f;if(!f)return;let v=Math.max(0,+e.target.value||0);if(f==='min')v=Math.max(1,v);
+  S.levels[i][f]=v;if(f==='bb'&&!S.levels[i].sb)S.levels[i].sb=Math.round(v/2);
+  if(f==='min'&&i===T().idx&&!T().running&&T().startedAt==null)T().remaining=v*60000;e.target.blur();save();render();});
+$('#slist').addEventListener('click',e=>{const b=e.target.closest('[data-sa]');if(!b)return;const i=+b.dataset.i,a=b.dataset.sa,Ls=S.levels;
+  if(a==='go'){goto(i,true);toast('Переход выполнен');return;}
+  if(a==='up'&&i>0)[Ls[i-1],Ls[i]]=[Ls[i],Ls[i-1]];if(a==='dn'&&i<Ls.length-1)[Ls[i+1],Ls[i]]=[Ls[i],Ls[i+1]];
+  if(a==='del'&&Ls.length>1){Ls.splice(i,1);if(T().idx>=Ls.length)T().idx=Ls.length-1;}save();render();});
+$('#addLvl').onclick=()=>{const last=[...S.levels].reverse().find(l=>l.type==='level')||{sb:10,bb:20,min:15,ante:0};S.levels.push({type:'level',sb:last.sb*2,bb:last.bb*2,ante:(last.ante||0)*2,min:last.min});save();render();};
+$('#addBrk').onclick=()=>{S.levels.push({type:'break',min:10});save();render();};
+
+/* ===== Chips actions ===== */
+$('#setsBox').addEventListener('change',e=>{const t=e.target;
+  if(t.dataset.sn!=null){S.sets[+t.dataset.sn].name=t.value||'Набор';}
+  else if(t.dataset.son!=null){S.sets[+t.dataset.son].on=t.checked;}
+  else if(t.dataset.c){const c=S.sets[+t.dataset.si].chips[+t.dataset.i],f=t.dataset.c;c[f]=(f==='c'||f==='d')?t.value:Math.max(f==='v'?1:0,+t.value||0);}
+  else return; t.blur();save();render();});
+$('#setsBox').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  if(b.id==='addSet'){const base=S.sets[0]?S.sets[0].chips:[];S.sets.push({id:Date.now(),name:'Набор '+(S.sets.length+1),on:true,chips:base.map(c=>({v:c.v,n:0,c:c.c,d:c.d}))});save();render();toast('Набор добавлен — впишите количество и цвета');return;}
+  if(b.dataset.addchip!=null){S.sets[+b.dataset.addchip].chips.push({v:1000,n:0,c:'#f97316',d:'#ffffff'});save();render();return;}
+  if(b.dataset.cdel!=null){S.sets[+b.dataset.si].chips.splice(+b.dataset.cdel,1);save();render();return;}
+  if(b.dataset.sdel!=null){const si=+b.dataset.sdel;confirmB('Убрать набор?',`«${esc(S.sets[si].name)}» будет удалён.`,()=>{S.sets.splice(si,1);save();render();},'Убрать','red');}});
+$('#calcP').addEventListener('change',e=>{S.calc.players=Math.max(2,+e.target.value||2);save();render();});
+$('#calcR').addEventListener('change',e=>{S.calc.reserve=Math.max(0,+e.target.value||0);save();render();});
+$('#calcOut').addEventListener('click',e=>{const b=e.target.closest('#applyStack');if(!b)return;const s=+b.dataset.st;
+  confirmB('Новый стартовый стек',`Стартовый стек и докуп станут ${fmt(s)} фишек. Курс: ${fmt(S.buyin)} ${esc(S.currency)} = ${fmt(s)} фишек. Перегенерировать блайнды под этот стек?`,
+    ()=>{S.startStack=s;S.rebuyStack=s;if(S.addonStack)S.addonStack=s;S.gen.players=S.calc.players;S.gen.rebuys=S.calc.reserve;S.levels=generate();T().idx=0;T().remaining=Lms(0);loadSettings();save();render();toast('Готово: стек и блайнды обновлены');},'Да, и блайнды тоже');});
+
+/* ===== Settings actions ===== */
+$$('[data-s]').forEach(e=>e.addEventListener(e.type==='checkbox'?'change':'input',()=>{const k=e.dataset.s;
+  S[k]=e.type==='checkbox'?e.checked:e.type==='number'?Math.max(0,+e.value||0):e.value;save();render();}));
+$$('[data-mode]').forEach(b=>b.onclick=()=>{S.mode=b.dataset.mode;settle();save();render();});
+$('#payIn').addEventListener('change',e=>{const a=e.target.value.split(/[,;\s]+/).map(Number).filter(n=>n>0);if(!a.length)return render();S.payouts=a;save();render();
+  const s=a.reduce((x,y)=>x+y,0);if(Math.abs(s-100)>.01)toast('Сумма выплат '+s+'%, а не 100%');});
+$('#voiceSel').addEventListener('change',e=>{S.voiceName=e.target.value;save();say('Уровень 2. Блайнды 20 на 40.');});
+$('#testSnd').onclick=()=>{const s=S.sound,v=S.voice;S.sound=S.voice=true;sndLevel();announce(T().idx);S.sound=s;S.voice=v;};
+function archiveGame(){if(!S.players.length)return;S.archive.unshift({at:Date.now(),mode:S.mode,text:resultsText(),log:S.log});if(S.archive.length>100)S.archive.length=100;}
+function eveningText(a){if(!a)return'';let t=a.text;if(a.log&&a.log.length){t+='\nХронология:\n';a.log.forEach(e=>{if(e.undone)return;t+=`${fmtHM(e.el)}  [${e.lvl==='☕'?'перерыв':'ур. '+e.lvl}]  ${e.text}\n`;});}return t;}
+function downloadText(name,text){try{if(window.top!==window)return false;const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+text],{type:'text/plain;charset=utf-8'}));a.download=name;document.body.appendChild(a);a.click();a.remove();return true;}catch(e){return false;}}
+const eveName=a=>'Покер '+new Date(a.at).toLocaleDateString('ru-RU').split('.').reverse().join('-')+' '+new Date(a.at).toTimeString().slice(0,5).replace(':','-')+'.txt';
+function newGame(){const had=S.players.length;archiveGame();if(had&&S.autoExport&&S.archive[0])downloadText(eveName(S.archive[0]),eveningText(S.archive[0]));S.timer=freshTimer();S.hist=[];S.seats=null;S.players=[];S.log=[];awake(false);save();render();toast('Вечер сохранён в историю. Новая игра!');}
+function resetTimerOnly(){const t=T();logEv('reset','Таймер сброшен на начало');Object.assign(t,freshTimer());awake(false);save();render();toast('Таймер сброшен на 1 уровень');}
+$('#newGame').onclick=()=>confirmB('Завершить вечер?','Итоги сохранятся в историю, список участников очистится (сохранённые игроки останутся для быстрого добавления), таймер начнётся с первого уровня.',newGame,'Завершить');
+function resetMenu(){modal(`<h3>Сброс</h3><p>Что сделать?</p>`,[{t:'↺ Перезапустить текущий уровень',cls:'',fn:()=>goto(T().idx,true)},{t:'⏮ Таймер с начала (игроки и докупы остаются)',fn:resetTimerOnly},{t:'🏁 Завершить вечер и начать новый',cls:'red',fn:()=>{setTimeout(()=>$('#newGame').click(),0);}},{t:'Отмена',cls:'ghost'}]);$('#mbox .mbtns').classList.add('col');}
+$('#bReset').onclick=resetMenu;
+$('#resetAll').onclick=()=>confirmB('Сбросить всё?','Удалятся игроки, сохранённый список, набор фишек, структура и настройки.',()=>{S=defaults();S.levels=generate();nid=1;save();loadSettings();render();},'Сбросить','red');
+
+/* ===== File storage ===== */
+const idb=(()=>{let p;const db=()=>p||(p=new Promise((res,rej)=>{const r=indexedDB.open('pokerTimer',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}));
+  return{get:k=>db().then(d=>new Promise((res,rej)=>{const q=d.transaction('kv').objectStore('kv').get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);})),
+    set:(k,v)=>db().then(d=>new Promise((res,rej)=>{const t=d.transaction('kv','readwrite');t.objectStore('kv').put(v,k);t.oncomplete=()=>res();t.onerror=()=>rej(t.error);}))};})();
+let FH=null,fileOK=false,writing=false,again=false,lastSaved=null,wT=null;
+const FTYPES=[{description:'Покерный таймер',accept:{'application/json':['.json']}}];
+function dataJSON(){return JSON.stringify({app:'poker-timer',version:3,savedAt:new Date().toISOString(),state:S},null,1);}
+function scheduleFile(){if(!FH||!fileOK)return;clearTimeout(wT);wT=setTimeout(writeFile,700);}
+async function writeFile(){if(!FH||!fileOK)return;if(writing){again=true;return;}writing=true;
+  try{const w=await FH.createWritable();await w.write(dataJSON());await w.close();lastSaved=new Date();}catch(e){fileOK=false;toast('Не удалось записать файл — проверьте разрешение');}
+  writing=false;renderFileState();if(again){again=false;writeFile();}}
+function renderFileState(){const el=$('#fileState');if(!el)return;const api=!!window.showSaveFilePicker;
+  $('#fileLink').style.display=api?'':'none';
+  if(FH&&fileOK){el.className='fstate ok';el.innerHTML=`✅ Всё автоматически сохраняется в файл <b>${esc(FH.name)}</b>${lastSaved?' · последнее сохранение в '+lastSaved.toLocaleTimeString('ru-RU'):''}`;}
+  else if(FH){el.className='fstate warn';el.innerHTML=`⏸ Файл <b>${esc(FH.name)}</b> привязан, но браузер ждёт разрешения. <button class="btn sm gold" id="fileAllow">Разрешить запись</button>`;}
+  else{el.className='fstate';el.innerHTML=api?'Сейчас данные хранятся только внутри браузера на этом компьютере. Привяжите файл — будет ещё и копия на диске, которую можно открыть где угодно.':'Этот браузер хранит данные только внутри себя. Для копии на диске используйте «Скачать копию».';}}
+document.addEventListener('click',async e=>{if(e.target.id!=='fileAllow')return;try{fileOK=(await FH.requestPermission({mode:'readwrite'}))==='granted';if(fileOK)writeFile();}catch(err){}renderFileState();});
+function loadData(txt){let o;try{o=JSON.parse(txt);}catch(e){toast('Это не файл таймера');return false;}const st=o&&o.state?o.state:o;
+  if(!st||!st.levels){toast('Это не файл таймера');return false;}
+  S=Object.assign(defaults(),st);migrate();nid=S.players.reduce((m,p)=>Math.max(m,p.id),0)+1;if(S.timer.running)awake(true);loadSettings();save();render();toast('Данные загружены');return true;}
+$('#fileLink').onclick=async()=>{try{const h=await showSaveFilePicker({suggestedName:'poker-data.json',types:FTYPES});FH=h;fileOK=true;await idb.set('fh',h).catch(()=>{});await writeFile();toast('Теперь всё сохраняется в '+h.name);}
+  catch(e){if(e.name!=='AbortError')toast('Браузер не дал сохранить файл здесь. Откройте таймер из файла на компьютере или используйте «Скачать копию»');}};
+$('#fileOpen').onclick=async()=>{if(!window.showOpenFilePicker){$('#fileImport').click();return;}
+  try{const[h]=await showOpenFilePicker({types:FTYPES});const txt=await(await h.getFile()).text();
+    const go=async()=>{if(!loadData(txt))return;try{if((await h.requestPermission({mode:'readwrite'}))==='granted'){FH=h;fileOK=true;await idb.set('fh',h).catch(()=>{});lastSaved=null;}}catch(e){}renderFileState();};
+    confirmB('Открыть файл?',`Текущие данные заменятся данными из «${esc(h.name)}», и дальше всё будет сохраняться в него.`,()=>{go();},'Открыть');}
+  catch(e){if(e.name!=='AbortError')$('#fileImport').click();}};
+$('#fileImport').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;const txt=await f.text();confirmB('Загрузить копию?','Текущие данные заменятся данными из файла.',()=>{loadData(txt);},'Загрузить');});
+$('#fileExport').onclick=async()=>{const name='poker-data-'+new Date().toISOString().slice(0,10)+'.json';
+  if(window.showSaveFilePicker){try{const h=await showSaveFilePicker({suggestedName:name,types:FTYPES});const w=await h.createWritable();await w.write(dataJSON());await w.close();toast('Копия сохранена');return;}catch(e){if(e.name==='AbortError')return;}}
+  try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([dataJSON()],{type:'application/json'}));a.download=name;document.body.appendChild(a);a.click();a.remove();toast('Копия скачана');}catch(e){}
+  if(window.top!==window){try{await navigator.clipboard.writeText(dataJSON());toast('Здесь скачивание закрыто — данные скопированы в буфер');}catch(e){}}};
+(async()=>{try{const h=await idb.get('fh');if(h){FH=h;fileOK=(await h.queryPermission({mode:'readwrite'}))==='granted';}}catch(e){}renderFileState();})();
+
+/* ===== Fit to window ===== */
+function fit(){const st=$('.stage'),sin=$('.sin');if(!st||!$('#v-timer').classList.contains('on'))return;
+  if(innerWidth<=760&&!(innerHeight<=500)){st.style.setProperty('--k',1);return;}
+  const cs=getComputedStyle(st),H=st.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom),W=st.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);
+  const over=()=>sin.offsetHeight>H||$('#clock').scrollWidth>W+1||$('#blinds').scrollWidth>W+1;
+  let k=1.3;st.style.setProperty('--k',k);while(over()&&k>.25){k-=.03;st.style.setProperty('--k',k.toFixed(2));}}
+let fitT;const refit=()=>{clearTimeout(fitT);fitT=setTimeout(fit,60);};addEventListener('resize',refit);
+try{new ResizeObserver(refit).observe($('.stage'));}catch(e){}
+document.addEventListener('fullscreenchange',()=>setTimeout(fit,80));
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fit);
+
+/* ===== Nav / controls ===== */
+function show(v){$$('.tab').forEach(t=>t.classList.toggle('on',t.dataset.v===v));$$('.view').forEach(x=>x.classList.toggle('on',x.id==='v-'+v));if(location.hash!=='#'+v)history.replaceState(null,'','#'+v);if(v==='timer')requestAnimationFrame(fit);}
+$$('.tab').forEach(t=>t.onclick=()=>show(t.dataset.v));
+const h0=location.hash.slice(1);if(['players','results','structure','chips','settings'].includes(h0))show(h0);
+$('#bPlay').onclick=toggle;$('#bNext').onclick=()=>goto(T().idx+1);$('#bPrev').onclick=()=>goto(T().idx-1,true);
+$('#bPlus').onclick=()=>addTime(60000);$('#bMinus').onclick=()=>addTime(-60000);
+const lock=()=>{document.body.classList.toggle('locked');render();toast(document.body.classList.contains('locked')?'Кнопки заблокированы':'Разблокировано');};
+$('#bLock').onclick=lock;
+async function fs(){try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();else await document.exitFullscreen();}catch(e){toast('Полный экран недоступен здесь');}}
+function tv(on){document.body.classList.toggle('tv',on);if(on){show('timer');}requestAnimationFrame(fit);}
+$('#fsBtn').onclick=fs;$('#tvBtn').onclick=()=>{tv(true);if(!document.fullscreenElement)fs();};$('#tvExit').onclick=()=>{tv(false);if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});};
+document.addEventListener('keydown',e=>{if(e.target.matches('input,select,textarea')||$('#modal').classList.contains('on'))return;
+  const k=e.key.toLowerCase(),locked=document.body.classList.contains('locked');
+  if(k==='l'||k==='д')return lock();
+  if(k==='escape'&&document.body.classList.contains('tv'))return tv(false);
+  if(k==='t'||k==='е')return tv(!document.body.classList.contains('tv'));
+  if(k==='f'||k==='а')return fs();
+  if((k==='r'||k==='к')&&!locked&&!e.ctrlKey&&!e.metaKey)return resetMenu();
+  if((e.ctrlKey||e.metaKey)&&(k==='z'||k==='я')){e.preventDefault();return undo();}
+  if(locked)return;
+  if(e.code==='Space'){e.preventDefault();toggle();}else if(e.key==='ArrowRight')goto(T().idx+1);else if(e.key==='ArrowLeft')goto(T().idx-1,true);});
+
+if(!S.levels||!S.levels.length)S.levels=generate();
+save();loadSettings();render();setInterval(tick,250);if(T().running)awake(true);
+})();
+</script>
+</body>
+</html>
