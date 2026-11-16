@@ -353,7 +353,7 @@ body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
 <body>
 <div class="app">
   <nav>
-    <div class="brand" title="Nuts · версия 4.0 · by MichaelKae"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v4.0</span></div>
+    <div class="brand" title="Nuts · версия 4.1 · by MichaelKae"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v4.1</span></div>
     <button class="tab on" data-v="timer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg><span>Таймер</span></button>
     <button class="tab" data-v="players"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14.6c2.6.2 4.4 1.9 5 4.9"/></svg><span>Игроки</span></button>
     <button class="tab" data-v="results"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 14v4M8 21h8"/></svg><span>Итоги</span></button>
@@ -565,7 +565,7 @@ body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
       </div>
       <div class="card">
         <div class="about"><div class="logo">♠</div><div>
-          <div style="font-family:var(--disp);font-weight:800;font-size:20px">Nuts <span class="muted small" style="font-family:var(--ui)">v4.0</span></div>
+          <div style="font-family:var(--disp);font-weight:800;font-size:20px">Nuts <span class="muted small" style="font-family:var(--ui)">v4.1</span></div>
           <div class="muted small">Покерный таймер для домашних игр · автор <a href="https://github.com/MichaelKae" target="_blank" rel="noopener">MichaelKae</a> · <a href="https://github.com/MichaelKae/nuts" target="_blank" rel="noopener">GitHub</a></div>
         </div></div>
       </div>
@@ -593,7 +593,7 @@ body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
           <button class="btn red" id="newGame">Завершить вечер и начать новый</button>
           <button class="btn red" id="resetAll">Сбросить всё</button>
         </div>
-        <div class="hint">Nuts · версия 4.0. При завершении итоги вечера сохраняются в историю (вкладка «Итоги»). Игроки, наборы и структура остаются.</div>
+        <div class="hint">Nuts · версия 4.1. При завершении итоги вечера сохраняются в историю (вкладка «Итоги»). Игроки, наборы и структура остаются.</div>
       </div>
     </section>
   </main>
@@ -1320,7 +1320,8 @@ function sheet(title,text,btns){const w=document.createElement('div');w.classNam
   const bx=w.querySelector('.mbtns');btns.forEach(b=>{const e=document.createElement('button');e.className='btn '+(b.cls||'');e.textContent=b.t;e.onclick=()=>{w.remove();b.fn&&b.fn();};bx.appendChild(e);});
   w.addEventListener('click',e=>{if(e.target===w)w.remove();});document.body.appendChild(w);}
 const header=()=>`<div class="rhead"><div class="brand"><i>♠</i>Nuts</div><span class="small muted">${isAdmin?'пульт':'зритель'}</span><span class="room"><span class="dot ${conn?'on':''}"></span> ${room}</span></div>`;
-function render(){
+function render(){try{render0();}catch(e){root.innerHTML=header()+`<div class="card" style="color:var(--red)">Ошибка пульта: ${esc(e.message||e)}. Обновите страницу.</div>`;}}
+function render0(){
   if(!NutsNet.configured()){root.innerHTML=header()+`<div class="card">Пульт не настроен на этом сайте.</div>`;return;}
   if(!NET){root.innerHTML=header()+`<div class="card muted">${err?esc(err):'Подключаюсь…'}</div>`;return;}
   if(!mode&&!isAdmin){root.innerHTML=header()+`<div class="card rjoin"><h3>Комната ${room}</h3>
@@ -1344,7 +1345,7 @@ function render(){
     P.map(p=>{const win=T&&p.pl===1,acts=[];
       if(p.st==='in'){if(!win&&st.x.inP>1)acts.push(['bust','💥','red']);if(!win&&r.when!=='bust'){acts.push(['rebuy','💸',''] );if(r.half)acts.push(['rebuy50','50%',''])}if(r.addon&&!p.ad&&!win)acts.push(['addon','➕','']);}
       else{acts.push(['rebuy','💸 В игру','pri']);if(r.half)acts.push(['rebuy50','50%',''])}
-      return`<div class="rpl ${p.st}"><span class="nm">${win?'🏆 ':''}${esc(p.n)}<small>${p.st==='out'?(T&&p.pl?p.pl+' место':'вылет'):''}${p.rb?' +'+p.rb:''}</small></span>${acts.map(([a,t,c])=>`<button class="btn ${c}" data-p="${p.id}" data-a="${a}">${t}</button>`).join('')}</div>`;}).join('')+
+      return`<div class="rpl ${p.st}"><span class="nm">${win?'🏆 ':''}${esc(p.n)}<small>${p.st==='out'?(T&&p.pl?p.pl+' место':'вылет'):''}${p.rb?' +'+p.rb:''}</small></span>${acts.map(([a,t,c])=>`<button class="btn ${c}" data-p="${p.id}" data-a="${a}">${t}</button>`).join('')}</div>`;}).join('')+(P.length?'':'<div class="muted small" style="padding:6px 2px">Игроков пока нет — добавьте ниже.</div>')+
     `<div class="row" style="margin-top:10px;flex-wrap:nowrap"><input id="rAdd" placeholder="Новый игрок" autocomplete="off"><button class="btn pri" data-c="add">＋</button></div></div>`;
   }else h+=`<div class="card small muted" style="text-align:center">Режим зрителя. <a href="#" id="rBeAdmin" style="color:var(--acc)">Стать пультом</a></div>`;
   root.innerHTML=h+foot();tickR();}
@@ -1382,7 +1383,7 @@ async function joinAdmin(){const pin=(q('#rjPin')||{}).value||'',name=((q('#rjNa
 (async()=>{render();try{NET=await NutsNet.connect();}catch(e){err='Нет связи с сервером: '+(e.message||e);render();return;}
   NET.onConn(c=>{conn=c;const d=q('.dot');if(d)d.classList.toggle('on',c);});
   NET.onValue(R0+'/admins/'+NET.uid,v=>{const was=isAdmin;isAdmin=!!v;if(isAdmin){joining=false;mode='admin';me.mode='admin';me.room=room;saveMe();}else if(was){mode=null;}render();});
-  NET.onValue(R0+'/state',v=>{st=v;render();});render();})();
+  NET.onValue(R0+'/state',v=>{if(v){v.pl=Array.isArray(v.pl)?v.pl:Object.values(v.pl||{});v.x=v.x||{inP:0,n:0,reb:0,bank:0,avg:0};v.r=v.r||{};v.t=v.t||{};}st=v;render();});render();})();
 })();
 </script>
 </body>
