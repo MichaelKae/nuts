@@ -178,7 +178,7 @@ select option,select optgroup{background:#0d1a15;color:#f1f6f3}
 .tvcombos b{font-weight:600;color:var(--text)}
 @media (min-width:1150px){body.tv.combos-on .tvcombos{display:block}}
 .helpfab{position:absolute;top:14px;right:14px;z-index:4}
-body.tv .helpfab{opacity:.25} body.tv .helpfab:hover{opacity:1}
+body.tv .helpfab{opacity:.3;right:auto;left:14px} body.tv .helpfab:hover{opacity:1}
 .qp{display:flex;flex-wrap:wrap;gap:6px}
 .qchip{cursor:pointer;border:1px solid var(--line);background:var(--glass2);color:var(--text);border-radius:20px;padding:6px 11px;font-size:13px;font-weight:700;display:inline-flex;gap:6px;align-items:center}
 .qchip:hover{border-color:var(--acc)} .qchip .d{width:8px;height:8px;border-radius:50%;background:var(--acc)}
@@ -279,7 +279,7 @@ body.tv .helpfab{opacity:.25} body.tv .helpfab:hover{opacity:1}
 <body>
 <div class="app">
   <nav>
-    <div class="brand" title="Nuts · версия 3.10 · by MichaelKae"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v3.10</span></div>
+    <div class="brand" title="Nuts · версия 3.11 · by MichaelKae"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v3.11</span></div>
     <button class="tab on" data-v="timer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg><span>Таймер</span></button>
     <button class="tab" data-v="players"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14.6c2.6.2 4.4 1.9 5 4.9"/></svg><span>Игроки</span></button>
     <button class="tab" data-v="results"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 14v4M8 21h8"/></svg><span>Итоги</span></button>
@@ -490,7 +490,7 @@ body.tv .helpfab{opacity:.25} body.tv .helpfab:hover{opacity:1}
       </div>
       <div class="card">
         <div class="about"><div class="logo">♠</div><div>
-          <div style="font-family:var(--disp);font-weight:800;font-size:20px">Nuts <span class="muted small" style="font-family:var(--ui)">v3.10</span></div>
+          <div style="font-family:var(--disp);font-weight:800;font-size:20px">Nuts <span class="muted small" style="font-family:var(--ui)">v3.11</span></div>
           <div class="muted small">Покерный таймер для домашних игр · автор <a href="https://github.com/MichaelKae" target="_blank" rel="noopener">MichaelKae</a> · <a href="https://github.com/MichaelKae/nuts" target="_blank" rel="noopener">GitHub</a></div>
         </div></div>
       </div>
@@ -513,7 +513,7 @@ body.tv .helpfab{opacity:.25} body.tv .helpfab:hover{opacity:1}
           <button class="btn red" id="newGame">Завершить вечер и начать новый</button>
           <button class="btn red" id="resetAll">Сбросить всё</button>
         </div>
-        <div class="hint">Nuts · версия 3.10. При завершении итоги вечера сохраняются в историю (вкладка «Итоги»). Игроки, наборы и структура остаются.</div>
+        <div class="hint">Nuts · версия 3.11. При завершении итоги вечера сохраняются в историю (вкладка «Итоги»). Игроки, наборы и структура остаются.</div>
       </div>
     </section>
   </main>
