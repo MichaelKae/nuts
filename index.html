@@ -168,6 +168,15 @@ select option,select optgroup{background:#0d1a15;color:#f1f6f3}
 .about{display:flex;gap:14px;align-items:center}
 .about .logo{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--acc),var(--acc2));display:grid;place-items:center;font-size:28px;color:#05140d;flex-shrink:0}
 .about a{color:var(--acc)}
+.combos{display:flex;flex-direction:column;gap:3px;cursor:pointer}
+.combos div{display:flex;gap:10px;font-size:14px;font-weight:400;color:var(--muted);line-height:1.35}
+.combos div i{font-style:normal;color:var(--dim);width:16px;text-align:right;font-variant-numeric:tabular-nums}
+.combos:hover div{color:var(--text)}
+.chiprow{display:flex;flex-wrap:wrap;gap:8px}
+.chiprow .chip{width:34px;height:34px;font-size:9.5px;border-width:3px}
+.tvcombos{display:none;position:absolute;left:clamp(16px,3vw,48px);top:50%;transform:translateY(-50%);text-align:left;opacity:.5;font-weight:300;font-size:clamp(13px,1.25vw,22px);line-height:1.55;color:var(--muted);pointer-events:none}
+.tvcombos b{font-weight:600;color:var(--text)}
+@media (min-width:1150px){body.tv.combos-on .tvcombos{display:block}}
 .helpfab{position:absolute;top:14px;right:14px;z-index:4}
 body.tv .helpfab{opacity:.25} body.tv .helpfab:hover{opacity:1}
 .qp{display:flex;flex-wrap:wrap;gap:6px}
@@ -270,7 +279,7 @@ body.tv .helpfab{opacity:.25} body.tv .helpfab:hover{opacity:1}
 <body>
 <div class="app">
   <nav>
-    <div class="brand" title="Nuts · версия 3.8 · by MichaelKae"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v3.8</span></div>
+    <div class="brand" title="Nuts · версия 3.10 · by MichaelKae"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v3.10</span></div>
     <button class="tab on" data-v="timer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg><span>Таймер</span></button>
     <button class="tab" data-v="players"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14.6c2.6.2 4.4 1.9 5 4.9"/></svg><span>Игроки</span></button>
     <button class="tab" data-v="results"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 14v4M8 21h8"/></svg><span>Итоги</span></button>
@@ -285,7 +294,7 @@ body.tv .helpfab{opacity:.25} body.tv .helpfab:hover{opacity:1}
   <main>
     <!-- TIMER -->
     <section class="view on" id="v-timer">
-      <div class="stage"><button class="btn sm ghost helpfab" id="helpFab" title="Комбинации и правила (C)">🃏 Комбинации</button><div class="sin">
+      <div class="stage"><div class="tvcombos" id="tvcombos"></div><button class="btn sm ghost helpfab" id="helpFab" title="Комбинации и правила (C)">🃏 Комбинации</button><div class="sin">
         <div class="tname" id="tName"></div>
         <div class="lvlchip" id="lvlChip"></div>
         <div class="clock" id="clock">00:00</div>
@@ -444,6 +453,7 @@ body.tv .helpfab{opacity:.25} body.tv .helpfab:hover{opacity:1}
             <option value="short">Если стек не больше стартового</option>
             <option value="any">В любой момент</option></select></label>
           <label class="f">Макс. докупов на игрока (0 — без лимита)<input type="number" min="0" data-s="maxRebuys"></label>
+          <label class="chk"><input type="checkbox" data-s="halfRebuy"> Разрешить докуп на 50% (половина стека за полцены, в лимит идёт как 0,5)</label>
           <label class="f">Докупы до уровня (0 — всю игру)<input type="number" min="0" data-s="rebuyUntil"></label>
           <label class="f">Поздняя регистрация до уровня (0 — всю игру)<input type="number" min="0" data-s="lateRegUntil"></label>
         </div>
@@ -465,6 +475,10 @@ body.tv .helpfab{opacity:.25} body.tv .helpfab:hover{opacity:1}
         <div class="hint">Проценты призового фонда по местам, через запятую. Авто: до 3 игроков — 100; 4–6 — 65/35; 7–10 — 50/30/20; 11+ — 45/27/17/11.</div>
       </div>
       <div class="card">
+        <h3>Экран</h3>
+        <label class="chk"><input type="checkbox" data-s="showCombos"> Показывать комбинации на экране таймера (сбоку и в режиме ТВ)</label>
+      </div>
+      <div class="card">
         <h3>Звук</h3>
         <div class="grid">
           <label class="chk"><input type="checkbox" data-s="sound"> Сигнал при смене уровня и за минуту</label>
@@ -472,11 +486,11 @@ body.tv .helpfab{opacity:.25} body.tv .helpfab:hover{opacity:1}
         </div>
         <div class="grid" style="margin-top:12px"><label class="f">Голос<select id="voiceSel"></select></label></div>
         <div class="row" style="margin-top:12px"><button class="btn sm" id="testSnd">🔊 Проверить</button></div>
-        <div class="hint">Самые живые голоса обычно «Google русский» (Chrome) и «Microsoft … Online (Natural)» (Edge).</div>
+        <div class="hint">По умолчанию выбирается мужской голос. Самый живой мужской — «Microsoft Dmitry Online (Natural)», он есть в браузере Edge. В Яндекс Браузере и Chrome на Windows мужской — «Microsoft Pavel».</div>
       </div>
       <div class="card">
         <div class="about"><div class="logo">♠</div><div>
-          <div style="font-family:var(--disp);font-weight:800;font-size:20px">Nuts <span class="muted small" style="font-family:var(--ui)">v3.8</span></div>
+          <div style="font-family:var(--disp);font-weight:800;font-size:20px">Nuts <span class="muted small" style="font-family:var(--ui)">v3.10</span></div>
           <div class="muted small">Покерный таймер для домашних игр · автор <a href="https://github.com/MichaelKae" target="_blank" rel="noopener">MichaelKae</a> · <a href="https://github.com/MichaelKae/nuts" target="_blank" rel="noopener">GitHub</a></div>
         </div></div>
       </div>
@@ -499,7 +513,7 @@ body.tv .helpfab{opacity:.25} body.tv .helpfab:hover{opacity:1}
           <button class="btn red" id="newGame">Завершить вечер и начать новый</button>
           <button class="btn red" id="resetAll">Сбросить всё</button>
         </div>
-        <div class="hint">Nuts · версия 3.8. При завершении итоги вечера сохраняются в историю (вкладка «Итоги»). Игроки, наборы и структура остаются.</div>
+        <div class="hint">Nuts · версия 3.10. При завершении итоги вечера сохраняются в историю (вкладка «Итоги»). Игроки, наборы и структура остаются.</div>
       </div>
     </section>
   </main>
@@ -520,7 +534,7 @@ function freshTimer(){return {idx:0,running:false,endsAt:0,remaining:null,starte
 function defaults(){ return {
   name:'Покер с коллегами', currency:'₽', mode:'cash',
   buyin:1000, startStack:2000, rebuyCost:1000, rebuyStack:2000,
-  maxRebuys:3, rebuyUntil:0, lateRegUntil:4, rebuyWhen:'bust',
+  maxRebuys:3, rebuyUntil:0, lateRegUntil:4, rebuyWhen:'bust', halfRebuy:false, showCombos:true,
   addonOn:false, addonCost:1000, addonStack:2000,
   bountyOn:false, bounty:200,
   payoutsAuto:true, payouts:[50,30,20], sound:true, voice:true,
@@ -575,7 +589,7 @@ const sndLevel=()=>beep([[784,.18],[988,.18],[1319,.5]]);
 const sndWarn=()=>beep([[660,.18],[660,.18]]);
 function ruVoices(){try{return speechSynthesis.getVoices().filter(v=>/^ru/i.test(v.lang));}catch(e){return[];}}
 function pickVoice(){const vs=ruVoices();if(!vs.length)return null;const byName=vs.find(v=>v.name===S.voiceName);if(byName)return byName;
-  return vs.find(v=>/google/i.test(v.name))||vs.find(v=>/natural|online/i.test(v.name))||vs.find(v=>/milena|svetlana|dariya|alena/i.test(v.name))||vs[0];}
+  return vs.find(v=>/dmitry/i.test(v.name)&&/natural|online/i.test(v.name))||vs.find(v=>/natural|online/i.test(v.name)&&/dmitry|pavel|maxim|yuri/i.test(v.name))||vs.find(v=>/pavel|dmitry|maxim|yuri|aleksandr|alexander/i.test(v.name))||vs.find(v=>/google/i.test(v.name))||vs.find(v=>/natural|online/i.test(v.name))||vs[0];}
 let voiceSig='';function fillVoices(){const sel=$('#voiceSel');if(!sel)return;const vs=ruVoices(),cur=pickVoice();const sig=vs.map(v=>v.name).join('|')+'#'+(cur?cur.name:'');if(sig===voiceSig)return;voiceSig=sig;
   sel.innerHTML=vs.length?vs.map(v=>`<option ${cur&&v.name===cur.name?'selected':''}>${esc(v.name)}</option>`).join(''):'<option>Русских голосов в системе нет</option>';sel.disabled=!vs.length;}
 try{speechSynthesis.onvoiceschanged=fillVoices;}catch(e){}
@@ -680,7 +694,8 @@ function payoutPcts(){if(!S.payoutsAuto)return S.payouts;const n=S.players.lengt
   return n<=3?[100]:n<=6?[65,35]:n<=10?[50,30,20]:[45,27,17,11];}
 const payouts=pool=>{const pc=payoutPcts(),tot=pc.reduce((a,b)=>a+b,0)||100,a=pc.map(p=>Math.floor(pool*p/tot));if(a.length)a[0]+=pool-a.reduce((x,y)=>x+y,0);return a;};
 const rate=()=>{const x=totals();if(x.chips>0)return x.money/x.chips;return S.startStack?S.buyin/S.startStack:0;}; // деньги за 1 фишку (средневзвешенный курс всех взносов)
-function canRebuy(p){if(S.maxRebuys&&p.rebuys>=S.maxRebuys)return'У '+p.name+' уже '+p.rebuys+' докупа(ов) — это лимит.';
+const rUnits=p=>(p.rebuys||0)-(p.halfs||0)*0.5;
+function canRebuy(p,k=1){if(S.maxRebuys&&rUnits(p)+k>S.maxRebuys)return'У '+p.name+' уже '+String(rUnits(p)).replace('.',',')+' из '+S.maxRebuys+' докупов — '+(k<1?'даже на 50% ':'')+'лимит.';
   if(S.rebuyUntil&&curLvl()>S.rebuyUntil)return'Окно докупов закрылось после '+S.rebuyUntil+' уровня.';return'';}
 
 /* ===== Render ===== */
@@ -725,9 +740,11 @@ function render(){
   const bb=l&&l.type==='level'?l.bb:nx&&nx.bb;
   h+=`<div class="kv"><span>Средний стек</span><b>${x.inP?fmt(x.avg):'—'}</b></div><div class="kv"><span>Средний стек в ББ</span><b>${x.inP&&bb?Math.round(x.avg/bb):'—'}</b></div>`;
   const qs=[...S.players].sort((a,b)=>(a.status===b.status?0:a.status==='in'?-1:1)||((a.place||0)-(b.place||0)));
+  const chA=chipsAsc();if(chA.length)h+=`<h4>Фишки</h4><div class="chiprow">${chA.map(c=>chipEl(c)).join('')}</div>`;
+  if(S.showCombos)h+=`<h4>Комбинации · от старшей</h4><div class="combos" data-help="1" title="Подробнее — клавиша C">${HANDS.map((x,i)=>`<div><i>${i+1}</i>${x[0]}</div>`).join('')}</div>`;
   h+=`<h4>Игроки · нажмите для действий</h4><div class="qp">${qs.map(p=>`<button class="qchip ${p.status==='out'?'out':''} ${isT()&&p.place===1?'win':''}" data-qp="${p.id}"><span class="d"></span>${esc(p.name)}${p.rebuys?`<sup>+${p.rebuys}</sup>`:''}</button>`).join('')}<button class="qchip add" data-qadd="1">＋ Игрок</button></div>`;
   h+=`<h4>Время</h4><div class="kv"><span>До перерыва</span><b id="sBreak"></b></div><div class="kv"><span>Идёт игра</span><b id="sElapsed"></b></div>`;
-  $('#side').innerHTML=h;if(popId!=null)hidePop();
+  $('#side').innerHTML=h;document.body.classList.toggle('combos-on',!!S.showCombos);$('#tvcombos').innerHTML=HANDS.map((x,i)=>i===0?`<b>${x[0]}</b>`:x[0]).join('<br>');if(popId!=null)hidePop();
   $('#tvbar').innerHTML=`<div><div class="blab">${isT()?'Призовой':'Банк'}</div><div class="v money">${money(isT()?x.pool:x.money)}</div></div><div><div class="blab">Игроков</div><div class="v">${x.inP} / ${x.n}</div></div><div><div class="blab">Средний стек</div><div class="v">${x.inP?fmt(x.avg):'—'}</div></div>`;
   renderClock();renderPlayers(x,pa);renderResults(x,pa);renderStructure();renderChips();renderSettingsState();fillVoices();requestAnimationFrame(fit);
 }
@@ -742,15 +759,15 @@ function renderPlayers(x,pa){
   const byId=id=>S.players.find(p=>p.id===id);
   $('#plist').innerHTML=ord.map(p=>{
     const st=p.place===1&&isT()?'<span class="badge win">🏆 Победитель</span>':p.status==='in'?'<span class="badge in">в игре</span>':`<span class="badge out">${isT()?p.place+' место':'вылет'}</span>`;
-    const meta=[`вложил <b class="money">${money(invested(p))}</b>`];if(p.rebuys)meta.push('докупов: '+p.rebuys);if(p.addons)meta.push('аддон');
+    const meta=[`вложил <b class="money">${money(invested(p))}</b>`];if(p.rebuys)meta.push('докупов: '+p.rebuys+(p.halfs?' (на 50%: '+p.halfs+')':''));if(p.addons)meta.push('аддон');
     if(isT()&&S.bountyOn&&p.knocks)meta.push('выбил: '+p.knocks);if(p.seat)meta.push('место за столом: '+p.seat);
     if(p.bustedBy&&byId(p.bustedBy))meta.push('выбил(а): '+esc(byId(p.bustedBy).name));
     let a='';
     const winner=isT()&&p.place===1;
     if(p.status==='in'){ if(!winner&&x.inP>1)a+=`<button class="btn sm red" data-a="bust" data-id="${p.id}">💥 Вылет</button>`;
-      if(!winner&&S.rebuyWhen!=='bust')a+=`<button class="btn sm" data-a="rebuy" data-id="${p.id}" title="${S.rebuyWhen==='short'?'Если стек не больше стартового':'Докуп в любой момент'}">＋ Докуп</button>`;
+      if(!winner&&S.rebuyWhen!=='bust'){a+=`<button class="btn sm" data-a="rebuy" data-id="${p.id}" title="${S.rebuyWhen==='short'?'Если стек не больше стартового':'Докуп в любой момент'}">＋ Докуп</button>`;if(S.halfRebuy)a+=`<button class="btn sm" data-a="rebuy50" data-id="${p.id}">＋ 50%</button>`;}
       if(S.addonOn&&!p.addons&&!winner)a+=`<button class="btn sm" data-a="addon" data-id="${p.id}">＋ Аддон</button>`;}
-    else a+=`<button class="btn sm pri" data-a="rebuy" data-id="${p.id}">💸 Докуп и в игру</button><button class="btn sm" data-a="back" data-id="${p.id}" title="Ошибочно выбит — вернуть без докупа">Вернуть</button>`;
+    else a+=`<button class="btn sm pri" data-a="rebuy" data-id="${p.id}">💸 Докуп и в игру</button>${S.halfRebuy?`<button class="btn sm" data-a="rebuy50" data-id="${p.id}">💸 50% и в игру</button>`:''}<button class="btn sm" data-a="back" data-id="${p.id}" title="Ошибочно выбит — вернуть без докупа">Вернуть</button>`;
     if(p.rebuys&&p.status==='in')a+=`<button class="btn sm ghost" data-a="unrebuy" data-id="${p.id}" title="Отменить докуп">−докуп</button>`;
     a+=`<button class="btn sm ghost" data-a="del" data-id="${p.id}" title="Удалить">✕</button>`;
     return`<div class="pl ${p.status}"><div class="av" style="${avStyle(p.name)}">${esc(p.name.slice(0,1).toUpperCase())}</div>
@@ -861,8 +878,8 @@ function loadSettings(){$$('[data-s]').forEach(e=>{if(!(e.dataset.s in S))return
 /* ===== Quick actions from timer ===== */
 const canHover=(()=>{try{return matchMedia('(hover:hover) and (pointer:fine)').matches;}catch(e){return true;}})();
 function pActions(p){const x=totals(),winner=isT()&&p.place===1,B=[];
-  if(p.status==='in'){if(!winner&&x.inP>1)B.push(['bust','💥 Вылет','red']);if(!winner&&S.rebuyWhen!=='bust')B.push(['rebuy','＋ Докуп','']);if(S.addonOn&&!p.addons&&!winner)B.push(['addon','＋ Аддон','']);}
-  else{B.push(['rebuy','💸 Докуп и в игру','pri']);B.push(['back','↩ Вернуть без докупа','']);}
+  if(p.status==='in'){if(!winner&&x.inP>1)B.push(['bust','💥 Вылет','red']);if(!winner&&S.rebuyWhen!=='bust'){B.push(['rebuy','＋ Докуп','']);if(S.halfRebuy)B.push(['rebuy50','＋ Докуп 50%','']);}if(S.addonOn&&!p.addons&&!winner)B.push(['addon','＋ Аддон','']);}
+  else{B.push(['rebuy','💸 Докуп и в игру','pri']);if(S.halfRebuy)B.push(['rebuy50','💸 Докуп 50% и в игру','']);B.push(['back','↩ Вернуть без докупа','']);}
   return B;}
 const pStatus=p=>isT()&&p.place===1?'🏆 победитель':p.status==='in'?'в игре':(isT()?p.place+' место':'вылет');
 let popId=null,popT=null;
@@ -893,7 +910,7 @@ function quickAdd(){const have=new Set(S.players.map(p=>p.name.toLowerCase()));c
   const box=$('#qRoster');if(box){box.addEventListener('click',e=>{const b=e.target.closest('.qchip');if(!b)return;
     if(b.dataset.rall){const all=[...box.querySelectorAll('[data-rn]')],on=!all.every(x=>x.classList.contains('sel'));all.forEach(x=>{x.classList.toggle('sel',on);x.querySelector('.d').style.background=on?'var(--acc)':'var(--dim)';});return;}
     b.classList.toggle('sel');b.querySelector('.d').style.background=b.classList.contains('sel')?'var(--acc)':'var(--dim)';});}}
-$('#side').addEventListener('click',e=>{const q=e.target.closest('[data-qp]');if(q){const p=S.players.find(x=>x.id==q.dataset.qp);if(!p)return;if(canHover)quickInfo(p);else if(popId===p.id)hidePop();else showPop(q,p);return;}if(e.target.closest('[data-qadd]'))quickAdd();});
+$('#side').addEventListener('click',e=>{if(e.target.closest('[data-help]'))return openHelp();const q=e.target.closest('[data-qp]');if(q){const p=S.players.find(x=>x.id==q.dataset.qp);if(!p)return;if(canHover)quickInfo(p);else if(popId===p.id)hidePop();else showPop(q,p);return;}if(e.target.closest('[data-qadd]'))quickAdd();});
 
 /* ===== Help / hand rankings ===== */
 const card=(c,k)=>{const suit=c.slice(-1),red=suit==='♥'||suit==='♦';return`<span class="pc${red?' r':''}${k?' k':''}">${c.slice(0,-1)}<br>${suit}</span>`;};
@@ -948,8 +965,9 @@ $('#rosterBox').addEventListener('click',e=>{const x=e.target.closest('[data-rx]
   if(e.target.closest('[data-rall]')){const have=new Set(S.players.map(p=>p.name.toLowerCase()));addPlayers(S.roster.filter(n=>!have.has(n.toLowerCase())));}});
 function doBust(p,by){snap();p.status='out';p.outAt=Date.now();p.finalChips=0;p.bustedBy=by||null;const k=by?S.players.find(q=>q.id===by):null;if(k)k.knocks=(k.knocks||0)+1;
   settle();logEv('bust',p.name+' — вылет'+(isT()?' · '+p.place+' место':'')+(k?' · выбил(а) '+k.name:''));const w=S.players.find(q=>q.place===1&&q.status==='in');if(w){logEv('win','Победитель: '+w.name);if(T().running)pause();}save();render();toast(p.name+(isT()?' — '+p.place+' место':' — вылет'));}
-function doRebuy(p){const f=()=>{snap();p.rebuys++;p.paid=invested(p)+S.rebuyCost;p.chipsIn=chipsOf(p)+S.rebuyStack;(p.rb=p.rb||[]).push([S.rebuyCost,S.rebuyStack]);logEv('rebuy',p.name+(p.status==='out'?' — докуп, снова в игре':' — докуп')+' · №'+p.rebuys+' (+'+fmt(S.rebuyStack)+' фишек, '+money(S.rebuyCost)+')');if(p.status==='out'){p.status='in';p.finalChips=null;p.bustedBy=null;}settle();save();render();toast(p.name+' — докуп');};
-  const check=()=>{const why=canRebuy(p);if(why)confirmB('Докуп вне правил',why+' Всё равно оформить?',f,'Оформить');else f();};
+function doRebuy(p,k=1){const cost=Math.round(S.rebuyCost*k),stack=Math.round(S.rebuyStack*k),lbl=k<1?' — докуп 50%':' — докуп';
+  const f=()=>{snap();p.rebuys++;if(k<1)p.halfs=(p.halfs||0)+1;p.paid=invested(p)+cost;p.chipsIn=chipsOf(p)+stack;(p.rb=p.rb||[]).push([cost,stack,k]);logEv('rebuy',p.name+(p.status==='out'?lbl+', снова в игре':lbl)+' · №'+p.rebuys+' (+'+fmt(stack)+' фишек, '+money(cost)+')');if(p.status==='out'){p.status='in';p.finalChips=null;p.bustedBy=null;}settle();save();render();toast(p.name+lbl);};
+  const check=()=>{const why=canRebuy(p,k);if(why)confirmB('Докуп вне правил',why+' Всё равно оформить?',f,'Оформить');else f();};
   if(p.status==='in'&&S.rebuyWhen==='bust')return confirmB('Докуп только после вылета',`По правилам этого вечера ${esc(p.name)} может докупиться только после вылета. Всё равно оформить?`,check,'Оформить');
   if(p.status==='in'&&S.rebuyWhen==='short')return confirmB('Докуп: '+esc(p.name),`Стек сейчас не больше стартового (${fmt(S.startStack)} фишек)?`,check,'Да, докуп');
   check();}
@@ -960,9 +978,10 @@ function playerAct(p,a){
       [{t:'Отмена'},{t:'Готово',cls:'pri',fn:()=>doBust(p,+$('#byWho').value||null)}]);}
     else doBust(p);return;}
   if(a==='rebuy')return doRebuy(p);
+  if(a==='rebuy50')return doRebuy(p,0.5);
   if(a==='back'){snap();logEv('back',p.name+' возвращён в игру (ошибочный вылет)');if(p.bustedBy){const k=S.players.find(q=>q.id===p.bustedBy);if(k&&k.knocks)k.knocks--;}p.status='in';p.finalChips=null;p.bustedBy=null;settle();save();render();return;}
   if(a==='addon'){snap();p.addons++;p.paid=invested(p)+S.addonCost;p.chipsIn=chipsOf(p)+S.addonStack;logEv('addon',p.name+' взял аддон');save();render();toast(p.name+': аддон');return;}
-  if(a==='unrebuy'){snap();const last=(p.rb&&p.rb.pop())||[S.rebuyCost,S.rebuyStack];p.paid=invested(p)-last[0];p.chipsIn=chipsOf(p)-last[1];p.rebuys--;logEv('undo','Отменён докуп: '+p.name);save();render();return;}
+  if(a==='unrebuy'){snap();const last=(p.rb&&p.rb.pop())||[S.rebuyCost,S.rebuyStack,1];p.paid=invested(p)-last[0];p.chipsIn=chipsOf(p)-last[1];p.rebuys--;if(last[2]<1&&p.halfs)p.halfs--;logEv('undo','Отменён докуп: '+p.name);save();render();return;}
   if(a==='del')confirmB('Удалить игрока?',`«${esc(p.name)}» и все его взносы уйдут из банка.`,()=>{snap();logEv('del',p.name+' удалён из игры');S.players=S.players.filter(x=>x!==p);if(!S.players.length&&T().startedAt==null){S.log=[];S.hist=[];}settle();save();render();},'Удалить','red');}
 function undo(){const h=S.hist.pop();if(!h)return;const o=JSON.parse(h);S.players=o.players;S.seats=o.seats;
   if(o.logLen!=null)S.log.forEach((e,i)=>{if(i>=o.logLen&&!['level','break','pause','resume','start','reset'].includes(e.type))e.undone=true;});logEv('undo','Отменено последнее действие');save();render();toast('Отменено');}
