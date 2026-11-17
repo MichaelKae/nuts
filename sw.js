@@ -1,5 +1,5 @@
 /* Nuts · service worker: сначала сеть (всегда свежая версия), офлайн — из кэша. © MichaelKae, CC BY-NC 4.0 */
-const V='5.0.2';
+const V='5.0.3';
 const C='nuts-'+V,VOICE='nuts-voice';
 const CORE=['./','index.html','css/style.css?v='+V,'js/net.js?v='+V,'js/app.js?v='+V,'js/remote.js?v='+V,'firebase-config.js','voice/manifest.js','lib/qrcode.js','manifest.webmanifest','icons/icon-192.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>Promise.all(CORE.map(u=>c.add(new Request(u,{cache:'reload'})).catch(()=>{})))).then(()=>self.skipWaiting()));});

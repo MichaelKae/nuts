@@ -101,7 +101,7 @@ function render0(){
       return`<div class="rpl ${p.st}"><span class="nm">${win?'🏆 ':''}${esc(p.n)}<small>${p.st==='out'?(T&&p.pl?p.pl+' место':'вылет'):''}${p.rb?' +'+String(p.rb-(p.hf||0)*.5).replace('.',','):''}${p.ad?' · аддон':''}</small></span>${acts.map(([a,t,c])=>`<button class="btn ${c}" data-p="${p.id}" data-a="${a}">${t}</button>`).join('')}</div>`;}).join('')+
     (P.length?'':'<div class="muted small" style="padding:6px 2px">Игроков пока нет — добавьте ниже.</div>')+
     `<div class="row" style="margin-top:10px;flex-wrap:nowrap"><input id="rAdd" placeholder="Новый игрок" autocomplete="off"><button class="btn pri" data-c="add">＋</button></div></div>
-    <div class="hint" style="text-align:center"><a href="#" id="rDrop" style="color:var(--muted)">Отдать пульт</a></div>`;
+    <div class="hint" style="text-align:center;margin:4px 0 14px"><a href="#" id="rDrop" style="color:var(--muted)">Отдать пульт</a></div>`;
   }else{
     h+=st.remote?`<div class="card small muted" style="text-align:center">🎮 Пульт у: <b>${esc(st.remote)}</b></div>`:
       st.go&&!G.google?`<div class="card rup" style="text-align:center"><p class="small muted" style="margin:0 0 10px">Пультом может стать только тот, кто вошёл в аккаунт.</p>${err?`<p style="color:var(--red);margin:0 0 10px">${esc(err)}</p>`:''}${aBtns()}</div>`:

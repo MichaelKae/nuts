@@ -78,7 +78,7 @@ function vNext(){const n=vq.shift();if(!n){vA=null;return;}const a=new Audio('vo
 function speak(parts,text){if(!S.voice)return;if(usePack()&&parts&&parts.every(clipOk)){try{speechSynthesis.cancel();}catch(e){}if(vA){try{vA.pause();}catch(e){}}vq=parts.slice();vNext();return;}say(text);}
 try{speechSynthesis.onvoiceschanged=fillVoices;}catch(e){}
 function say(t){if(!S.voice||!t)return;try{const u=new SpeechSynthesisUtterance(t);u.lang='ru-RU';const v=pickVoice();if(v)u.voice=v;u.rate=1;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}}
-function announce(i){const l=L(i);if(!l)return; if(l.type==='break'){const cu=colorUpNew(i+1);speak(['brk_'+l.min].concat(cu.length?['colorup',...cu.map(v=>'n_'+v)]:[]),'Перерыв '+l.min+' минут'+(cu.length?'. Можно убрать фишки '+cu.join(', '):''));}
+function announce(i){const l=L(i);if(!l)return; if(l.type==='break'){const cu=S.showColorUp!==false?colorUpNew(i+1):[];speak(['brk_'+l.min].concat(cu.length?['colorup',...cu.map(v=>'n_'+v)]:[]),'Перерыв '+l.min+' минут'+(cu.length?'. Можно убрать фишки '+cu.join(', '):''));}
   else{const pair='bl_'+l.sb+'_'+l.bb,bl=clipOk(pair)?[pair]:['blinds','n_'+l.sb,'na','n_'+l.bb];speak(['lvl_'+lvlNum(i)].concat(bl,l.ante?['ante','n_'+l.ante]:[]),'Уровень '+lvlNum(i)+'. Блайнды '+l.sb+' на '+l.bb+(l.ante?', анте '+l.ante:'')+'.');}}
 
 /* ===== Wake lock ===== */
@@ -108,7 +108,7 @@ function goto(i,silent){const t=T();i=Math.max(0,Math.min(S.levels.length-1,i));
 function addTime(ms){const t=T();if(t.startedAt!=null)logEv('time',(ms>0?'+':'−')+Math.abs(ms/60000)+' мин к уровню');if(t.running)t.endsAt=Math.max(Date.now()+1000,t.endsAt+ms);else t.remaining=Math.max(1000,rem()+ms);if(rem()>60000)t.warned=false;save();render();}
 function tick(){const t=T();
   if(t.running){const r=t.endsAt-Date.now();
-    if(r<=60000&&!t.warned&&Lms(t.idx)>60000){t.warned=true;sndWarn();setTimeout(()=>speak(['warn'],'Осталась одна минута.'),700);save();}
+    if(r<=60000&&!t.warned&&Lms(t.idx)>60000){t.warned=true;if(r>15000){sndWarn();setTimeout(()=>speak(['warn'],'Осталась одна минута.'),700);}save();}
     if(r<=0){ if(t.idx>=S.levels.length-1){extendLevels();logEv('level','Структура закончилась — добавлен уровень');toast('Структура закончилась — добавил уровень, игра продолжается');}
       {let over=-r,i=t.idx+1;while(over>=Lms(i)&&i<S.levels.length-1){over-=Lms(i);i++;}
         t.idx=i;t.endsAt=Date.now()+Lms(i)-over;t.warned=false;lvlLog(i);save();sndLevel();announce(i);render();}}}
@@ -209,7 +209,7 @@ function render(){
   if(S.rebuyUntil){N.push(cl<=S.rebuyUntil?`<span class="note g">Докупы открыты до ${S.rebuyUntil} ур.</span>`:`<span class="note r">Докупы закрыты</span>`);}
   N.push(`<span class="note">${{bust:'Докуп после вылета',short:'Докуп при стеке ≤ стартового',any:'Докуп в любой момент'}[S.rebuyWhen]||''}${S.maxRebuys?' · до '+S.maxRebuys+' раз':''}</span>`);
   if(S.lateRegUntil){N.push(cl<=S.lateRegUntil?`<span class="note g">Регистрация до ${S.lateRegUntil} ур.</span>`:`<span class="note">Регистрация закрыта</span>`);}
-  if(l&&l.type==='break'){const cu=colorUpNew(t.idx+1);if(cu.length)N.push(`<span class="note y">Можно убрать фишки ${cu.join(', ')}</span>`);if(S.addonOn)N.push('<span class="note y">Время аддона</span>');}
+  if(l&&l.type==='break'){const cu=S.showColorUp!==false?colorUpNew(t.idx+1):[];if(cu.length)N.push(`<span class="note y">Можно убрать фишки ${cu.join(', ')}</span>`);if(S.addonOn)N.push('<span class="note y">Время аддона</span>');}
   if(!nx)N.push('<span class="note y">Последний уровень — дальше добавлю уровни автоматически</span>');
   $('#notes').innerHTML=N.join('');
   // side
@@ -537,7 +537,7 @@ function playerAct(p,a){
   if(a==='addon'){snap();p.addons++;p.paid=invested(p)+S.addonCost;p.chipsIn=chipsOf(p)+S.addonStack;logEv('addon',p.name+' взял аддон (+'+fmt(S.addonStack)+' фишек, '+money(S.addonCost)+')');save();render();toast(p.name+': аддон +'+fmt(S.addonStack)+' фишек');return;}
   if(a==='unrebuy'){snap();const last=(p.rb&&p.rb.pop())||[S.rebuyCost,S.rebuyStack,1];p.paid=invested(p)-last[0];p.chipsIn=chipsOf(p)-last[1];p.rebuys--;if(last[2]<1&&p.halfs)p.halfs--;logEv('undo','Отменён докуп: '+p.name);save();render();return;}
   if(a==='del')confirmB('Удалить игрока?',`«${esc(p.name)}» и все его взносы уйдут из банка.`,()=>{snap();logEv('del',p.name+' удалён из игры');S.players=S.players.filter(x=>x!==p);if(!S.players.length&&T().startedAt==null){S.log=[];S.hist=[];}settle();save();render();},'Удалить','red');}
-function undo(){const h=S.hist.pop();if(!h)return;const o=JSON.parse(h);S.players=o.players;S.seats=o.seats;
+function undo(){const h=S.hist.pop();if(!h)return;const o=JSON.parse(h);S.players=o.players;S.seats=o.seats;if(!S.players.some(p=>p.status==='in'&&p.place===1))S.lastWinner=null;
   if(o.logLen!=null)S.log.forEach((e,i)=>{if(i>=o.logLen&&!['level','break','pause','resume','start','reset'].includes(e.type))e.undone=true;});logEv('undo','Отменено последнее действие');save();render();toast('Отменено');}
 $('#undoBtn').onclick=undo;
 $('#seatBtn').onclick=()=>{const ps=S.players.filter(p=>p.status==='in');if(ps.length<2){toast('Нужно хотя бы 2 игрока в игре');return;}
@@ -1193,7 +1193,7 @@ document.addEventListener('keydown',e=>{
   if(e.code==='Space'){e.preventDefault();if(e.target.blur)e.target.blur();toggle();}else if(e.key==='ArrowRight')step(1);else if(e.key==='ArrowLeft')step(-1);});
 
 /* ===== 5.0: анимации на ТВ ===== */
-if(!S.anim)S.anim='full';if(S.tvSeats==null)S.tvSeats=true;
+if(!S.anim)S.anim='full';if(S.showColorUp==null)S.showColorUp=true;if(S.tvSeats==null)S.tvSeats=true;
 const RMQ=window.matchMedia?matchMedia('(prefers-reduced-motion: reduce)'):{matches:false};
 const animMode=()=>{const m=S.anim||'full';return m==='full'&&RMQ.matches?'calm':m;};
 const isTV=()=>document.body.classList.contains('tv');
@@ -1219,7 +1219,7 @@ function fxWin(name){if(!fxOn())return;fxWinClose(true);const x=totals(),pr=isT(
 function fxWinClose(now){const w=$('#fxwin');if(!w)return;if(now||animMode()==='off'){w.remove();return;}w.classList.add('out');setTimeout(()=>w.remove(),600);}
 document.addEventListener('keydown',e=>{if($('#fxwin')&&!$('#fxwin').classList.contains('out')){e.stopImmediatePropagation();e.preventDefault();if(Date.now()-fxWinAt>1500)fxWinClose();}},true);
 function brkHtml(i){const l=L(i);if(!l||l.type!=='break')return'';let nx=null;for(let j=i+1;j<S.levels.length;j++)if(L(j).type==='level'){nx=L(j);break;}
-  const cu=colorUpNew(i+1),ch=chipsAsc().filter(c=>cu.includes(c.v));let h='';
+  const cu=S.showColorUp!==false?colorUpNew(i+1):[],ch=chipsAsc().filter(c=>cu.includes(c.v));let h='';
   if(nx)h+=`<div class="bi"><div class="blab">После перерыва</div><div class="v">${bstr(nx)}${nx.ante?`<small>${nx.bba?'анте BB':'анте '+fmt(nx.ante)}</small>`:''}</div></div>`;
   if(ch.length)h+=`<div class="bi"><div class="blab">Убрать со стола</div><div class="chiprow">${ch.map(c=>chipEl(c)).join('')}</div></div>`;
   if(S.addonOn)h+=`<div class="bi"><div class="blab">Аддон</div><div class="v">+${fmt(S.addonStack)}<small>за ${money(S.addonCost)}</small></div></div>`;
