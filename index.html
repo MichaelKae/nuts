@@ -11,7 +11,7 @@
 <script src="voice/manifest.js" onerror="window.NUTS_VOICE=null"></script>
 <script src="firebase-config.js" onerror="window.NUTS_FB=window.NUTS_FB||null"></script>
 <script>
-window.NUTS_VER='4.11';
+window.NUTS_VER='4.12';
 window.NutsNet=(()=>{
   const SDK='https://www.gstatic.com/firebasejs/10.12.2/';
   const load=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('Нет связи с '+new URL(src).host));document.head.appendChild(s);});
@@ -263,6 +263,7 @@ body.remote #remoteRoot{display:block;max-width:560px;margin:0 auto;padding:14px
 .en-sec{border-top:1px solid var(--line);margin-top:16px;padding-top:14px}
 .en-join input{flex:1;min-width:0}
 .en-err{color:var(--red);margin:0 0 12px}
+.en-live{background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.3);border-radius:14px;padding:12px 14px;margin:0 0 14px}
 .en-foot{text-align:center;color:var(--dim);font-size:11px;margin-top:18px}
 #acctBtn .av{width:22px;height:22px;font-size:11px;vertical-align:middle}
 .chk{display:flex;gap:8px;align-items:center;font-size:13px;margin:10px 0;cursor:pointer}
@@ -405,7 +406,7 @@ body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
 <body>
 <div class="app">
   <nav>
-    <div class="brand" title="Nuts · версия 4.11 · by MichaelKae"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v4.11</span></div>
+    <div class="brand" title="Nuts · версия 4.12 · by MichaelKae"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v4.12</span></div>
     <button class="tab on" data-v="timer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg><span>Таймер</span></button>
     <button class="tab" data-v="players"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14.6c2.6.2 4.4 1.9 5 4.9"/></svg><span>Игроки</span></button>
     <button class="tab" data-v="results"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 14v4M8 21h8"/></svg><span>Итоги</span></button>
@@ -618,7 +619,7 @@ body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
       </div>
       <div class="card">
         <div class="about"><div class="logo">♠</div><div>
-          <div style="font-family:var(--disp);font-weight:800;font-size:20px">Nuts <span class="muted small" style="font-family:var(--ui)">v4.11</span></div>
+          <div style="font-family:var(--disp);font-weight:800;font-size:20px">Nuts <span class="muted small" style="font-family:var(--ui)">v4.12</span></div>
           <div class="muted small">Покерный таймер для домашних игр · автор <a href="https://github.com/MichaelKae" target="_blank" rel="noopener">MichaelKae</a> · <a href="https://github.com/MichaelKae/nuts" target="_blank" rel="noopener">GitHub</a></div>
         </div></div>
       </div>
@@ -646,7 +647,7 @@ body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
           <button class="btn red" id="newGame">Завершить вечер и начать новый</button>
           <button class="btn red" id="resetAll">Сбросить всё</button>
         </div>
-        <div class="hint">Nuts · версия 4.11. При завершении итоги вечера сохраняются в историю (вкладка «Итоги»). Игроки, наборы и структура остаются.</div>
+        <div class="hint">Nuts · версия 4.12. При завершении итоги вечера сохраняются в историю (вкладка «Итоги»). Игроки, наборы и структура остаются.</div>
       </div>
     </section>
   </main>
@@ -1275,6 +1276,9 @@ async function hostInfo(force){if(HI&&!force)return HI;NET=NET||await NutsNet.co
     if(!hi.admin){try{hi.host=!!(await NET.get('hosts/'+ekey(W.email)));}catch(e){}}
     hi.can=hi.admin||hi.host||hi.open;}
   return HI=hi;}
+let rmBusy=null;
+async function activeRoom(){try{const c=await NET.get('users/'+NET.uid+'/room');if(!c)return null;if((await NET.get('rooms/'+c+'/owner'))!==NET.uid)return null;
+  const sn=await NET.get('rooms/'+c+'/seen');if(!sn||NET.now()-sn>STALE)return null;return c;}catch(e){return null;}}
 async function closeRoom(c){const uid=NET.uid;let o=null;try{o=await NET.get('rooms/'+c+'/owner');}catch(e){}if(o!==uid)return;
   for(const k of SUBS){try{await NET.remove('rooms/'+c+'/'+k);}catch(e){}}try{await NET.remove('rooms/'+c+'/seen');}catch(e){}try{await NET.remove('rooms/'+c+'/owner');}catch(e){}}
 async function claimRoom(c){const uid=NET.uid,o=await NET.get('rooms/'+c+'/owner');
@@ -1299,7 +1303,7 @@ function publish(){if(!remoteOn||!NET)return;NET.set('rooms/'+S.remote.room+'/st
 const RR=()=>'rooms/'+S.remote.room;
 function strike(uid,why){const sr=S.remote.strikes=S.remote.strikes||{};sr[uid]=(sr[uid]||0)+1;if(sr[uid]>=3)ban(uid,why||'3 отключения');save();}
 function ban(uid,why){NET.set(RR()+'/banned/'+uid,true);NET.remove(RR()+'/members/'+uid);NET.remove(RR()+'/admins/'+uid);logEv('seats','Устройство заблокировано в комнате ('+why+')');}
-function kick(uid){const nm=(members[uid]||admins[uid]||{}).name||'Гость';NET.remove(RR()+'/admins/'+uid);NET.remove(RR()+'/members/'+uid);logEv('seats','Отключён от комнаты: '+nm);strike(uid);toast('Отключён: '+nm);}
+function kick(uid){const nm=(members[uid]||admins[uid]||{}).name||'Гость';NET.remove(RR()+'/admins/'+uid);NET.remove(RR()+'/members/'+uid);logEv('seats','Отключён от комнаты: '+nm);if(uid!==NET.uid)strike(uid);toast('Отключён: '+nm);}
 const trusted=()=>S.trustedRemotes=S.trustedRemotes||{};
 function onJoin(uid,v){NET.remove(RR()+'/join/'+uid);if(!v)return;const nm=String(v.name||'Гость').trim().slice(0,30)||'Гость';
   const g=v.g===true,ph=g&&typeof v.ph==='string'&&/^https:\/\//.test(v.ph)?v.ph.slice(0,400):'';
@@ -1320,9 +1324,10 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-apr]');if(
   if(b.dataset.apr!=='no'&&!Object.keys(admins).length&&members[r.uid]){const g=!!members[r.uid].g;NET.set(RR()+'/admins/'+r.uid,g?{name:r.name,at:NET.now(),g:true}:{name:r.name,at:NET.now()});
     if(b.dataset.apr==='always'&&g){trusted()[r.uid]={name:r.name,at:Date.now()};save();}toast('📱 Пульт: '+r.name);logEv('seats','Пульт подключён: '+r.name);}
   else{strike(r.uid,'3 отказа');logEv('seats','Отклонён запрос пульта: '+r.name);}renderApprove();});
-async function hostConnect(){if(!NutsNet.configured())return;
+async function hostConnect(force){if(!NutsNet.configured())return;
   NET=await NutsNet.connect();const W=NET.who();if(!W.google)throw new Error('сначала войдите через Google');
   const hi=await hostInfo(true);if(!hi.can)throw new Error('аккаунт '+(W.email||W.name)+' не приглашён ведущим');let room=S.remote&&S.remote.room;
+  if(!force){const act=await activeRoom();if(act&&act!==room){const e=new Error('комната '+act+' открыта на другом устройстве');e.busy=act;throw e;}}
   try{
   if(room&&!(await claimRoom(room)))room=null;
   if(!room){for(let i=0;i<10&&!room;i++){const c=NutsNet.code();if(await claimRoom(c))room=c;}}
@@ -1365,6 +1370,8 @@ async function refreshRemoteModal(){if(!rmOpen||!$('#modal').classList.contains(
     const W=NET.who(),er=remoteErr?`<p style="color:var(--red)">${esc(remoteErr)}</p>`:'';
     if(!W.google){b.innerHTML=`<p>Комнату для телефонов создаёт ведущий, вошедший через Google. Так комната останется вашей на любом устройстве, а посторонние не смогут создавать комнаты в вашей базе.</p><p class="small muted">Гости заходят как раньше — по QR-коду и PIN, с Google или просто по имени.</p>${er}<button class="btn gbtn" id="rmGoogle" style="width:100%">${NutsNet.GICON} Войти через Google</button>`;return;}
     const hi=await hostInfo();if(!rmOpen||!$('#rmBody'))return;const whoC=`<div class="who">${NutsNet.avatar(W)}<span><b>${esc(W.name||W.email)}</b><small>${esc(W.email)}</small></span><a href="#" id="rmOut">выйти</a></div>`;
+    if(rmBusy&&hi.can){b.innerHTML=whoC+`<p>⚠️ У вас уже открыта комната <b>${rmBusy}</b> на другом устройстве — там может идти игра.</p><p class="small muted">Если открыть комнату здесь, та закроется и подключённые телефоны отвалятся.</p>
+      <div class="col" style="display:flex;flex-direction:column;gap:8px"><button class="btn pri" id="rmAsRemote" data-room="${rmBusy}">🎮 Управлять той комнатой отсюда</button><button class="btn red" id="rmForce">Закрыть её и открыть здесь</button><button class="btn ghost" id="rmBusyNo">Отмена</button></div>`;return;}
     if(!hi.can){b.innerHTML=whoC+`<p>Создавать комнаты для телефонов могут ведущие. Попросите владельца сайта пригласить вас по адресу <b>${esc(W.email)}</b>.</p><p class="small muted">Таймер на этом устройстве работает как обычно.</p>`;return;}
     b.innerHTML=whoC+`<p>Создайте комнату — на экране появятся QR-код и PIN. QR пускает сразу, а по ссылке или коду комнаты нужен PIN. Стать пультом можно только с вашего разрешения. Каждая новая комната получает новый код и PIN.</p>${gOnly}${er}<button class="btn pri" id="rmStart" style="width:100%">📡 Создать комнату</button>${trHtml}`;return;}
   const url=NutsNet.joinUrl(S.remote.room),qrUrl=url+'-'+S.remote.pin,ad=Object.entries(admins),mb=Object.entries(members).filter(([u])=>!admins[u]);
@@ -1377,7 +1384,9 @@ async function refreshRemoteModal(){if(!rmOpen||!$('#modal').classList.contains(
   let svg;try{svg=await NutsNet.qrSvg(qrUrl);}catch(e){svg='<div style="color:#333;font-size:13px;padding:20px;text-align:center">QR не загрузился — откройте ссылку ниже на телефоне</div>';}const qb=$('#rmQr');if(qb)qb.innerHTML=svg;}
 function remoteModal(){rmOpen=true;modal(`<h3>📱 Пульт с телефона</h3><div id="rmBody"></div>`,[{t:'Готово',cls:'pri',fn:()=>{rmOpen=false;}}]);refreshRemoteModal();}
 document.addEventListener('click',async e=>{const t=e.target;
-  if(t.id==='rmStart'){t.disabled=true;t.textContent='Подключаюсь…';try{await hostConnect();}catch(err){remoteErr='Не получилось подключиться: '+(err.message||err);}refreshRemoteModal();}
+  if(t.id==='rmStart'||t.id==='rmForce'){const f=t.id==='rmForce';t.disabled=true;t.textContent='Подключаюсь…';rmBusy=null;try{await hostConnect(f);}catch(err){if(err.busy)rmBusy=err.busy;else remoteErr='Не получилось подключиться: '+(err.message||err);}refreshRemoteModal();}
+  else if(t.id==='rmBusyNo'){rmBusy=null;refreshRemoteModal();}
+  else if(t.id==='rmAsRemote'){location.hash='#r-'+t.dataset.room;location.reload();}
   else if(t.id==='rmStop'){await hostDisconnect();toast('Комната закрыта');}
   else if(t.id==='rmPin'){S.remote.pin=pin4();save();refreshRemoteModal();}
   else if(t.dataset&&t.dataset.rmkick){kick(t.dataset.rmkick);}
@@ -1386,7 +1395,7 @@ document.addEventListener('click',async e=>{const t=e.target;
   else if(t.id==='rmOut'){e.preventDefault();remoteErr='';try{await NET.signOut();}catch(err){}HI=null;setEntry('');refreshAcct();refreshRemoteModal();}});
 document.addEventListener('change',e=>{if(e.target.id==='rmGOnly'){S.gOnlyRemote=e.target.checked;save();publishSoon();}});
 $('#remoteFab').onclick=remoteModal;$('#remoteOpen').onclick=remoteModal;$('#remotePill').onclick=remoteModal;
-if(S.remote&&S.remote.on&&NutsNet.configured())hostConnect().catch(e=>toast('Пульт: '+((e&&e.message)||'нет связи с сервером')));
+if(S.remote&&S.remote.on&&NutsNet.configured())hostConnect().catch(e=>{if(e&&e.busy){remoteOn=false;S.remote=null;save();renderRemotePill();toast('📱 Комната '+e.busy+' уже открыта на другом устройстве — здесь не переподключаюсь');}else toast('Пульт: '+((e&&e.message)||'нет связи с сервером'));});
 
 /* ===== Entry & cabinet ===== */
 const ENTRY='nuts.entry';function getEntry(){try{return localStorage.getItem(ENTRY)||'';}catch(e){return'';}}function setEntry(v){try{v?localStorage.setItem(ENTRY,v):localStorage.removeItem(ENTRY);}catch(e){}}
@@ -1406,8 +1415,11 @@ async function renderEntry(){const el=entryEl(),m=enMode;if(!m)return closeEntry
   let hi;try{hi=await hostInfo(true);}catch(e){enErr='Нет связи с сервером: '+(e.message||e);enMode='welcome';return renderEntry();}
   if(enMode!=='cabinet')return;if(!hi.w.google){enMode='welcome';return renderEntry();}
   const W=hi.w;if(!profSaved){profSaved=true;const pr={name:String(W.name||W.email||'').slice(0,60),at:NET.now()};if(/^https:\/\//.test(W.photo||''))pr.photo=W.photo.slice(0,400);NET.set('users/'+NET.uid+'/profile',pr).catch(()=>{});}
-  let h=`<div class="en-box wide">${x}<div class="who">${NutsNet.avatar(W)}<span><b>${esc(W.name||W.email)}</b><small>${esc(W.email)}</small></span><a href="#" id="enOut">выйти</a></div>${er}
-    <button class="btn pri en-big" id="enStart">${T().startedAt!=null?'▶ Вернуться к вечеру':'▶ Начать вечер'}</button>
+  const act=hi.can?await activeRoom():null;if(enMode!=='cabinet')return;
+  const actH=act?(remoteOn&&S.remote&&S.remote.room===act?`<div class="en-live">🟢 Комната <b>${act}</b> открыта на этом устройстве</div>`:
+    `<div class="en-live">🟢 Идёт вечер · комната <b>${act}</b> открыта на другом устройстве<button class="btn pri" id="enRemote" data-room="${act}" style="width:100%;margin-top:10px">🎮 Открыть как пульт</button></div>`):'';
+  let h=`<div class="en-box wide">${x}<div class="who">${NutsNet.avatar(W)}<span><b>${esc(W.name||W.email)}</b><small>${esc(W.email)}</small></span><a href="#" id="enOut">выйти</a></div>${er}${actH}
+    <button class="btn ${act&&!(remoteOn&&S.remote&&S.remote.room===act)?'':'pri'} en-big" id="enStart">${T().startedAt!=null?'▶ Вернуться к вечеру':'▶ Начать вечер'}</button>
     <div class="small muted en-cap">${hi.can?'Вы ведущий: в таймере можно открыть комнату и управлять игрой с телефона.':'Таймер работает. Чтобы подключать телефоны к своему вечеру, нужно приглашение владельца сайта.'}</div>
     ${codeBox()}
     <div class="en-sec"><div class="blab">Мои вечера</div><div class="muted small">Скоро: здесь появятся ваши вечера и статистика в фишках — результат в стартовых стеках, докупы, места.</div></div>`;
@@ -1423,6 +1435,7 @@ async function entryClick(e){const b=e.target.closest('button,a');if(!b)return;
   if(b.id==='enClose'||b.id==='enStart'){closeEntry();return;}
   if(b.id==='enGuest'){setEntry('guest');closeEntry();return;}
   if(b.id==='enJoin')return joinByCode();
+  if(b.id==='enRemote'){location.hash='#r-'+b.dataset.room;location.reload();return;}
   if(b.id==='enGoogle'){enBusy=true;enErr='';renderEntry();try{NET=NET||await NutsNet.connect();await NET.google();HI=null;setEntry('google');enMode='cabinet';}catch(err){enErr=NutsNet.gErr(err);}enBusy=false;renderEntry();refreshAcct();return;}
   if(b.id==='enOut'){e.preventDefault();if(remoteOn){enErr='Сначала закройте комнату для телефонов (📱 → Закрыть комнату).';return renderEntry();}try{await NET.signOut();}catch(x){}HI=null;profSaved=false;setEntry('');enMode='welcome';renderEntry();refreshAcct();return;}
   if(b.id==='enAdd'){const v=(($('#enHost')||{}).value||'').trim().toLowerCase();if(!/^[^@\s\/#$\[\]]+@[^@\s\/#$\[\]]+\.[a-z]{2,}$/.test(v)){enErr='Введите email, например kolya@gmail.com';return renderEntry();}
@@ -1482,7 +1495,7 @@ const fmtT=ms=>{ms=Math.max(0,ms);const t=Math.ceil(ms/1000),h=Math.floor(t/3600
 const LS='nuts.remote';let me={};try{me=JSON.parse(localStorage.getItem(LS))||{};}catch(e){}
 const saveMe=()=>{try{localStorage.setItem(LS,JSON.stringify({name:me.name||''}));}catch(e){}};
 let NET=null,st=null,isMember=false,isAdmin=false,banned=false,conn=false,err='',joining=false,asking=false,kickedMsg='',stUnsub=null,wasMember=false,hadState=false,closed=false,denied=false;
-let pend=0,pendT=null,slow=false,G={google:false},gBusy=false;const PK='nuts.pin.'+room;
+let pend=0,pendT=null,slow=false,G={google:false},gBusy=false,isOwner=false;const PK='nuts.pin.'+room;
 try{const pd=JSON.parse(sessionStorage.getItem('nuts.pend')||'null');sessionStorage.removeItem('nuts.pend');if(pd&&pd.room===room&&pd.pin&&!qrPin)qrPin=pd.pin;}catch(e){}
 function send(c){pend++;clearTimeout(pendT);pendT=setTimeout(()=>{if(pend){slow=true;render();}},5000);
   if(st&&st.t){const t=st.t,now=NET.now();
@@ -1503,7 +1516,7 @@ async function doGoogle(upgrade){const before=NET.uid,typed=((q('#rjName')||{}).
 function sheet(title,text,btns){const w=document.createElement('div');w.className='rmodal';w.innerHTML=`<div class="mbox"><h3>${title}</h3>${text?`<p>${text}</p>`:''}<div class="mbtns col"></div></div>`;
   const bx=w.querySelector('.mbtns');btns.forEach(b=>{const e=document.createElement('button');e.className='btn '+(b.cls||'');e.textContent=b.t;e.onclick=()=>{w.remove();b.fn&&b.fn();};bx.appendChild(e);});
   w.addEventListener('click',e=>{if(e.target===w)w.remove();});document.body.appendChild(w);}
-const header=()=>`<div class="rhead"><div class="brand"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v${window.NUTS_VER}</span></div><span class="small muted">${isAdmin?'пульт':isMember?'зритель':''}</span><span class="room"><span class="dot ${conn?'on':''}"></span> ${room}</span></div>`;
+const header=()=>`<div class="rhead"><div class="brand"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v${window.NUTS_VER}</span></div><span class="small muted">${isAdmin?(isOwner?'пульт · ведущий':'пульт'):isMember?'зритель':''}</span><span class="room"><span class="dot ${conn?'on':''}"></span> ${room}</span></div>`;
 const foot=()=>`<div class="hint" style="text-align:center;margin-top:14px">Звук — только на главном экране${isMember?' · <a href="#" id="rLeave" style="color:var(--muted)">выйти</a>':''}${G.google?' · <a href="#" id="rgOut" style="color:var(--muted)">выйти из Google</a>':''}</div>`;
 function render(){try{render0();}catch(e){root.innerHTML=header()+`<div class="card" style="color:var(--red)">Ошибка пульта: ${esc(e.message||e)}. Обновите страницу.</div>`;}}
 function render0(){
@@ -1588,13 +1601,15 @@ function watchState(){const on=isMember||isAdmin;
   if(!on&&stUnsub){try{stUnsub();}catch(e){}stUnsub=null;st=null;}}
 (async()=>{render();try{NET=await NutsNet.connect();}catch(e){err='Нет связи с сервером: '+(e.message||e);render();return;}
   G=NET.who();if(G.google&&!me.name&&G.name){me.name=G.name.slice(0,30);saveMe();}
+  try{isOwner=G.google&&(await NET.get(R0+'/owner'))===NET.uid;}catch(e){}
+  if(isOwner)NET.set(R0+'/admins/'+NET.uid,{name:String(G.name||me.name||'Ведущий').slice(0,30),at:NET.now(),g:true}).catch(()=>{});
   NET.onConn(c=>{conn=c;const d=q('.dot');if(d)d.classList.toggle('on',c);});
   const onDen=()=>{denied=true;render();};
   NET.onValue(R0+'/banned/'+NET.uid,v=>{banned=!!v;render();},onDen);
   NET.onValue(R0+'/admins/'+NET.uid,v=>{const wasA=isAdmin;isAdmin=!!v;if(isAdmin){asking=false;joining=false;}else if(wasA&&!isMember&&!closed)kickedMsg='Ведущий отключил вас от комнаты. Можно зайти снова.';watchState();render();},onDen);
   NET.onValue(R0+'/members/'+NET.uid,v=>{isMember=!!v;if(isMember){joining=false;err='';wasMember=true;}else if(wasMember&&!isAdmin){if(!closed)kickedMsg='Ведущий отключил вас от комнаты. Можно зайти снова.';wasMember=false;}watchState();render();},onDen);
   render();
-  if(qrPin&&me.name)setTimeout(()=>{if(!isMember&&!isAdmin&&!banned)joinRoom();},600);})();
+  if(qrPin&&me.name&&!isOwner)setTimeout(()=>{if(!isMember&&!isAdmin&&!banned)joinRoom();},600);})();
 })();
 </script>
 </body>
