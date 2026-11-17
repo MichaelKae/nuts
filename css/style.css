@@ -37,6 +37,7 @@ input[type=color]{padding:2px;height:38px;width:46px}
 /* nav */
 nav{display:flex;gap:4px;align-items:center;padding:10px 14px;padding-top:calc(10px + var(--safe-t));border-bottom:1px solid var(--line);
   background:rgba(6,16,12,.7);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);z-index:10}
+.brand#homeBtn{cursor:pointer;border-radius:10px;transition:opacity .15s}.brand#homeBtn:hover{opacity:.85}.brand#homeBtn:focus-visible{outline:2px solid var(--acc);outline-offset:4px}
 .brand{font-family:var(--disp);font-weight:800;font-size:15px;margin-right:14px;display:flex;align-items:center;gap:8px;letter-spacing:.02em}
 .brand i{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--acc),var(--acc2));display:grid;place-items:center;font-style:normal;color:#05140d;font-size:15px}
 .tab{cursor:pointer;border:none;background:none;color:var(--muted);padding:9px 14px;border-radius:11px;font-weight:600;display:flex;align-items:center;gap:7px}
