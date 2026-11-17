@@ -97,7 +97,7 @@ function render0(){
     P.map(p=>{const win=T&&p.pl===1,acts=[];
       if(p.st==='in'){if(!win&&st.x.inP>1)acts.push(['bust','💥','red']);if(!win&&r.when!=='bust')acts.push(['rebuy','💸','']);if(r.addon&&!p.ad&&!win)acts.push(['addon','➕','']);}
       else{acts.push(['rebuy','💸 В игру','pri']);acts.push(['back','↩',''])}
-      return`<div class="rpl ${p.st}"><span class="nm">${win?'🏆 ':''}${esc(p.n)}<small>${p.st==='out'?(T&&p.pl?p.pl+' место':'вылет'):''}${p.rb?' +'+String(p.rb-(p.hf||0)*.5).replace('.',','):''}</small></span>${acts.map(([a,t,c])=>`<button class="btn ${c}" data-p="${p.id}" data-a="${a}">${t}</button>`).join('')}</div>`;}).join('')+
+      return`<div class="rpl ${p.st}"><span class="nm">${win?'🏆 ':''}${esc(p.n)}<small>${p.st==='out'?(T&&p.pl?p.pl+' место':'вылет'):''}${p.rb?' +'+String(p.rb-(p.hf||0)*.5).replace('.',','):''}${p.ad?' · аддон':''}</small></span>${acts.map(([a,t,c])=>`<button class="btn ${c}" data-p="${p.id}" data-a="${a}">${t}</button>`).join('')}</div>`;}).join('')+
     (P.length?'':'<div class="muted small" style="padding:6px 2px">Игроков пока нет — добавьте ниже.</div>')+
     `<div class="row" style="margin-top:10px;flex-wrap:nowrap"><input id="rAdd" placeholder="Новый игрок" autocomplete="off"><button class="btn pri" data-c="add">＋</button></div></div>
     <div class="hint" style="text-align:center"><a href="#" id="rDrop" style="color:var(--muted)">Отдать пульт</a></div>`;
@@ -110,7 +110,7 @@ function render0(){
   root.innerHTML=stale+slowBox+h+cmbHTML()+foot();tickR();if(pend)root.querySelectorAll('[data-c],[data-p]').forEach(x=>x.classList.add('busy'));}
 function tickR(){const c=q('#rClock');if(!c||!st)return;const r=st.t.run?st.t.end-NET.now():st.t.rem;c.textContent=fmtT(r);c.classList.toggle('warn',r<=60000&&st.t.run&&st.lv&&st.lv.ty==='level');c.classList.toggle('paused',!st.t.run&&st.t.st);}
 setInterval(tickR,250);
-function bustThenR(p,a){const r=st.r,two=kk=>{haptic(30);send(Object.assign({t:'p',id:p.id,a:'bust'},kk?{k:kk}:{}));send({t:'p',id:p.id,a},p.n+' — вылет и '+(a==='rebuy50'?'докуп 50%':'докуп'));};
+function bustThenR(p,a){const r=st.r,two=kk=>{haptic(30);send(Object.assign({t:'p',id:p.id,a:'bust',h:1},kk?{k:kk}:{}));send({t:'p',id:p.id,a},p.n+' — вылет и '+(a==='rebuy50'?'докуп 50%':'докуп'));};
   if(r.bounty){const others=st.pl.filter(x=>x.st==='in'&&x.id!==p.id);return sheet('Кто выбил '+esc(p.n)+'?','',others.map(o=>({t:o.n,fn:()=>two(o.id)})).concat([{t:'Никто — баунти в призовой фонд',fn:()=>two()},{t:'Отмена',cls:'ghost'}]));}
   two();}
 let cmbOpen=(()=>{try{return localStorage.getItem('nuts.combos')==='1';}catch(e){return false;}})();
