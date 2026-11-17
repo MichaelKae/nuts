@@ -45,12 +45,13 @@ const isT=()=>S.mode==='tournament';
 const editing=sel=>{const a=document.activeElement;return!!(a&&a.matches('input:not([type=checkbox]):not([type=color]),select')&&a.closest(sel));};
 
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),2000);}
-let mFocus=null;
+let mFocus=null,mOpenAt=0;
 function modal(html,btns){ if(!$('#modal').classList.contains('on'))mFocus=document.activeElement; $('#mbox').innerHTML=html+'<div class="mbtns"></div>'; const bx=$('#mbox .mbtns');
-  btns.forEach(b=>{const e=document.createElement('button');e.className='btn '+(b.cls||'');e.textContent=b.t;e.onclick=()=>{ if(b.fn&&b.fn()===false) return; closeModal(); };bx.appendChild(e);});
-  $('#modal').classList.add('on'); const f=$('#mbox input,#mbox select'); if(f) setTimeout(()=>f.focus(),50); }
+  btns.forEach(b=>{const e=document.createElement('button');e.className='btn '+(b.cls||'');e.textContent=b.t;e.onclick=ev=>{ if(ev&&ev.detail>1&&Date.now()-mOpenAt<600) return; if(b.fn&&b.fn()===false) return; closeModal(); };bx.appendChild(e);});
+  if(!$('#modal').classList.contains('on'))mOpenAt=Date.now(); $('#modal').classList.add('on'); const f=$('#mbox input,#mbox select'); if(f) setTimeout(()=>f.focus(),50); }
 function closeModal(){$('#modal').classList.remove('on');const f=mFocus;mFocus=null;setTimeout(()=>{if(!$('#modal').classList.contains('on')&&f&&f.focus&&document.contains(f)){try{f.focus({preventScroll:true});}catch(e){}}},0);}
-$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
+
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal'&&!(e.detail>1&&Date.now()-mOpenAt<600))closeModal();});
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(b&&e.detail>0)b.blur();});
 function confirmB(title,text,yes,yesT='Да',cls='pri'){modal(`<h3>${title}</h3><p>${text}</p>`,[{t:'Отмена'},{t:yesT,cls,fn:yes}]);}
 
@@ -1033,7 +1034,7 @@ async function renderEntry(){const el=entryEl(),m=enMode;if(!m)return closeEntry
       <label class="chk"><input type="checkbox" id="payShare" ${D.share?'checked':''}> Передавать ведущему, когда я в комнате</label>
       <div class="row"><button class="btn sm pri" id="paySave">Сохранить</button>${PAYC.ph?'<button class="btn sm ghost red" id="payDel">Удалить реквизиты</button>':''}</div></div>`;}
   {const P=NutsNet.prov(),mine=W.providers||[],n=mine.length;
-    h+=`<div class="en-sec"><div class="blab">Способы входа</div><div class="plist">`+P.map(k=>{const pid=NutsNet.PID[k],has=mine.find(x=>x.id===pid);
+    h+=`<div class="en-sec"><div class="blab">Способы входа</div><div class="provlist">`+P.map(k=>{const pid=NutsNet.PID[k],has=mine.find(x=>x.id===pid);
       return `<div>${NutsNet.PICON[pid]}<span class="pnm">${NutsNet.PNAME[pid]}${has?`<small>${esc(has.email||'привязан')}</small>`:''}</span>${has?(n>1?`<button class="btn sm ghost" data-unlink="${pid}">Отвязать</button>`:'<span class="small muted">✓</span>'):`<button class="btn sm" data-link="${k}" ${enBusy?'disabled':''}>${enBusy===k?'…':'Привязать'}</button>`}</div>`;}).join('')+`</div>`+
       (enMail.mode==='link'?NutsNet.mailBox({emailOpen:enMail.open,sent:enMail.sent,emailVal:enMail.val,busy:enBusy}):'')+
       `<div class="small muted" style="margin-top:6px">Входите любым привязанным способом — попадёте в этот же кабинет.</div></div>`;}
@@ -1113,7 +1114,15 @@ async function entryClick(e){const b=e.target.closest('button,a,[data-bank]');if
   if(b.dataset.enrm){try{await NET.remove('hosts/'+b.dataset.enrm);}catch(x){enErr='Не получилось убрать';}return renderEntry();}}
 document.addEventListener('change',async e=>{if(e.target.id==='enOpen'){try{await NET.set('settings/openHosting',e.target.checked);enErr='';}catch(x){enErr='Не получилось сохранить';}renderEntry();}});
 function refreshAcct(){const b=$('#acctBtn');if(!b)return;if(!NutsNet.configured()){b.style.display='none';return;}const W=NET&&NET.who();
-  b.innerHTML=W&&W.google?NutsNet.avatar(W):'👤 Войти';b.title=W&&W.google?'Личный кабинет · '+(W.email||''):'Войти в аккаунт';}
+  let C=null;try{C=JSON.parse(localStorage.getItem('nuts.acct')||'null');}catch(e){}
+  if(W){if(W.google){C={name:W.name||'',photo:W.photo||'',email:W.email||''};try{localStorage.setItem('nuts.acct',JSON.stringify(C));}catch(e){}}else{C=null;try{localStorage.removeItem('nuts.acct');}catch(e){}}}
+  const known=!!W||getEntry()!=='google';
+  if(C){b.innerHTML=NutsNet.avatar(C);b.title='Личный кабинет · '+(C.email||'');}
+  else if(!known){b.innerHTML='👤';b.title='Подключаюсь…';}
+  else{b.innerHTML='👤<span class="lbl"> Войти</span>';b.title='Войти в аккаунт';}
+  const f=$('#acctFab');if(f){f.innerHTML=C?NutsNet.avatar(C):'👤';f.title=b.title;}}
+$$('.tab').forEach(t=>{if(!t.title)t.title=t.textContent.trim();});
+$('#acctFab').onclick=()=>$('#acctBtn').click();
 $('#acctBtn').onclick=()=>{const W=NET&&NET.who();openEntry(W&&W.google?'cabinet':(getEntry()==='google'?'cabinet':'welcome'));};
 (function initEntry(){refreshAcct();if(!NutsNet.configured())return;const pref=getEntry(),busy=T().startedAt!=null||!!(S.remote&&S.remote.on);
   if(/[?&]oobCode=/.test(location.search)){NutsNet.connect().then(n=>{NET=NET||n;HI=null;refreshAcct();const L=window.NUTS_LINK||{};
