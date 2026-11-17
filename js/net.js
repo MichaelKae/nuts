@@ -9,7 +9,7 @@ window.NUTS_HANDS=[['Роял-флеш','Royal flush','Туз, король, д�
   ['Две пары','Two pair','Две разные пары. Сначала сравнивают старшую пару, потом младшую, потом кикер.','J♥ J♣ 4♠ 4♦ A♥',4],
   ['Пара','One pair','Две карты одного достоинства.','10♠ 10♥ K♦ 6♣ 3♠',2],
   ['Старшая карта','High card','Ничего не собралось — решает самая старшая карта.','A♣ Q♦ 9♠ 5♥ 3♣',1]];
-window.NUTS_VER='4.17';
+window.NUTS_VER='4.18';
 window.NutsNet=(()=>{
   const SDK='https://www.gstatic.com/firebasejs/10.12.2/';
   const load=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('Нет связи с '+new URL(src).host));document.head.appendChild(s);});

@@ -15,14 +15,32 @@ let pend=0,pendT=null,slow=false,G={google:false},gBusy=false,isOwner=false,drop
 function maybeKicked(){clearTimeout(kickT);kickT=setTimeout(()=>{if(!isMember&&!isAdmin&&!closed&&!banned){if(!dropping)kickedMsg='Ведущий отключил вас от комнаты. Можно зайти снова.';dropping=false;render();}},2500);}const PK='nuts.pin.'+room;
 try{const pd=JSON.parse(sessionStorage.getItem('nuts.pend')||localStorage.getItem('nuts.pend')||'null');sessionStorage.removeItem('nuts.pend');localStorage.removeItem('nuts.pend');if(pd&&pd.room===room&&pd.pin&&!qrPin&&Date.now()-(pd.at||Date.now())<3600e3)qrPin=pd.pin;}catch(e){}
 const haptic=p=>{try{navigator.vibrate&&navigator.vibrate(p);}catch(e){}};
-let pendLabel='';
+let pendLabel='',askAt=0,rbWait=null;const MEK='nuts.me.'+room;
+const mine=()=>{if(!st||!st.pl)return null;let m=st.pl.find(x=>x.u&&x.u===NET.uid);if(m)return m;let id=null;try{id=+localStorage.getItem(MEK);}catch(e){}return st.pl.find(x=>x.id===id)||null;};
+function onMemberRq(v){if(v.rq&&rbWait&&v.rq.at>=rbWait.at-2000){const ok=v.rq.r==='ok';rbWait=null;rtoast(ok?'✓ Докуп оформлен':'✕ Ведущий отклонил докуп');haptic(ok?[12,60,12]:[30,60,30]);render();}}
+function rbCard(){if(!st||!st.pl||!st.pl.length)return '';const me=mine(),T=st.mode==='tournament';
+  if(rbWait)return `<div class="card" style="text-align:center"><span class="muted">⏳ Запрос на докуп отправлен — ждём ведущего…</span><div style="margin-top:6px"><a href="#" id="rbCancel" style="color:var(--muted)">отменить</a></div></div>`;
+  if(!me)return `<div class="card"><div class="small muted" style="margin-bottom:8px">Кто вы за столом? Тогда можно будет попросить докуп с телефона.</div><div class="roster">${st.pl.map(x=>`<span class="rchip" data-me="${x.id}">${esc(x.n)}</span>`).join('')}</div></div>`;
+  const win=T&&me.pl===1;
+  return `<div class="card"><div class="row" style="justify-content:space-between;align-items:center;flex-wrap:nowrap;gap:10px"><span style="min-width:0">Вы — <b>${esc(me.n)}</b>${me.u?' 🔗':` · <a href="#" id="rbWho" style="color:var(--muted)">не вы?</a>`}<br><small class="muted">${me.st==='out'?(T&&me.pl?me.pl+' место':'вылет'):'в игре'}${me.rb?' · докупов: '+me.rb:''}</small></span>${win?'':`<button class="btn pri" id="rbAsk" style="flex:none">💸 Хочу докупиться</button>`}</div></div>`;}
+function askRebuy(k){const p=mine(),r=st.r||{};if(!p)return;
+  {const w0=[];if(r.until&&r.lvl>r.until)w0.push(`окно докупов закрылось после ${r.until} уровня`);if(p.st==='in'&&r.when==='bust')w0.push('по правилам докуп только после вылета');if(r.max&&(p.rb-p.hf*.5)+.5>r.max)w0.push(`лимит докупов (${r.max}) исчерпан`);
+   if(w0.length)return sheet('Докуп сейчас нельзя',w0.join(', ')+'. Если что-то не так — скажите ведущему.',[{t:'Понятно',cls:'pri'}]);}
+  if(r.half&&k==null)return sheet('Докуп: '+esc(p.n),'На сколько докупаетесь?',[{t:`💸 Весь стек · +${fmt(r.rs)} за ${fmt(r.rc)} ${st.cur||'₽'}`,cls:'pri',fn:()=>askRebuy(1)},{t:`💸 Половина · +${fmt(r.rs/2)} за ${fmt(r.rc/2)} ${st.cur||'₽'}`,fn:()=>askRebuy(.5)},{t:'Отмена',cls:'ghost'}]);
+  k=k||1;const units=p.rb-p.hf*.5,why=[];
+  if(r.max&&units+k>r.max)why.push(`лимит докупов (${r.max}) исчерпан`);if(r.until&&r.lvl>r.until)why.push(`окно докупов закрылось после ${r.until} уровня`);
+  if(p.st==='in'&&r.when==='bust')why.push('по правилам докуп только после вылета');
+  if(why.length)return sheet('Докуп сейчас нельзя',why.join(', ')+'. Если что-то не так — скажите ведущему.',[{t:'Понятно',cls:'pri'}]);
+  rbWait={pid:p.id,k,at:NET.now()};haptic(15);render();req({want:'rebuy',pid:p.id,k}).catch(()=>{rbWait=null;rtoast('Не удалось отправить запрос');render();});
+  const at=rbWait.at;setTimeout(()=>{if(rbWait&&rbWait.at===at){rbWait=null;rtoast('Ведущий не ответил на запрос');render();}},120000);}
 function rtoast(t){let el=document.getElementById('rtoast');if(!el){el=document.createElement('div');el.id='rtoast';document.body.appendChild(el);}el.textContent=t;el.classList.add('on');clearTimeout(rtoast.t);rtoast.t=setTimeout(()=>el.classList.remove('on'),2400);}
 function send(c,label){pendLabel=label||'';pend++;clearTimeout(pendT);pendT=setTimeout(()=>{if(pend){slow=true;render();}},5000);
   if(st&&st.t){const t=st.t,now=NET.now();
     if(c.t==='toggle'){if(t.run){t.rem=Math.max(0,t.end-now);t.run=false;}else{t.end=now+(t.st?t.rem:(t.rem||t.len));t.run=true;t.st=true;}render();}
     else if(c.t==='time'){if(t.run)t.end=Math.max(now+1000,t.end+c.d*60000);else t.rem=Math.max(1000,t.rem+c.d*60000);tickR();}}
   return NET.push(R0+'/cmds',Object.assign({by:NET.uid,at:NET.now()},c)).catch(()=>{slow=true;render();});}
-const req=v=>{const o={name:me.name||'Гость',at:NET.now()};if(G.google){o.g=true;if(G.photo&&/^https:\/\//.test(G.photo))o.ph=G.photo.slice(0,400);}return NET.set(R0+'/join/'+NET.uid,Object.assign(o,v));};
+let PAYI=null;
+const req=v=>{const o={name:me.name||'Гость',at:NET.now()};if(PAYI&&v&&v.pin)o.pay=PAYI;if(G.google){o.g=true;if(G.photo&&/^https:\/\//.test(G.photo))o.ph=G.photo.slice(0,400);}return NET.set(R0+'/join/'+NET.uid,Object.assign(o,v));};
 const aBtns=()=>NutsNet.authBtns({busy:gBusy,emailOpen:rMail.open,sent:rMail.sent,emailVal:rMail.val});
 const whoCard=()=>`<div class="who">${NutsNet.avatar(G)}<span><b>${esc(G.name||G.email||'Аккаунт')}</b><small>${esc(NutsNet.provLabel(G)||G.email||'')}</small></span><a href="#" id="rgOut">выйти</a></div>`;
 const curPin=()=>qrPin||((q('#rjPin')||{}).value||'').trim()||sessionStorage.getItem(PK)||'';
@@ -67,8 +85,9 @@ function render0(){
   const l=st.lv,nx=st.nx,brk=l&&l.ty==='break';
   let h=header()+`<div class="card rtimer"><div class="lvlchip ${brk?'brk':''}">${l?(brk?'☕ Перерыв':'Уровень '+l.n+' из '+st.tot):''}</div>
     <div class="clock" id="rClock">--:--</div><div class="blinds ${brk?'brk':''}">${l?(brk?'Перерыв':fmt(l.sb)+' / '+fmt(l.bb)):''}</div>
-    ${l&&l.an?`<div class="ante">Анте ${fmt(l.an)}</div>`:''}<div class="nx">Далее: ${nx?(nx.ty==='break'?'перерыв':fmt(nx.sb)+' / '+fmt(nx.bb)):'—'}</div></div>
+    ${l&&l.an?`<div class="ante">${l.ab?'Анте большого блайнда':'Анте'} ${fmt(l.an)}</div>`:''}<div class="nx">Далее: ${nx?(nx.ty==='break'?'перерыв':fmt(nx.sb)+' / '+fmt(nx.bb)+(nx.an?(nx.ab?' · анте BB':' · анте '+fmt(nx.an)):'')):'—'}</div></div>
     <div class="rstat"><div><small>${st.mode==='tournament'?'Призовой':'Банк'}</small><b>${fmt(st.x.bank)}</b></div><div><small>Игроков</small><b>${st.x.inP}/${st.x.n}</b></div><div><small>Ср. стек</small><b>${st.x.inP?fmt(st.x.avg):'—'}</b></div></div>`;
+  if(isAdmin&&st.rq&&st.rq.length){const q0=st.rq[0];h+=`<div class="card" style="border-color:rgba(52,211,153,.45)">💸 <b>${esc(q0.n)}</b> просит докуп · ${q0.k<1?'половина':'весь стек'}${st.rq.length>1?` <span class="muted small">· ещё ${st.rq.length-1}</span>`:''}<div class="row" style="margin-top:10px;flex-wrap:nowrap"><button class="btn red" data-rq="0" data-u="${esc(q0.u)}" style="flex:1">Отклонить</button><button class="btn pri" data-rq="1" data-u="${esc(q0.u)}" data-n="${esc(q0.n)}" style="flex:1">Оформить</button></div></div>`;}
   if(isAdmin){
     h+=`<div class="rctrl"><button class="btn" data-c="prev" ${st.first?'disabled':''}><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
       <button class="btn" data-c="minus">−1м</button><button class="btn pri" data-c="toggle">${st.t.run?'⏸ Пауза':st.t.st?'▶ Дальше':'▶ Старт'}</button>
@@ -86,6 +105,7 @@ function render0(){
     h+=st.remote?`<div class="card small muted" style="text-align:center">🎮 Пульт у: <b>${esc(st.remote)}</b></div>`:
       st.go&&!G.google?`<div class="card rup" style="text-align:center"><p class="small muted" style="margin:0 0 10px">Пультом может стать только тот, кто вошёл в аккаунт.</p>${err?`<p style="color:var(--red);margin:0 0 10px">${esc(err)}</p>`:''}${aBtns()}</div>`:
       `<div class="card" style="text-align:center">${asking?'<span class="muted">⏳ Ждём разрешения на экране игры…</span>':'<button class="btn pri" id="rAsk" style="width:100%">📱 Стать пультом</button>'}</div>`;}
+  if(!isAdmin)h+=rbCard();
   const slowBox=slow?`<div class="card" style="border-color:rgba(248,113,113,.45)">⏳ Экран игры не отвечает. Проверьте, что вкладка с таймером открыта на ноутбуке и есть интернет — команда выполнится, когда связь вернётся.</div>`:'';
   root.innerHTML=stale+slowBox+h+cmbHTML()+foot();tickR();if(pend)root.querySelectorAll('[data-c],[data-p]').forEach(x=>x.classList.add('busy'));}
 function tickR(){const c=q('#rClock');if(!c||!st)return;const r=st.t.run?st.t.end-NET.now():st.t.rem;c.textContent=fmtT(r);c.classList.toggle('warn',r<=60000&&st.t.run&&st.lv&&st.lv.ty==='level');c.classList.toggle('paused',!st.t.run&&st.t.st);}
@@ -114,7 +134,7 @@ async function joinRoom(){const nm=((q('#rjName')||{}).value||'').trim();const p
   me.name=nm.slice(0,30);saveMe();try{sessionStorage.setItem(PK,pin);}catch(e){}err='';kickedMsg='';joining=true;render();
   try{await req({pin});}catch(e){joining=false;err='Не удалось отправить: '+(e.message||e);render();return;}
   setTimeout(()=>{if(joining&&!isMember&&!isAdmin){joining=false;if(qrPin)qrPin='';err='Экран игры не подтвердил вход. Проверьте PIN и что комната на ноутбуке открыта.';render();}},7000);}
-root.addEventListener('click',e=>{const b=e.target.closest('button,a');if(!b)return;
+root.addEventListener('click',e=>{const b=e.target.closest('button,a,[data-me]');if(!b)return;
   if(b.id==='rjGo')return joinRoom();
   const au=b.dataset.auth,up=!!b.closest('.rup');
   if(au==='google'||au==='microsoft')return doGoogle(up,au);
@@ -124,7 +144,12 @@ root.addEventListener('click',e=>{const b=e.target.closest('button,a');if(!b)ret
   if(b.id==='rReload'){location.href=location.pathname+'?v='+Date.now()+location.hash;return;}
   if(b.id==='rLeave'){e.preventDefault();req({want:'leave'}).catch(()=>{});setTimeout(()=>{location.hash='';location.reload();},400);return;}
   if(b.id==='rAsk'&&isOwner){NET.set(R0+'/admins/'+NET.uid,{name:String(G.name||me.name||'Ведущий').slice(0,30),at:NET.now(),g:true}).catch(()=>{});return;}
-  if(b.id==='rAsk'){asking=true;render();req({want:'remote'}).catch(()=>{asking=false;render();});setTimeout(()=>{if(asking&&!isAdmin){asking=false;render();}},60000);return;}
+  if(b.dataset.me){try{localStorage.setItem(MEK,b.dataset.me);}catch(x){}render();return;}
+  if(b.id==='rbWho'){e.preventDefault();try{localStorage.removeItem(MEK);}catch(x){}render();return;}
+  if(b.id==='rbAsk'){return askRebuy(null);}
+  if(b.id==='rbCancel'){e.preventDefault();rbWait=null;req({want:'rqcancel'}).catch(()=>{});render();return;}
+  if(b.dataset.rq&&isAdmin){haptic(15);send({t:'rq',u:b.dataset.u,ok:b.dataset.rq==='1'},b.dataset.rq==='1'?(b.dataset.n||'Игрок')+' — докуп оформлен':'Запрос на докуп отклонён');return;}
+  if(b.id==='rAsk'){askAt=NET.now();asking=true;render();req({want:'remote'}).catch(()=>{asking=false;render();});setTimeout(()=>{if(asking&&!isAdmin){asking=false;render();}},60000);return;}
   if(b.id==='rDrop'){e.preventDefault();sheet('Отдать пульт?','Вы останетесь зрителем, а стать пультом сможет кто-то другой.',[{t:'Отдать',cls:'pri',fn:()=>{dropping=true;req({want:'drop'}).catch(()=>{dropping=false;render();});}},{t:'Отмена',cls:'ghost'}]);return;}
   if(!isAdmin||!st)return;
   try{if(navigator.wakeLock&&!window.__wl)navigator.wakeLock.request('screen').then(w=>window.__wl=w).catch(()=>{});}catch(err){}
@@ -136,17 +161,18 @@ root.addEventListener('click',e=>{const b=e.target.closest('button,a');if(!b)ret
   else if(b.dataset.p){const p=st.pl.find(x=>x.id==b.dataset.p);if(p)playerCmd(p,b.dataset.a);}});
 root.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='authEmail')sendMailR(!!e.target.closest('.rup'));if(e.key==='Enter'&&e.target.id==='rAdd')q('[data-c=add]').click();if(e.key==='Enter'&&(e.target.id==='rjPin'||e.target.id==='rjName'))joinRoom();});
 function watchState(){const on=isMember||isAdmin;
-  if(on&&!stUnsub){stUnsub=NET.onValue(R0+'/state',v=>{if(pend&&pendLabel&&v){rtoast('✓ '+pendLabel);haptic([12,60,12]);}pendLabel='';pend=0;clearTimeout(pendT);slow=false;if(v)hadState=true;else if(hadState)closed=true;if(v){v.pl=Array.isArray(v.pl)?v.pl:Object.values(v.pl||{});v.x=v.x||{inP:0,n:0,reb:0,bank:0,avg:0};v.r=v.r||{};v.t=v.t||{};}st=v;render();});}
+  if(on&&!stUnsub){stUnsub=NET.onValue(R0+'/state',v=>{if(isAdmin&&v&&v.rq&&v.rq.length>((st&&st.rq)?st.rq.length:0))haptic([20,50,20]);if(pend&&pendLabel&&v){rtoast('✓ '+pendLabel);haptic([12,60,12]);}pendLabel='';pend=0;clearTimeout(pendT);slow=false;if(v)hadState=true;else if(hadState)closed=true;if(v){v.pl=Array.isArray(v.pl)?v.pl:Object.values(v.pl||{});v.rq=Array.isArray(v.rq)?v.rq:Object.values(v.rq||{});v.x=v.x||{inP:0,n:0,reb:0,bank:0,avg:0};v.r=v.r||{};v.t=v.t||{};}st=v;render();});}
   if(!on&&stUnsub){try{stUnsub();}catch(e){}stUnsub=null;st=null;}}
 (async()=>{render();try{NET=await NutsNet.connect();}catch(e){err='Нет связи с сервером: '+(e.message||e);render();return;}
-  G=NET.who();if(G.google&&!me.name&&G.name){me.name=G.name.slice(0,30);saveMe();}
+  G=NET.who();if(G.google){try{const pv=await NET.get('users/'+NET.uid+'/pay');if(pv&&pv.share&&pv.ph)PAYI={ph:String(pv.ph),b:String(pv.bank||'')};}catch(e){}}
+  if(G.google&&!me.name&&G.name){me.name=G.name.slice(0,30);saveMe();}
   try{isOwner=G.google&&(await NET.get(R0+'/owner'))===NET.uid;}catch(e){}
   if(isOwner)NET.set(R0+'/admins/'+NET.uid,{name:String(G.name||me.name||'Ведущий').slice(0,30),at:NET.now(),g:true}).catch(()=>{});
   NET.onConn(c=>{conn=c;const d=q('.dot');if(d)d.classList.toggle('on',c);});
   const onDen=()=>{denied=true;render();};
   NET.onValue(R0+'/banned/'+NET.uid,v=>{banned=!!v;render();},onDen);
   NET.onValue(R0+'/admins/'+NET.uid,v=>{const wasA=isAdmin;isAdmin=!!v;if(isAdmin){asking=false;joining=false;}else if(wasA&&!isMember&&!closed)maybeKicked();watchState();render();},onDen);
-  NET.onValue(R0+'/members/'+NET.uid,v=>{isMember=!!v;if(isMember){joining=false;err='';wasMember=true;if(!isAdmin)dropping=false;}else if(wasMember&&!isAdmin){if(!closed)maybeKicked();wasMember=false;}watchState();render();},onDen);
+  NET.onValue(R0+'/members/'+NET.uid,v=>{if(v&&v.rej&&asking&&v.rej>=askAt-2000){asking=false;rtoast('✕ Ведущий отклонил запрос');haptic([30,60,30]);}if(v)onMemberRq(v);isMember=!!v;if(isMember){joining=false;err='';wasMember=true;if(!isAdmin)dropping=false;}else if(wasMember&&!isAdmin){if(!closed)maybeKicked();wasMember=false;}watchState();render();},onDen);
   render();
   if(qrPin&&me.name&&!isOwner)setTimeout(()=>{if(!isMember&&!isAdmin&&!banned)joinRoom();},600);})();
 })();

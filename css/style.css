@@ -263,6 +263,10 @@ details.hosted table{width:100%;font-size:13px;margin:6px 0 10px}details.hosted 
 .wz-sel{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}.wz-sel .rchip.on{border-style:solid;border-color:var(--acc);background:rgba(52,211,153,.10)}
 .wz-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.35);border-radius:20px;padding:4px 6px 4px 12px;font-weight:700;font-size:14px}
 .wz-pill button{background:none;border:0;color:var(--muted);cursor:pointer;font-size:13px}
+.xfer .pay{flex-basis:100%;display:flex;align-items:center;justify-content:flex-end;gap:6px;color:var(--muted);font-size:12.5px;margin-top:2px}.xfer .pay .btn{padding:3px 8px;font-size:12.5px}
+.xfer{flex-wrap:wrap}
+.wz-tip{display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.3);border-radius:12px;padding:8px 10px 8px 12px;margin:0 0 14px;font-size:13.5px}
+.wz-tip .btn{flex:none}
 .wz-prev{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13.5px;line-height:1.5;margin-top:10px}
 .pacec{display:flex;flex-wrap:wrap;gap:6px}
 .tplc{display:flex;align-items:center;gap:10px;background:var(--glass);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:8px}.tplc .tn{flex:1;min-width:0}.tplc .tn b{display:block}.tplc .tn small{color:var(--muted);font-size:12px}

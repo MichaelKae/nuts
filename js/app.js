@@ -15,7 +15,7 @@ function defaults(){ return {
   payoutsAuto:true, payouts:[50,30,20], sound:true, voice:true,
   sets:[{id:1,name:'Мой набор',on:true,chips:[{v:10,n:100,c:'#f5f5f4',d:'#2563eb'},{v:20,n:50,c:'#dc2626',d:'#ffffff'},{v:50,n:50,c:'#2563eb',d:'#ffffff'},{v:100,n:50,c:'#16a34a',d:'#ffffff'},{v:500,n:50,c:'#111111',d:'#ffffff'}]}],
   archive:[], voiceName:'', log:[], autoExport:true,
-  gen:{hours:3,levelMin:12,breakEvery:60,breakMin:10,players:9,rebuys:6,grow:5,maxMin:25,depth:100,pace:'standard'},
+  gen:{hours:3,levelMin:12,breakEvery:60,breakMin:10,players:9,rebuys:6,grow:5,maxMin:25,depth:100,pace:'standard',ante:'none',anteFrom:4},
   calc:{players:9,reserve:6},
   levels:null, roster:[], players:[], seats:null, timer:freshTimer(), hist:[]
 };}
@@ -140,6 +140,7 @@ function generate(){
   plan.forEach(x=>{if(x==='B'){out.push({type:'break',min:g.breakMin});return;}
     let bb=near(startBB*Math.pow(q,i++));if(bb<=prev)bb=above(prev);push(bb,x);});
   for(let j=0;j<4;j++){let bb=near(prev*q);if(bb<=prev)bb=above(prev);push(bb,lm);}  // запас уровней
+  const am=g.ante||'none';if(am!=='none'){let li=0;out.forEach(l=>{if(l.type!=='level')return;li++;if(li<Math.max(1,g.anteFrom||1))return;if(am==='bba'){l.ante=l.bb;l.bba=true;}else l.ante=Math.max(minChip(),near(l.bb*.125));});}
   return out;}
 function colorUpSet(j){ // номиналы, которые можно убрать начиная с уровня j
   const ch=chipsAsc().map(c=>c.v),amts=[];for(let i=j;i<S.levels.length;i++){const l=S.levels[i];if(l.type==='level')amts.push(l.sb,l.bb,l.ante||0);}
@@ -195,8 +196,8 @@ function render(){
   $('#tName').textContent=S.name||'';
   const lc=$('#lvlChip');lc.className='lvlchip'+(l&&l.type==='break'?' brk':'');lc.textContent=l?(l.type==='break'?'☕ Перерыв':'Уровень '+lvlNum(t.idx)+' из '+S.levels.filter(z=>z.type==='level').length):'';
   const b=$('#blinds');b.textContent=l&&l.type==='break'?'Перерыв':bstr(l);b.classList.toggle('brk',l&&l.type==='break');
-  $('#ante').textContent=l&&l.type==='level'&&l.ante?'Анте '+fmt(l.ante):'';
-  $('#prevV').textContent=bstr(L(t.idx-1));$('#nextV').textContent=nx?bstr(nx):'Последний';
+  $('#ante').textContent=l&&l.type==='level'&&l.ante?(l.bba?'Анте большого блайнда '+fmt(l.ante):'Анте '+fmt(l.ante)):'';
+  $('#prevV').textContent=bstr(L(t.idx-1));$('#nextV').textContent=nx?bstr(nx)+(nx.type==='level'&&nx.ante?(nx.bba?' · анте BB':' · анте '+fmt(nx.ante)):''):'Последний';
   $('#bPrev').disabled=t.idx<=0;$('#bNext').disabled=t.idx>=S.levels.length-1;
   $('#bPlay').innerHTML=t.running?'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>Пауза':'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4v16l13-8z"/></svg>'+(t.startedAt==null?'Старт':'Продолжить');
   $('#bLock').textContent=document.body.classList.contains('locked')?'🔒':'🔓';
@@ -299,7 +300,7 @@ function renderResults(x,pa){const box=$('#resBox');if(document.activeElement&&d
   if(!isT()){const sumCh=R.reduce((a,o)=>a+(o.chips||0),0);if(sumCh!==x.chips){box.innerHTML=h+'<div class="card small muted">Кто кому переводит — появится, когда сумма фишек совпадёт с выданной.</div>'+logCard()+archiveHTML();return;}}
   if(isT()&&x.inP>1&&S.players.length>1){box.innerHTML=h+'<div class="card small muted">Кто кому переводит — появится, когда определится победитель.</div>'+logCard()+archiveHTML();return;}
   const tr=transfers(R.filter(o=>o.net!=null));
-  h+=`<div class="card"><h3>💸 Кто кому переводит</h3>${tr.length?tr.map(([a,b,v])=>`<div class="xfer"><span>${esc(a)}</span><span class="arr">→</span><span>${esc(b)}</span><span class="amt">${money(v)}</span></div>`).join(''):'<div class="muted">Все при своих.</div>'}
+  h+=`<div class="card"><h3>💸 Кто кому переводит</h3>${tr.length?tr.map(([a,b,v])=>`${xferHTML(a,b,v)}`).join(''):'<div class="muted">Все при своих.</div>'}
     <div class="row" style="margin-top:12px"><button class="btn pri" id="copyRes">📋 Скопировать итоги для чата</button></div></div>`;
   box.innerHTML=h+logCard()+archiveHTML();}
 function logHTML(log,full){if(!log||!log.length)return'';
@@ -326,7 +327,7 @@ function resultsText(){const x=totals(),pa=payouts(x.pool),R=nets(x,pa);const d=
   const tr=transfers(R.filter(o=>o.net!=null));if(tr.length){s+='\nПереводы:\n';tr.forEach(([a,b,v])=>s+=`${a} → ${b}: ${money(v)}\n`);}return s;}
 
 function renderStructure(){if(editing('#slist'))return;
-  const cur=T().idx;$$('[data-g]').forEach(e=>{if(document.activeElement!==e)e.value=S.gen[e.dataset.g];});$$('[data-pace]').forEach(b=>b.classList.toggle('pri',b.dataset.pace===S.gen.pace));
+  const cur=T().idx;$$('[data-g]').forEach(e=>{if(document.activeElement!==e)e.value=S.gen[e.dataset.g];});{const a=$('#gAnte'),f=$('#gAnteFrom');if(a&&document.activeElement!==a)a.value=S.gen.ante||'none';if(f&&document.activeElement!==f){f.value=S.gen.anteFrom||4;f.disabled=(S.gen.ante||'none')==='none';}}$$('[data-pace]').forEach(b=>b.classList.toggle('pri',b.dataset.pace===S.gen.pace));
   const g=S.gen,E=g.players+g.rebuys;$('#genHint').textContent=`Стартовый стек ${fmt(S.startStack)} (меняется в настройках). Фишек в игре при ${g.players} игроках и ${g.rebuys} докупах: ~${fmt(S.startStack*g.players+S.rebuyStack*g.rebuys)}. Блайнды кратны самой мелкой фишке (${minChip()}), чтобы их можно было поставить.`;
   const mins=[...new Set(S.levels.filter(l=>l.type==='level').map(l=>l.min))];$('#genHint').textContent+=' Сейчас: '+S.levels.filter(l=>l.type==='level').length+' уровней'+(mins.length>1?', длина '+mins.join('→')+' мин':', по '+mins[0]+' мин')+'.';
   $('#slist').innerHTML=S.levels.map((l,i)=>{const cls=(l.type==='break'?'brk ':'')+(i===cur?'cur':'');
@@ -525,6 +526,8 @@ $('#resBox').addEventListener('click',async e=>{const ac=e.target.closest('[data
   catch(err){modal(`<h3>Итоги</h3><p>Скопируйте вручную:</p><textarea style="width:100%;height:220px;background:#000;color:#fff;border-radius:10px;padding:10px;border:1px solid var(--line)">${esc(txt)}</textarea>`,[{t:'Закрыть'}]);}});
 
 /* ===== Structure actions ===== */
+$('#gAnte').addEventListener('change',e=>{S.gen.ante=e.target.value;save();render();toast('Анте применится при следующей генерации структуры');});
+$('#gAnteFrom').addEventListener('change',e=>{S.gen.anteFrom=Math.max(1,Math.round(+e.target.value||1));save();render();});
 $$('[data-g]').forEach(e=>e.addEventListener('change',()=>{S.gen[e.dataset.g]=Math.max(0,+e.value||0);S.gen.pace='';save();render();}));
 const PACES={hyper:{levelMin:5,grow:0,maxMin:5,breakEvery:60,breakMin:5,depth:40,n:'Гипертурбо: уровни по 5 минут, неглубокие стеки — всё решается быстро.'},
   turbo:{levelMin:8,grow:2,maxMin:12,breakEvery:60,breakMin:10,depth:60,n:'Турбо: короткие уровни 8→10→12 минут.'},
@@ -647,7 +650,8 @@ document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fit);
 
 /* ===== Remote (host side) ===== */
-let NET=null,remoteOn=false,admins={},members={},rUnsub=[],remoteErr='',pendingReq=[],HI=null;
+let NET=null,remoteOn=false,admins={},members={},rUnsub=[],remoteErr='',pendingReq=[],HI=null,rbReq=[];
+setInterval(()=>{try{if(rbReq.length){const n=rbReq.length;renderApprove();if(rbReq.length!==n)publishSoon();}}catch(e){}},15000);
 const ekey=e=>String(e||'').trim().toLowerCase().replace(/\./g,',');
 const SUBS=['state','admins','members','join','cmds','banned','snap','host'],STALE=12.2*3600e3;
 async function hostInfo(force){if(HI&&!force)return HI;NET=NET||await NutsNet.connect();const W=NET.who(),hi={admin:false,host:false,open:false,can:false,w:W,hosts:{}};
@@ -687,9 +691,9 @@ let pubQ=false;function publishSoon(){if(!remoteOn||pubQ)return;pubQ=true;Promis
 function remoteState(){const t=T(),l=L(t.idx),nx=L(t.idx+1),x=totals(),off=NET.now()-Date.now(),ad=Object.values(admins)[0];
   return{v:1,ver:window.NUTS_VER,name:S.name,mode:S.mode,cur:S.currency,remote:ad?ad.name:'',
     t:{run:!!t.running,end:t.running?Math.round(t.endsAt+off):0,rem:t.running?0:Math.round(rem()),st:t.startedAt!=null,len:Lms(t.idx)},
-    lv:l?{ty:l.type,sb:l.sb||0,bb:l.bb||0,an:l.ante||0,min:l.min,n:lvlNum(t.idx)}:null,nx:nx?{ty:nx.type,sb:nx.sb||0,bb:nx.bb||0}:null,
+    lv:l?{ty:l.type,sb:l.sb||0,bb:l.bb||0,an:l.ante||0,ab:l.bba?1:0,min:l.min,n:lvlNum(t.idx)}:null,nx:nx?{ty:nx.type,sb:nx.sb||0,bb:nx.bb||0,an:nx.ante||0,ab:nx.bba?1:0}:null,
     first:t.idx<=0,last:t.idx>=S.levels.length-1,tot:S.levels.filter(z=>z.type==='level').length,
-    go:!!S.gOnlyRemote,pl:S.players.map(p=>({id:p.id,n:p.name,st:p.status,rb:p.rebuys||0,hf:p.halfs||0,ad:p.addons||0,pl:p.place||0})),
+    go:!!S.gOnlyRemote,pl:S.players.map(p=>({id:p.id,n:p.name,st:p.status,rb:p.rebuys||0,hf:p.halfs||0,ad:p.addons||0,pl:p.place||0,u:p.acct?p.acct.uid:''})),rq:rbReq.map(r=>({u:r.uid,n:r.pn,k:r.k})),
     x:{inP:x.inP,n:x.n,reb:x.reb,bank:Math.round(isT()?x.pool:x.money),avg:Math.round(x.avg)},
     r:{when:S.rebuyWhen,half:!!S.halfRebuy,addon:!!S.addonOn,max:S.maxRebuys||0,until:S.rebuyUntil||0,lvl:curLvl(),bounty:isT()&&!!S.bountyOn,late:S.lateRegUntil||0,start:S.startStack,rc:S.rebuyCost,rs:S.rebuyStack},
     undo:S.hist.length>0,at:NET.now()};}
@@ -705,19 +709,31 @@ function onJoin(uid,v){NET.remove(RR()+'/join/'+uid);if(!v)return;const nm=Strin
     if(S.gOnlyRemote&&!(mem&&mem.g))return;
     if(mem&&mem.g&&trusted()[uid]&&!Object.keys(admins).length){NET.set(RR()+'/admins/'+uid,{name:mem.name||nm,at:NET.now(),g:true});trusted()[uid]={name:mem.name||nm,at:Date.now()};save();toast('📱 Пульт: '+(mem.name||nm));logEv('seats','Пульт подключён (доверенный): '+(mem.name||nm));return;}
     if(!pendingReq.some(r=>r.uid===uid))pendingReq.push({uid,name:nm,g:!!(mem&&mem.g)});renderApprove();sndWarn();return;}
+  if(v.want==='rebuy'){if(!members[uid]&&!admins[uid])return;const p=S.players.find(q=>q.id===+v.pid);if(!p)return;const k=+v.k===.5&&S.halfRebuy?.5:1;
+    rbReq=rbReq.filter(r=>r.uid!==uid);rbReq.push({uid,pid:p.id,pn:p.name,who:nm,k,at:Date.now()});renderApprove();sndWarn();publishSoon();return;}
+  if(v.want==='rqcancel'){rbReq=rbReq.filter(r=>r.uid!==uid);renderApprove();publishSoon();return;}
   if(v.want==='leave'){NET.remove(RR()+'/admins/'+uid);NET.remove(RR()+'/members/'+uid);return;}
   if(v.want==='drop'){if(admins[uid]){const a=admins[uid],R1=RR();NET.set(R1+'/members/'+uid,Object.assign({},a,{name:a.name||nm,at:NET.now()})).catch(()=>{}).then(()=>NET.remove(R1+'/admins/'+uid));logEv('seats','Пульт сдан: '+(a.name||nm));}return;}
-  if(String(v.pin)===String(S.remote.pin)){const w=S.remote.wrong||{};delete w[uid];const rec=g?{name:nm,at:NET.now(),g:true,ph}:{name:nm,at:NET.now()};
+  if(String(v.pin)===String(S.remote.pin)){if(v.pay&&typeof v.pay==='object'&&v.pay.ph){S.payBook=S.payBook||{};S.payBook[uid]={ph:String(v.pay.ph).slice(0,20),b:String(v.pay.b||'').slice(0,40),at:Date.now()};}const w=S.remote.wrong||{};delete w[uid];const rec=g?{name:nm,at:NET.now(),g:true,ph}:{name:nm,at:NET.now()};
     if(!members[uid]&&!admins[uid])NET.set(RR()+'/members/'+uid,rec);else if(g&&members[uid]&&!members[uid].g)NET.set(RR()+'/members/'+uid,Object.assign({},members[uid],{g:true,ph}));save();}
   else{const w=S.remote.wrong=S.remote.wrong||{};w[uid]=(w[uid]||0)+1;if(w[uid]>=5)ban(uid,'5 неверных PIN');save();}}
+function rbNotify(uid,r){const m=members[uid]||admins[uid];if(!m||!members[uid])return;NET.set(RR()+'/members/'+uid,Object.assign({},members[uid],{rq:{r,at:NET.now()}})).catch(()=>{});}
+function resolveRbq(uid,ok){const r=rbReq.find(x=>x.uid===uid);if(!r)return;rbReq=rbReq.filter(x=>x!==r);
+  const p=S.players.find(q=>q.id===r.pid);if(ok&&p){applyRebuy(p,r.k);logEv('rebuy','Докуп по запросу с телефона: '+r.pn);rbNotify(uid,'ok');}else{rbNotify(uid,'no');}
+  renderApprove();publishSoon();render();}
 function renderApprove(){let el=$('#approveBar');if(!el){el=document.createElement('div');el.id='approveBar';document.body.appendChild(el);}
   pendingReq=pendingReq.filter(r=>members[r.uid]&&!Object.keys(admins).length);
-  const r=pendingReq[0];if(!r){el.className='';el.innerHTML='';return;}
+  rbReq=rbReq.filter(r=>(members[r.uid]||admins[r.uid])&&Date.now()-r.at<120000&&S.players.some(q=>q.id===r.pid));
+  const r=pendingReq[0];
+  if(!r){const q=rbReq[0];if(!q){el.className='';el.innerHTML='';return;}
+    const cost=Math.round(S.rebuyCost*q.k),stack=Math.round(S.rebuyStack*q.k);
+    el.className='on';el.innerHTML=`<div class="ab-t">💸 <b>${esc(q.pn)}</b> просит докуп · ${q.k<1?'половина':'весь стек'} · ${money(cost)} → ${fmt(stack)} фишек${q.who&&q.who!==q.pn?` <span class="muted small">(с телефона ${esc(q.who)})</span>`:''}</div><div class="ab-b"><button class="btn red" data-rbq="no">Отклонить</button><button class="btn pri" data-rbq="ok">Оформить</button></div>`;return;}
   el.className='on';el.innerHTML=`<div class="ab-t">📱 <b>${esc(r.name)}</b> хочет управлять игрой</div><div class="ab-b"><button class="btn red" data-apr="no">Отклонить</button><button class="btn pri" data-apr="yes">Разрешить</button>${r.g?'<button class="btn" data-apr="always" title="В следующий раз этот аккаунт станет пультом без вопроса">Всегда</button>':''}</div>`;}
+document.addEventListener('click',e=>{const q=e.target.closest('[data-rbq]');if(q){const r=rbReq[0];if(r)resolveRbq(r.uid,q.dataset.rbq==='ok');return;}});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-apr]');if(!b)return;const r=pendingReq.shift();if(!r)return renderApprove();
   if(b.dataset.apr!=='no'&&!Object.keys(admins).length&&members[r.uid]){const g=!!members[r.uid].g;NET.set(RR()+'/admins/'+r.uid,g?{name:r.name,at:NET.now(),g:true}:{name:r.name,at:NET.now()});
     if(b.dataset.apr==='always'&&g){trusted()[r.uid]={name:r.name,at:Date.now()};save();}toast('📱 Пульт: '+r.name);logEv('seats','Пульт подключён: '+r.name);}
-  else{strike(r.uid,'3 отказа');logEv('seats','Отклонён запрос пульта: '+r.name);}renderApprove();});
+  else{if(members[r.uid])NET.set(RR()+'/members/'+r.uid,Object.assign({},members[r.uid],{rej:NET.now()})).catch(()=>{});strike(r.uid,'3 отказа');logEv('seats','Отклонён запрос пульта: '+r.name);}renderApprove();});
 async function hostConnect(force){if(!NutsNet.configured())return;
   NET=await NutsNet.connect();const W=NET.who();if(!W.google)throw new Error('сначала войдите в аккаунт');
   const hi=await hostInfo(true);if(!hi.can)throw new Error('аккаунт '+(W.email||W.name)+' не приглашён ведущим');let room=S.remote&&S.remote.room;
@@ -743,6 +759,7 @@ function runCmd(c){const p=c.id!=null?S.players.find(q=>q.id===c.id):null,x=tota
   else if(c.t==='step')step(c.d>0?1:-1);
   else if(c.t==='time')addTime(c.d>0?60000:-60000);
   else if(c.t==='undo')undo();
+  else if(c.t==='rq'){resolveRbq(String(c.u),!!c.ok);return;}
   else if(c.t==='add'){const have=new Set(S.players.map(q=>q.name.toLowerCase()));const ns=[];(c.names||[]).forEach(v=>{v=String(v).trim().slice(0,30);if(v&&!have.has(v.toLowerCase())){have.add(v.toLowerCase());ns.push(v);}});if(ns.length)addPlayersNow(ns);}
   else if(c.t==='p'&&p){
     if(c.a==='bust'){if(p.status==='in'&&x.inP>1&&!(isT()&&p.place===1)){const k=c.k&&S.players.find(q=>q.id===c.k&&q.status==='in'&&q!==p);doBust(p,k?k.id:null);}}
@@ -750,12 +767,12 @@ function runCmd(c){const p=c.id!=null?S.players.find(q=>q.id===c.id):null,x=tota
     else if(c.a==='addon'){if(!p.addons&&p.status==='in')playerAct(p,'addon');}
     else if(c.a==='back'){if(p.status==='out')playerAct(p,'back');}}
   render();}
-function lostRoom(why){const c=S.remote&&S.remote.room;rUnsub.forEach(f=>f());rUnsub=[];clearTimeout(snapT);pendingReq=[];renderApprove();remoteOn=false;admins={};members={};S.remote=null;
+function lostRoom(why){const c=S.remote&&S.remote.room;rUnsub.forEach(f=>f());rUnsub=[];clearTimeout(snapT);pendingReq=[];rbReq=[];renderApprove();remoteOn=false;admins={};members={};S.remote=null;
   if(why==='moved'){if(T().running)pause();logEv('seats','Вечер перенесён на другое устройство (комната '+(c||'')+')');save();renderRemotePill();refreshRemoteModal();
     modal(`<h3>📲 Вечер перенесён</h3><p>Вечер и комната <b>${esc(c||'')}</b> теперь ведутся на другом устройстве. Здесь таймер остановлен, телефоны управляют тем устройством.</p>`,[{t:'Понятно',cls:'pri'}]);return;}
   save();renderRemotePill();refreshRemoteModal();
   logEv('seats','Комната '+(c||'')+' закрыта: открыта комната на другом устройстве');toast('📱 Комната '+(c||'')+' закрыта — вы открыли комнату на другом устройстве');}
-async function hostDisconnect(){rUnsub.forEach(f=>f());rUnsub=[];pendingReq=[];renderApprove();
+async function hostDisconnect(){rUnsub.forEach(f=>f());rUnsub=[];pendingReq=[];rbReq=[];renderApprove();
   if(NET&&S.remote){await closeRoom(S.remote.room);try{await NET.remove('users/'+NET.uid+'/room');}catch(e){}logEv('seats','Комната '+S.remote.room+' закрыта');}
   remoteOn=false;admins={};members={};S.remote=null;save();renderRemotePill();refreshRemoteModal();}
 function renderRemotePill(){const el=$('#remotePill');const n=Object.keys(admins).length;el.style.display=remoteOn?'':'none';el.textContent=remoteOn?'📱 '+S.remote.room+(n?' · пульт':''):'';}
@@ -806,6 +823,14 @@ function renderInstall(){const el=$('#installBox');if(!el)return;const sa=(()=>{
 document.addEventListener('nuts-install',renderInstall);window.addEventListener('appinstalled',()=>{window.NUTS_INSTALL=null;renderInstall();toast('📲 Nuts установлен');});
 document.addEventListener('click',async e=>{if(e.target.id==='instBtn'&&window.NUTS_INSTALL){const ev=window.NUTS_INSTALL;ev.prompt();try{await ev.userChoice;}catch(x){}window.NUTS_INSTALL=null;renderInstall();}});
 renderInstall();
+/* ===== SBP ===== */
+const phDigits=s=>{let d=String(s||'').replace(/\D/g,'');if(d.length===11&&d[0]==='8')d='7'+d.slice(1);if(d.length===10)d='7'+d;return d;};
+const phPretty=d=>d.length===11?`+${d[0]} ${d.slice(1,4)} ${d.slice(4,7)}-${d.slice(7,9)}-${d.slice(9)}`:'+'+d;
+const phMask=d=>d.length===11?`+${d[0]} ${d.slice(1,4)} ••• ${d.slice(7,9)}-${d.slice(9)}`:'+'+d;
+function payFor(name){const p=S.players.find(q=>q.name===name);const u=p&&p.acct&&p.acct.uid;return u&&S.payBook&&S.payBook[u]||null;}
+function xferHTML(a,b,v){const py=payFor(b),d=py?phDigits(py.ph):'';
+  return `<div class="xfer"><span>${esc(a)}</span><span class="arr">→</span><span>${esc(b)}</span><span class="amt">${money(v)}</span>${d?`<span class="pay">${py.b?esc(py.b)+' · ':''}<button class="btn sm ghost" data-ph="${d}" title="Скопировать номер ${phPretty(d)}">📱 ${phMask(d)} 📋</button></span>`:''}</div>`;}
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-ph]');if(!b)return;const d=b.dataset.ph;try{await navigator.clipboard.writeText('+'+d);toast('📋 Номер '+phPretty(d)+' скопирован');}catch(x){toast(phPretty(d));}});
 /* ===== Final screen ===== */
 function howHTML(x,pa){const tm=isT();let h='';
   if(tm){const pc=payoutPcts(),tot=pc.reduce((a,b)=>a+b,0)||100;
@@ -841,7 +866,8 @@ function renderFin(){const el=finEl(),x=totals(),pa=isT()?payouts(x.pool):[],R=n
   const reb=S.players.reduce((a,p)=>a+(p.rebuys||0),0);F.push(['🔁','Докупов за вечер',String(reb)]);
   h+=`<div class="fin-facts">${F.map(([i,a,b])=>`<div><span>${i}</span><small>${a}</small><b>${esc(b)}</b></div>`).join('')}</div>`;
   h+=howHTML(x,pa);
-  if(ok){const tr=transfers(R.filter(o=>o.net!=null));h+=`<div class="blab" style="margin-top:14px">💸 Кто кому переводит</div>${tr.length?tr.map(([a,b,v])=>`<div class="xfer"><span>${esc(a)}</span><span class="arr">→</span><span>${esc(b)}</span><span class="amt">${money(v)}</span></div>`).join(''):'<div class="muted">Все при своих.</div>'}`;}
+  {const lg=S.log.filter(e=>!e.undone);if(lg.length)h+=`<details class="how"><summary>🕓 Хронология вечера (${lg.length})</summary><div class="hw" style="max-height:340px;overflow:auto">${logHTML(S.log)}</div></details>`;}
+  if(ok){const tr=transfers(R.filter(o=>o.net!=null));h+=`<div class="blab" style="margin-top:14px">💸 Кто кому переводит</div>${tr.length?tr.map(([a,b,v])=>`${xferHTML(a,b,v)}`).join(''):'<div class="muted">Все при своих.</div>'}`;}
   h+=`<div class="wz-nav" style="flex-wrap:wrap"><button class="btn" data-fin="copy">📋 Скопировать</button>${navigator.share?'<button class="btn" data-fin="share">📤 Поделиться</button>':''}<span class="sp"></span><button class="btn red" data-fin="end">🏁 Завершить вечер</button></div>
     <div class="small muted" style="margin-top:8px">«Завершить вечер» сохранит итоги в историю${S.players.some(p=>p.acct)?', отправит результаты в фишках в кабинеты привязанных игроков':''} и очистит стол для новой игры.</div></div>`;
   el.innerHTML=h;}
@@ -854,6 +880,7 @@ async function finClick(e){const b=e.target.closest('[data-fin]');if(!b)return;c
 document.addEventListener('click',e=>{if(e.target.closest('[data-final]'))openFin();});
 
 /* ===== Wizard & templates ===== */
+const plu=(n,a,b,c)=>{const m=Math.abs(n)%100,d=m%10;return m>10&&m<20?c:d>1&&d<5?b:d===1?a:c;};
 const TPL_KEYS=['mode','name','buyin','startStack','maxRebuys','rebuyUntil','lateRegUntil','rebuyWhen','halfRebuy','addonOn','bountyOn','bounty','payoutsAuto','payouts'];
 const PACE_N={hyper:'Гипертурбо',turbo:'Турбо',standard:'Стандарт',deep:'Медленный',slow:'Слоуролл'};
 const curCfg=()=>{const c={};TPL_KEYS.forEach(k=>c[k]=JSON.parse(JSON.stringify(S[k]===undefined?null:S[k])));c.gen=Object.assign({},S.gen);return c;};
@@ -864,11 +891,11 @@ let WZ=null;
 function wizEl(){let el=$('#wiz');if(!el){el=document.createElement('div');el.id='wiz';document.body.appendChild(el);el.addEventListener('click',wizClick);el.addEventListener('change',e=>{if(e.target.id==='wTpl'){wizRead();renderWiz();setTimeout(()=>{const i=$('#wTplN');if(i)i.focus();},20);}});el.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='wAdd'){e.preventDefault();wizAddNames();}});}return el;}
 function closeWiz(){WZ=null;const el=$('#wiz');if(el){el.className='';el.innerHTML='';}}
 function openWiz(opt){opt=opt||{};
-  const go=()=>{const c=curCfg();WZ={step:(S.templates||[]).length&&!opt.tpl?0:1,cfg:c,names:[],accs:{},hours:c.gen.hours||3,pace:c.gen.pace||'standard',saveTpl:false,tplName:'',err:''};if(opt.tpl)wizUseTpl(opt.tpl);renderWiz();};
+  const go=()=>{const c=curCfg();WZ={step:(S.templates||[]).length&&!opt.tpl?0:1,cfg:c,names:[],accs:{},hours:c.gen.hours||3,pace:c.gen.pace||'standard',ante:c.gen.ante||'none',saveTpl:false,tplName:'',err:''};if(opt.tpl)wizUseTpl(opt.tpl);renderWiz();};
   if(!isFresh())return confirmB('Новый вечер?','Текущий вечер завершится и сохранится в историю, затем откроется мастер.',()=>{newGame();setTimeout(go,30);},'Завершить и продолжить');
   go();}
 function wizUseTpl(t){WZ.cfg=Object.assign(curCfg(),JSON.parse(JSON.stringify(t.cfg||{})));WZ.cfg.gen=Object.assign({},S.gen,(t.cfg||{}).gen||{});WZ.names=(t.players||[]).slice();
-  WZ.hours=WZ.cfg.gen.hours||3;WZ.pace=WZ.cfg.gen.pace||'standard';WZ.tplName=t.name;WZ.step=3;}
+  WZ.hours=WZ.cfg.gen.hours||3;WZ.pace=WZ.cfg.gen.pace||'standard';WZ.ante=WZ.cfg.gen.ante||'none';WZ.tplName=t.name;WZ.step=3;}
 function wzMap(){const m={},used=new Set();let acc=[];try{acc=roomAccts();}catch(e){}
   WZ.names.forEach(n=>{const lo=n.toLowerCase();let a=Object.values(WZ.accs).find(z=>z.pn===n)||null;
     if(!a){const ra=(S.rosterAcct||{})[lo];if(ra)a={uid:ra.uid,name:ra.name};}
@@ -883,10 +910,10 @@ function wizRead(){if(!WZ)return;const v=id=>{const e=$('#'+id);return e?e.value
   if(v('wHours')!=null)WZ.hours=Math.min(24,Math.max(.5,+v('wHours')||WZ.hours));
   if(ck('wTpl')!=null)WZ.saveTpl=ck('wTpl');if(v('wTplN')!=null)WZ.tplName=v('wTplN').trim().slice(0,40);}
 function wizPreview(){const keep={gen:S.gen,startStack:S.startStack};let L=[];
-  try{S.gen=Object.assign({},S.gen,WZ.cfg.gen,paceGen(WZ.pace),{hours:WZ.hours,players:Math.max(2,WZ.names.length||S.gen.players)});S.startStack=WZ.cfg.startStack||S.startStack;L=generate()||[];}catch(e){}finally{S.gen=keep.gen;S.startStack=keep.startStack;}
+  try{S.gen=Object.assign({},S.gen,WZ.cfg.gen,paceGen(WZ.pace),{hours:WZ.hours,ante:WZ.ante,players:Math.max(2,WZ.names.length||S.gen.players)});S.startStack=WZ.cfg.startStack||S.startStack;L=generate()||[];}catch(e){}finally{S.gen=keep.gen;S.startStack=keep.startStack;}
   const lv=L.filter(l=>l.type==='level'),br=L.filter(l=>l.type==='break');if(!lv.length)return '';
   const mins=lv.map(l=>l.min),a=lv[0],z=lv[lv.length-1],mn=Math.min(...mins),mx=Math.max(...mins);
-  return `<div class="wz-prev">📋 <b>${lv.length} уровней</b> по ${mn===mx?mn:mn+'–'+mx} мин${br.length?`, перерывов: ${br.length}`:''}<br>Блайнды: от <b>${fmt(a.sb)} / ${fmt(a.bb)}</b> до <b>${fmt(z.sb)} / ${fmt(z.bb)}</b><br><span class="muted">Стартовый стек — ${fmt(WZ.cfg.startStack)} фишек, это ${Math.round(WZ.cfg.startStack/(a.bb||1))} больших блайндов.</span></div>`;}
+  return `<div class="wz-prev">📋 <b>${lv.length} уровней</b> по ${mn===mx?mn:mn+'–'+mx} мин${br.length?`, перерывов: ${br.length}`:''}<br>Блайнды: от <b>${fmt(a.sb)} / ${fmt(a.bb)}</b> до <b>${fmt(z.sb)} / ${fmt(z.bb)}</b>${WZ.ante!=='none'?`<br>Анте: ${WZ.ante==='bba'?'большого блайнда':'классическое'} с ${S.gen.anteFrom||4} уровня`:''}<br><span class="muted">Стартовый стек — ${fmt(WZ.cfg.startStack)} фишек, это ${Math.round(WZ.cfg.startStack/(a.bb||1))} больших блайндов.</span></div>`;}
 function wizAddNames(){const i=$('#wAdd');if(!i)return;i.value.split(',').map(x=>x.trim().slice(0,30)).filter(Boolean).forEach(n=>{if(!WZ.names.some(m=>m.toLowerCase()===n.toLowerCase()))WZ.names.push(n);});i.value='';wizRead();renderWiz();setTimeout(()=>{const j=$('#wAdd');if(j)j.focus();},20);}
 function renderWiz(){if(!WZ)return;const el=wizEl(),c=WZ.cfg,st=WZ.step,T_=c.mode==='tournament';el.className='on';
   const top=`<div class="wz-top"><span class="st">${st===0?'Шаблоны':'Шаг '+st+' из 4'}</span><div class="wz-dots">${[1,2,3,4].map(i=>`<i class="${i<=st?'on':''}"></i>`).join('')}</div></div><button class="en-x" data-w="close" title="Закрыть">✕</button>`;
@@ -899,7 +926,8 @@ function renderWiz(){if(!WZ)return;const el=wizEl(),c=WZ.cfg,st=WZ.step,T_=c.mod
       <label class="f">Название вечера<input id="wName" value="${esc(c.name||'Покерный вечер')}" maxlength="60"></label>`;}
   else if(st===2){const E=Math.max(2,WZ.names.length||S.gen.players)+Math.max(2,Math.round(Math.max(2,WZ.names.length||S.gen.players)*.6));let sg=null;try{sg=suggestStack(E);}catch(e){}
     h=`<div class="wz-h">Взносы и фишки</div><div class="wz-g2"><label class="f">Взнос, ${esc(S.currency)}<input id="wBuy" type="number" min="0" value="${c.buyin}"></label><label class="f">Фишек на старте<input id="wStack" type="number" min="0" step="100" value="${c.startStack}"></label></div>
-      <div class="small muted" style="margin:-4px 0 10px">Курс: ${fmt(c.buyin)} ${esc(S.currency)} = ${fmt(c.startStack)} фишек${sg&&sg.s&&sg.s!==c.startStack?` · по вашим фишкам на ${E} стеков подходит <b>${fmt(sg.s)}</b> <button class="btn sm" data-wstack="${sg.s}">Взять</button>`:''}</div>
+      <div class="small muted" style="margin:2px 0 12px">Курс: ${fmt(c.buyin)} ${esc(S.currency)} = ${fmt(c.startStack)} фишек</div>
+      ${sg&&sg.s&&sg.s!==c.startStack?`<div class="wz-tip"><span>💡 По вашим фишкам на ${E} ${plu(E,'стек','стека','стеков')} подходит старт <b>${fmt(sg.s)}</b> фишек</span><button class="btn sm" data-wstack="${sg.s}">Взять</button></div>`:''}
       <div class="wz-g2"><label class="f">Когда можно докупиться<select id="wWhen"><option value="bust" ${c.rebuyWhen==='bust'?'selected':''}>Только после вылета</option><option value="short" ${c.rebuyWhen==='short'?'selected':''}>Если стек не больше стартового</option><option value="any" ${c.rebuyWhen==='any'?'selected':''}>В любой момент</option></select></label>
       <label class="f">Докупов на игрока (0 — без лимита)<input id="wMax" type="number" min="0" value="${c.maxRebuys||0}"></label></div>
       <label class="chk"><input type="checkbox" id="wHalf" ${c.halfRebuy?'checked':''}> Можно докупаться на половину стека</label>
@@ -913,7 +941,8 @@ function renderWiz(){if(!WZ)return;const el=wizEl(),c=WZ.cfg,st=WZ.step,T_=c.mod
       <div class="small muted">Игроков: <b>${WZ.names.length}</b>${WZ.names.length?` · банк на старте ${fmt(WZ.names.length*c.buyin)} ${esc(S.currency)}`:''}</div>`;}
   else if(st===4){h=`<div class="wz-h">Сколько играем?</div><div class="pacec" style="margin-bottom:10px">${[2,3,4,5,6].map(x=>`<button class="btn sm ${WZ.hours==x?'pri':''}" data-wh="${x}">${x} ч</button>`).join('')}<label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)">или <input id="wHours" type="number" step="0.5" min="0.5" value="${WZ.hours}" style="width:70px"> ч</label></div>
       <div class="hint">Темп:</div><div class="pacec">${Object.keys(PACE_N).map(k=>`<button class="btn sm ${WZ.pace===k?'pri':''}" data-wp="${k}">${PACE_N[k]}</button>`).join('')}</div>
-      <div class="small muted" style="margin-top:6px">${esc((PACES[WZ.pace]||{}).n||'')}</div>${wizPreview()}
+      <div class="small muted" style="margin-top:6px">${esc((PACES[WZ.pace]||{}).n||'')}</div>
+      <div class="hint" style="margin-top:12px">Анте:</div><div class="pacec">${[['none','Без анте'],['classic','Классическое'],['bba','Анте большого блайнда']].map(([k,t])=>`<button class="btn sm ${WZ.ante===k?'pri':''}" data-wan="${k}">${t}</button>`).join('')}</div>${wizPreview()}
       <div class="en-sec"><label class="chk"><input type="checkbox" id="wTpl" ${WZ.saveTpl?'checked':''}> Сохранить как шаблон</label>${WZ.saveTpl?`<input id="wTplN" placeholder="Например, Наш кэш по пятницам" value="${esc(WZ.tplName||'')}" maxlength="40" style="width:100%">`:''}</div>`;}
   const nav=st===0?'':`<div class="wz-nav">${st>1||(S.templates||[]).length?`<button class="btn ghost" data-w="back">← Назад</button>`:''}<span class="sp"></span>${st<4?`<button class="btn pri" data-w="next">Дальше →</button>`:`<button class="btn" data-w="done">Готово</button><button class="btn pri" data-w="start" ${WZ.names.length?'':'disabled title="Добавьте игроков"'}>▶ Начать вечер</button>`}</div>`;
   el.innerHTML=`<div class="en-box wide">${top}${er}${h}${nav}</div>`;}
@@ -932,6 +961,7 @@ function wizClick(e){const b=e.target.closest('button,[data-wr],[data-wa],[data-
     if(!WZ.names.some(n=>n.toLowerCase()===nm.toLowerCase()))WZ.names.push(nm);WZ.accs[a.uid]={uid:a.uid,name:a.name,pn:WZ.names.find(n=>n.toLowerCase()===nm.toLowerCase())};}return renderWiz();}
   if(d.wh){WZ.hours=+d.wh;return renderWiz();}
   if(d.wp){WZ.pace=d.wp;return renderWiz();}
+  if(d.wan){WZ.ante=d.wan;return renderWiz();}
   if(e.target.id==='wTpl'){return renderWiz();}
   if(d.w==='back'){WZ.step=Math.max((S.templates||[]).length?0:1,WZ.step-1);return renderWiz();}
   if(d.w==='next'){if(WZ.step===2&&(!WZ.cfg.buyin||!WZ.cfg.startStack)){WZ.err='Укажите взнос и количество фишек на старте';return renderWiz();}
@@ -941,7 +971,7 @@ function saveTpl(name,players){name=String(name||S.name||'Шаблон').trim().
   const t={id:ex?ex.id:Date.now(),name,cfg:curCfg(),players:(players||[]).slice(0,30)};if(ex)Object.assign(ex,t);else S.templates.unshift(t);S.templates=S.templates.slice(0,12);return t;}
 function wizFinish(startNow){const c=WZ.cfg;TPL_KEYS.forEach(k=>{if(k in c&&c[k]!==null)S[k]=c[k];});
   S.rebuyCost=S.buyin;S.rebuyStack=S.startStack;S.addonCost=S.buyin;S.addonStack=S.startStack;
-  const np=Math.max(2,WZ.names.length||S.gen.players);S.gen=Object.assign({},S.gen,paceGen(WZ.pace),{hours:WZ.hours,pace:WZ.pace,players:np,rebuys:Math.round(np*.6)});
+  const np=Math.max(2,WZ.names.length||S.gen.players);S.gen=Object.assign({},S.gen,paceGen(WZ.pace),{hours:WZ.hours,pace:WZ.pace,ante:WZ.ante,players:np,rebuys:Math.round(np*.6)});
   S.levels=generate();S.timer=freshTimer();S.wizDone=true;
   if(WZ.saveTpl)saveTpl(WZ.tplName||S.name,WZ.names);
   const names=WZ.names.slice(),MAP=wzMap();
@@ -959,12 +989,15 @@ $('#tplSave').onclick=()=>{modal(`<h3>💾 Сохранить как шабло�
 
 /* ===== Entry & cabinet ===== */
 const ENTRY='nuts.entry';function getEntry(){try{return localStorage.getItem(ENTRY)||'';}catch(e){return'';}}function setEntry(v){try{v?localStorage.setItem(ENTRY,v):localStorage.removeItem(ENTRY);}catch(e){}}
-let EVC={},evSel=null,evMore=false,evUndo=null;
+let EVC={},evSel=null,evMore=false,evUndo=null,PAYC=null,payDr=null;
+const BANKS=['Сбер','Т‑Банк','Альфа','ВТБ'];
+const phFmt=v=>{let d=String(v||'').replace(/\D/g,'');if(d[0]==='8')d='7'+d.slice(1);if(d&&d[0]!=='7')d='7'+d;d=d.slice(0,11);const p=[d.slice(0,1),d.slice(1,4),d.slice(4,7),d.slice(7,9),d.slice(9,11)];return d?('+'+p[0]+(p[1]?' ('+p[1]:'')+(p[1].length===3?')':'')+(p[2]?' '+p[2]:'')+(p[3]?'-'+p[3]:'')+(p[4]?'-'+p[4]:'')):'';};
 let enMode='',enErr='',enBusy=false,profSaved=false,enMail={open:false,sent:'',mode:'signin',val:''};
 function entryEl(){let el=$('#entry');if(!el){el=document.createElement('div');el.id='entry';document.body.appendChild(el);el.addEventListener('click',entryClick);
+  el.addEventListener('input',e=>{if(e.target.id==='payPh'){const v=phFmt(e.target.value);if(v!==e.target.value)e.target.value=v;}});
   el.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='enCode')joinByCode();if(e.key==='Enter'&&e.target.id==='authEmail')sendMail();if(e.key==='Enter'&&e.target.id==='enHost')$('#enAdd').click();});}return el;}
 function closeEntry(){enMode='';enErr='';const el=$('#entry');if(el){el.className='';el.innerHTML='';}}
-function openEntry(m){enMode=m;enErr='';evSel=null;evMore=false;enMail={open:false,sent:'',mode:'signin',val:''};renderEntry();}
+function openEntry(m){enMode=m;enErr='';evSel=null;evMore=false;PAYC=null;payDr=null;enMail={open:false,sent:'',mode:'signin',val:''};renderEntry();}
 const codeBox=()=>`<div class="en-join"><div class="blab">Подключиться к игре</div><div class="row" style="flex-wrap:nowrap"><input id="enCode" maxlength="4" placeholder="Код комнаты" autocomplete="off" autocapitalize="characters" style="text-transform:uppercase;letter-spacing:.2em"><button class="btn" id="enJoin">Войти</button></div><div class="small muted" style="margin-top:6px">Код показан на экране игры рядом с QR</div></div>`;
 async function renderEntry(){const el=entryEl(),m=enMode;if(!m)return closeEntry();el.className='on';
   const x=`<button class="en-x" id="enClose" title="К таймеру">✕</button>`,er=enErr?`<p class="en-err">${esc(enErr)}</p>`:'',ft=`<div class="en-foot">♠ Nuts v${window.NUTS_VER} · by MichaelKae</div>`;
@@ -986,6 +1019,14 @@ async function renderEntry(){const el=entryEl(),m=enMode;if(!m)return closeEntry
     <div class="small muted en-cap">${hi.can?'Вы ведущий: в таймере можно открыть комнату и управлять игрой с телефона.':'Таймер работает. Чтобы подключать телефоны к своему вечеру, нужно приглашение владельца сайта.'}</div>
     ${codeBox()}
     <div class="en-sec"><div class="blab">Мои вечера</div>${await evHTML()}</div>`;
+  {if(PAYC===null){try{PAYC=(await NET.get('users/'+NET.uid+'/pay'))||{};}catch(e){PAYC={};}}if(enMode!=='cabinet')return;
+    if(!payDr)payDr={ph:PAYC.ph||'',bank:PAYC.bank||'',share:PAYC.share!==false,other:!!(PAYC.bank&&!BANKS.includes(PAYC.bank))};
+    const D=payDr;h+=`<div class="en-sec"><div class="blab">Реквизиты для переводов</div><div class="small muted" style="margin-bottom:8px">Необязательно. Номер увидит только ведущий комнаты, в которую вы входите, — в «Кто кому переводит». В облаке он лежит в вашем закрытом профиле.</div>
+      <label class="f">Телефон для СБП<input id="payPh" inputmode="tel" autocomplete="tel" placeholder="+7 (___) ___-__-__" value="${esc(phFmt(D.ph))}"></label>
+      <div class="wz-sel">${BANKS.map(b=>`<span class="rchip ${!D.other&&D.bank===b?'on':''}" data-bank="${b}">${b}</span>`).join('')}<span class="rchip ${D.other?'on':''}" data-bank="__other">Другой…</span></div>
+      ${D.other?`<input id="payBankO" placeholder="Название банка" maxlength="40" value="${esc(D.bank||'')}" style="margin-bottom:8px">`:''}
+      <label class="chk"><input type="checkbox" id="payShare" ${D.share?'checked':''}> Передавать ведущему, когда я в комнате</label>
+      <div class="row"><button class="btn sm pri" id="paySave">Сохранить</button>${PAYC.ph?'<button class="btn sm ghost red" id="payDel">Удалить реквизиты</button>':''}</div></div>`;}
   {const P=NutsNet.prov(),mine=W.providers||[],n=mine.length;
     h+=`<div class="en-sec"><div class="blab">Способы входа</div><div class="plist">`+P.map(k=>{const pid=NutsNet.PID[k],has=mine.find(x=>x.id===pid);
       return `<div>${NutsNet.PICON[pid]}<span class="pnm">${NutsNet.PNAME[pid]}${has?`<small>${esc(has.email||'привязан')}</small>`:''}</span>${has?(n>1?`<button class="btn sm ghost" data-unlink="${pid}">Отвязать</button>`:'<span class="small muted">✓</span>'):`<button class="btn sm" data-link="${k}" ${enBusy?'disabled':''}>${enBusy===k?'…':'Привязать'}</button>`}</div>`;}).join('')+`</div>`+
@@ -1036,13 +1077,18 @@ async function sendMail(){const v=(($('#authEmail')||{}).value||'').trim().toLow
     await NET.sendLink(v,location.origin+location.pathname);enMail.sent=v;enMail.open=false;}catch(err){enErr=NutsNet.gErr(err);}
   enBusy=false;renderEntry();}
 function joinByCode(){const c=(($('#enCode')||{}).value||'').trim().toUpperCase();if(!/^[A-Z0-9]{4}$/.test(c)){enErr='Код комнаты — 4 символа, например 6D2P';return renderEntry();}location.hash='#r-'+c;location.reload();}
-async function entryClick(e){const b=e.target.closest('button,a');if(!b)return;
+function payRead(){if(!payDr)return;const p=$('#payPh'),o=$('#payBankO'),s=$('#payShare');if(p)payDr.ph=p.value;if(o)payDr.bank=o.value.trim();if(s)payDr.share=s.checked;}
+async function entryClick(e){const b=e.target.closest('button,a,[data-bank]');if(!b)return;
   if(b.id==='enClose'){closeEntry();return;}
   if(b.id==='enStart'){closeEntry();if(isFresh()&&!noWiz())openWiz();return;}
   if(b.id==='enGuest'){setEntry('guest');closeEntry();if(isFresh()&&!S.wizDone&&!noWiz())openWiz();return;}
   if(b.id==='enJoin')return joinByCode();
   if(b.id==='enRemote'){location.hash='#r-'+b.dataset.room;location.reload();return;}
   if(b.id==='enMove'){b.disabled=true;return takeOver(b.dataset.room);}
+  if(b.dataset.bank){payRead();if(b.dataset.bank==='__other'){payDr.other=true;if(BANKS.includes(payDr.bank))payDr.bank='';}else{payDr.other=false;payDr.bank=b.dataset.bank;}return renderEntry();}
+  if(b.id==='paySave'){payRead();const d=String(payDr.ph).replace(/\D/g,'');if(d&&d.length!==11){enErr='Номер телефона — 11 цифр, например +7 916 123-45-67';return renderEntry();}
+    const o={ph:d?'+'+d:'',bank:String(payDr.bank||'').slice(0,40),share:!!payDr.share,at:NET.now()};try{if(d){await NET.set('users/'+NET.uid+'/pay',o);PAYC=o;}else{await NET.remove('users/'+NET.uid+'/pay');PAYC={};}enErr='';toast('Реквизиты сохранены');}catch(x){enErr='Не получилось сохранить';}payDr=null;return renderEntry();}
+  if(b.id==='payDel'){try{await NET.remove('users/'+NET.uid+'/pay');PAYC={};payDr=null;toast('Реквизиты удалены');}catch(x){enErr='Не получилось удалить';}return renderEntry();}
   if(b.dataset.ev){evSel=b.dataset.ev;return renderEntry();}
   if(b.dataset.evback){evSel=null;return renderEntry();}
   if(b.dataset.evmore){evMore=true;return renderEntry();}
