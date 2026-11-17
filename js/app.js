@@ -487,7 +487,7 @@ function autoBind(){let accs=[];try{accs=roomAccts().filter(a=>!a.self);}catch(e
 let nid=S.players.reduce((m,p)=>Math.max(m,p.id),0)+1;
 function snap(){S.hist.push(JSON.stringify({players:S.players,seats:S.seats,logLen:S.log.length}));if(S.hist.length>40)S.hist.shift();}
 function settle(hold){const inP=S.players.filter(p=>p.status==='in');S.players.forEach(p=>{if(p.status==='in')p.place=null;});
-  if(isT()&&inP.length===1&&S.players.length>1&&!hold){inP[0].place=1;if(S.lastWinner!==inP[0].id){setTimeout(()=>{if(isT()&&totals().inP<=1&&S.players.length>1)openFin();},1800);S.lastWinner=inP[0].id;toast('🏆 Победитель: '+inP[0].name);speak(['win'],'Победитель — '+inP[0].name);}}else S.lastWinner=null;
+  if(isT()&&inP.length===1&&S.players.length>1&&!hold){inP[0].place=1;if(S.lastWinner!==inP[0].id){setTimeout(()=>{if(isT()&&totals().inP<=1&&S.players.length>1)openFin();},window.__fxOn&&window.__fxOn()?3600:1800);S.lastWinner=inP[0].id;toast('🏆 Победитель: '+inP[0].name);speak(['win'],'Победитель — '+inP[0].name);}}else S.lastWinner=null;
   const out=S.players.filter(p=>p.status==='out').sort((a,b)=>b.outAt-a.outAt);out.forEach((p,i)=>p.place=inP.length+1+i);}
 function addPlayers(names){const doAdd=()=>addPlayersNow(names);
   if(S.lateRegUntil&&T().startedAt!=null&&curLvl()>S.lateRegUntil)confirmB('Регистрация закрыта',`Поздняя регистрация была до ${S.lateRegUntil} уровня. Всё равно добавить?`,doAdd,'Добавить');else doAdd();}
@@ -1198,26 +1198,26 @@ const RMQ=window.matchMedia?matchMedia('(prefers-reduced-motion: reduce)'):{matc
 const animMode=()=>{const m=S.anim||'full';return m==='full'&&RMQ.matches?'calm':m;};
 const isTV=()=>document.body.classList.contains('tv');
 const fxOn=()=>isTV()&&animMode()!=='off';
-let fxIdx=null,fxSec=null,fxFake=0;
+let fxIdx=null,fxSec=null,fxFake=0,fxWinAt=0;window.__fxOn=()=>fxOn();
 function fxLayer(){let e=$('#fxl');if(!e){e=document.createElement('div');e.id='fxl';document.body.appendChild(e);}return e;}
 function fxRe(el,cls){if(!el)return;el.classList.remove(cls);void el.offsetWidth;el.classList.add(cls);}
 function fxLevel(i){if(!fxOn())return;const l=L(i);fxRe($('#blinds'),'fx-in');fxRe($('#lvlChip'),'fx-in');fxRe($('#ante'),'fx-in');
   if(animMode()==='full'){const st=$('#v-timer .stage');if(st){const w=document.createElement('div');w.className='fx-sweep';st.appendChild(w);setTimeout(()=>w.remove(),1300);}}
   if(l)fxBanner(l.type==='break'?'brk':'lvl',l.type==='break'?'☕ Перерыв '+l.min+' мин':'Уровень '+lvlNum(i)+' · '+bstr(l));}
-let fxBanUntil=0;
+let fxBanUntil=0,fxBanAt=0,fxWinT=0;
 function fxSplit(type,text){text=String(text).replace(/\s*\(\+[^)]*\)\s*$/,'');let h=text,d='';
   const i=text.indexOf(' — ');if(i>0){h=text.slice(0,i);d=text.slice(i+3);}else if(type==='addon'){const j=text.indexOf(' взял ');if(j>0){h=text.slice(0,j);d=text.slice(j+6)+(S.addonStack?' +'+fmt(S.addonStack)+' фишек':'');}}
   else if(type==='lvl'||type==='brk'){const k=text.indexOf(' · ');if(k>0){h=text.slice(k+3);d=text.slice(0,k);}}
   d=d.replace(/выбил\(а\)/,'выбил').replace(/баунти — в призовой фонд/,'баунти в призовой фонд');return[h,d];}
-function fxBanner(type,text){if(!fxOn())return;const ly=fxLayer();ly.querySelectorAll('.fx-ban').forEach(e=>e.remove());fxBanUntil=Date.now()+600;
+function fxBanner(type,text){if(!fxOn())return;const ly=fxLayer();ly.querySelectorAll('.fx-ban').forEach(e=>e.remove());fxBanUntil=Date.now()+600;fxBanAt=Date.now();
   const ic={bust:'💥',rebuy:'💸',addon:'➕'}[type]||'';const [h,d]=fxSplit(type,text);const b=document.createElement('div');b.className='fx-ban '+type;
-  b.innerHTML=`${ic?`<span class="ic">${ic}</span>`:''}<span class="tx"><span class="h">${esc(h)}</span>${d?`<span class="d">${esc(d)}</span>`:''}</span>`;ly.appendChild(b);setTimeout(()=>b.remove(),3700);}
+  b.innerHTML=`${ic?`<span class="ic">${ic}</span>`:''}<span class="tx"><span class="h">${esc(h)}</span>${d?`<span class="d">${esc(d)}</span>`:''}</span>`;ly.appendChild(b);setTimeout(()=>b.remove(),5100);}
 function fxWin(name){if(!fxOn())return;fxWinClose(true);const x=totals(),pr=isT()?payouts(x.pool)[0]:0;
   const w=document.createElement('div');w.id='fxwin';w.innerHTML=`<div class="in"><div class="tro">🏆</div><div class="lb">Победитель</div><div class="nm">${esc(name)}</div>${pr?`<div class="pr">${money(pr)}</div>`:''}<div class="hint">Нажмите, чтобы перейти к итогам</div></div>`;
   if(animMode()==='full'){const C=['#fbbf24','#34d399','#a3e635','#f87171','#60a5fa','#f5f5f4','#c084fc'];for(let i=0;i<70;i++){const c=document.createElement('i');c.className='cf';c.style.left=(Math.random()*100)+'%';c.style.background=C[i%C.length];c.style.animationDuration=(2.6+Math.random()*2.4)+'s';c.style.animationDelay=(Math.random()*1.4)+'s';c.style.width=(6+Math.random()*7)+'px';w.appendChild(c);}}
-  w.onclick=()=>fxWinClose();document.body.appendChild(w);clearTimeout(fxWin.t);fxWin.t=setTimeout(()=>fxWinClose(),7000);}
+  w.onclick=()=>{if(Date.now()-fxWinAt>1500)fxWinClose();};fxWinAt=Date.now();document.body.appendChild(w);clearTimeout(fxWin.t);fxWin.t=setTimeout(()=>fxWinClose(),8000);}
 function fxWinClose(now){const w=$('#fxwin');if(!w)return;if(now||animMode()==='off'){w.remove();return;}w.classList.add('out');setTimeout(()=>w.remove(),600);}
-document.addEventListener('keydown',e=>{if($('#fxwin')&&!$('#fxwin').classList.contains('out')){e.stopImmediatePropagation();e.preventDefault();fxWinClose();}},true);
+document.addEventListener('keydown',e=>{if($('#fxwin')&&!$('#fxwin').classList.contains('out')){e.stopImmediatePropagation();e.preventDefault();if(Date.now()-fxWinAt>1500)fxWinClose();}},true);
 function brkHtml(i){const l=L(i);if(!l||l.type!=='break')return'';let nx=null;for(let j=i+1;j<S.levels.length;j++)if(L(j).type==='level'){nx=L(j);break;}
   const cu=colorUpNew(i+1),ch=chipsAsc().filter(c=>cu.includes(c.v));let h='';
   if(nx)h+=`<div class="bi"><div class="blab">После перерыва</div><div class="v">${bstr(nx)}${nx.ante?`<small>${nx.bba?'анте BB':'анте '+fmt(nx.ante)}</small>`:''}</div></div>`;
@@ -1235,7 +1235,7 @@ function fxRender(){const m=animMode(),b=document.body;b.classList.toggle('anim-
   if(fxIdx!==null&&fxIdx!==t.idx&&t.startedAt!=null)fxLevel(t.idx);fxIdx=t.idx;}
 let fxDemoBrk=0;
 {const _r=render;render=function(){_r.apply(this,arguments);try{fxRender();}catch(e){console.error(e);}};}
-{const _l=logEv;logEv=function(type,text){_l(type,text);try{if(type==='bust'||type==='rebuy'||type==='addon')fxBanner(type,String(text).split(' · №')[0]);else if(type==='win')fxWin(String(text).replace(/^Победитель:\s*/,''));}catch(e){console.error(e);}};}
+{const _l=logEv;logEv=function(type,text){_l(type,text);try{if(type==='bust'||type==='rebuy'||type==='addon')fxBanner(type,String(text).split(' · №')[0]);else if(type==='win'){const nm=String(text).replace(/^Победитель:\s*/,''),dl=Date.now()-fxBanAt<1500?2400:0;clearTimeout(fxWinT);fxWinT=setTimeout(()=>{if(S.players.some(q=>q.place===1&&q.status==='in'&&q.name===nm))fxWin(nm);},dl);}}catch(e){console.error(e);}};}
 {const _c=renderClock;renderClock=function(){_c();try{const t=T(),l=L(t.idx);let r=rem(),run=t.running;if(fxFake){r=fxFake-Date.now();run=true;if(r<=0){fxFake=0;r=rem();run=t.running;}else $('#clock').textContent=fmtT(r);}
   const last=fxOn()&&run&&l&&(fxFake||l.type==='level')&&r>0&&r<=10000;document.body.classList.toggle('last10',!!last);
   if(last){const sec=Math.ceil(r/1000);if(sec!==fxSec){fxSec=sec;if(animMode()==='full')fxRe($('#clock'),'fx-tick');if(S.sound)beep([[sec<=3?1320:880,.05]]);}}else fxSec=null;}catch(e){console.error(e);}};}
@@ -1251,7 +1251,7 @@ if(/[?&]demo=1\b/.test(location.search)){const d=document.createElement('div');d
     if(a==='bust'){const k=Math.random()<.5?' · выбил(а) '+nm():' · баунти — в призовой фонд';return fxBanner('bust',nm()+' — вылет · '+(2+Math.floor(Math.random()*6))+' место'+k);}
     if(a==='rebuy')return fxBanner('rebuy',nm()+' — докуп, снова в игре');
     if(a==='addon')return fxBanner('addon',nm()+' взял аддон (+'+fmt(S.addonStack)+' фишек)');
-    if(a==='win')return fxWin(nm());
+    if(a==='win'){const w=nm();let l=nm();if(l===w)l='Борис';fxBanner('bust',l+' — вылет · 2 место · выбил(а) '+w);clearTimeout(fxWinT);fxWinT=setTimeout(()=>fxWin(w),2400);return;}
     if(a==='mode'){S.anim={full:'calm',calm:'off',off:'full'}[S.anim]||'full';save();loadSettings();render();lbl();}});}
 if(!S.levels||!S.levels.length)S.levels=generate();
 save();loadSettings();render();setInterval(tick,250);if(T().running)awake(true);

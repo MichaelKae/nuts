@@ -461,10 +461,10 @@ body.tv.brk-on .brkinfo:not(:empty){display:flex;justify-content:center;gap:clam
 .fx-ban .d{font-family:var(--ui);font-weight:700;font-size:.5em;opacity:.85;line-height:1.3;margin-top:.15em;overflow-wrap:anywhere}
 .fx-ban.bust{border-color:rgba(248,113,113,.65);color:#fecaca}.fx-ban.rebuy{border-color:rgba(74,222,128,.6);color:#bbf7d0}.fx-ban.addon{border-color:rgba(251,191,36,.6);color:#fde68a}
 .fx-ban.lvl,.fx-ban.brk{top:6vh;bottom:auto;font-size:clamp(18px,2.4vw,36px);color:var(--acc)}.fx-ban.brk{color:var(--gold)}
-body.anim-full .fx-ban{animation:fxBan 3.6s cubic-bezier(.2,.8,.2,1) forwards}
-body.anim-calm .fx-ban{animation:fxFade 3.6s ease forwards}
-@keyframes fxBan{0%{opacity:0;transform:translate(-50%,40px) scale(.9)}9%{opacity:1;transform:translate(-50%,0) scale(1.05)}15%{transform:translate(-50%,0) scale(1)}85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,-16px)}}
-@keyframes fxFade{0%{opacity:0}10%,85%{opacity:1}100%{opacity:0}}
+body.anim-full .fx-ban{animation:fxBan 5s cubic-bezier(.2,.8,.2,1) forwards}
+body.anim-calm .fx-ban{animation:fxFade 5s ease forwards}
+@keyframes fxBan{0%{opacity:0;transform:translate(-50%,40px) scale(.9)}7%{opacity:1;transform:translate(-50%,0) scale(1.05)}12%{transform:translate(-50%,0) scale(1)}90%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,-16px)}}
+@keyframes fxFade{0%{opacity:0}8%,90%{opacity:1}100%{opacity:0}}
 body.tv.anim-full #blinds.fx-in{animation:fxLvl .9s cubic-bezier(.2,.9,.25,1.25)}
 body.tv.anim-full #lvlChip.fx-in,body.tv.anim-full #ante.fx-in{animation:fxPop .7s .15s cubic-bezier(.2,.9,.25,1.3) both}
 body.tv.anim-calm #blinds.fx-in,body.tv.anim-calm #lvlChip.fx-in,body.tv.anim-calm #ante.fx-in{animation:fxFade2 .8s ease}
