@@ -11,7 +11,7 @@
 <script src="voice/manifest.js" onerror="window.NUTS_VOICE=null"></script>
 <script src="firebase-config.js" onerror="window.NUTS_FB=window.NUTS_FB||null"></script>
 <script>
-window.NUTS_VER='4.6';
+window.NUTS_VER='4.7';
 window.NutsNet=(()=>{
   const SDK='https://www.gstatic.com/firebasejs/10.12.2/';
   const load=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('Нет связи с '+new URL(src).host));document.head.appendChild(s);});
@@ -211,7 +211,7 @@ body.remote .app,body.remote .qpop,body.remote #help,body.remote #toast{display:
 #remoteRoot{display:none}
 body.remote #remoteRoot{display:block;max-width:560px;margin:0 auto;padding:14px 14px calc(24px + var(--safe-b));min-height:100%}
 .rhead{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.rhead .brand{margin:0}
+.rhead .brand{margin:0;display:flex!important}
 .rhead .room{margin-left:auto;font-family:var(--disp);font-weight:700;letter-spacing:.12em;font-size:14px;color:var(--muted)}
 .dot{width:9px;height:9px;border-radius:50%;background:var(--red);display:inline-block}
 .dot.on{background:var(--acc);box-shadow:0 0 10px var(--acc)}
@@ -239,6 +239,10 @@ body.remote #remoteRoot{display:block;max-width:560px;margin:0 auto;padding:14px
 .qrbox svg{display:block;width:100%;height:auto}
 .rcode{font-family:var(--disp);font-weight:800;font-size:34px;letter-spacing:.18em;text-align:center}
 .rlist{margin-top:10px}
+#approveBar{position:fixed;left:50%;top:18px;transform:translate(-50%,-140%);z-index:70;background:#0f1d17;border:1px solid var(--acc);border-radius:16px;padding:14px 16px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;gap:16px;align-items:center;transition:transform .25s;max-width:94vw;flex-wrap:wrap;justify-content:center}
+#approveBar.on{transform:translate(-50%,0)}
+#approveBar .ab-t{font-size:16px} #approveBar .ab-b{display:flex;gap:8px}
+body.remote #approveBar{display:none}
 .rlist div{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);font-weight:600}
 .combos{display:flex;flex-direction:column;gap:3px;cursor:pointer}
 .combos div{display:flex;gap:10px;font-size:14px;font-weight:400;color:var(--muted);line-height:1.35}
@@ -358,7 +362,7 @@ body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
 <body>
 <div class="app">
   <nav>
-    <div class="brand" title="Nuts · версия 4.6 · by MichaelKae"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v4.6</span></div>
+    <div class="brand" title="Nuts · версия 4.7 · by MichaelKae"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v4.7</span></div>
     <button class="tab on" data-v="timer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg><span>Таймер</span></button>
     <button class="tab" data-v="players"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14.6c2.6.2 4.4 1.9 5 4.9"/></svg><span>Игроки</span></button>
     <button class="tab" data-v="results"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 14v4M8 21h8"/></svg><span>Итоги</span></button>
@@ -570,7 +574,7 @@ body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
       </div>
       <div class="card">
         <div class="about"><div class="logo">♠</div><div>
-          <div style="font-family:var(--disp);font-weight:800;font-size:20px">Nuts <span class="muted small" style="font-family:var(--ui)">v4.6</span></div>
+          <div style="font-family:var(--disp);font-weight:800;font-size:20px">Nuts <span class="muted small" style="font-family:var(--ui)">v4.7</span></div>
           <div class="muted small">Покерный таймер для домашних игр · автор <a href="https://github.com/MichaelKae" target="_blank" rel="noopener">MichaelKae</a> · <a href="https://github.com/MichaelKae/nuts" target="_blank" rel="noopener">GitHub</a></div>
         </div></div>
       </div>
@@ -598,7 +602,7 @@ body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
           <button class="btn red" id="newGame">Завершить вечер и начать новый</button>
           <button class="btn red" id="resetAll">Сбросить всё</button>
         </div>
-        <div class="hint">Nuts · версия 4.6. При завершении итоги вечера сохраняются в историю (вкладка «Итоги»). Игроки, наборы и структура остаются.</div>
+        <div class="hint">Nuts · версия 4.7. При завершении итоги вечера сохраняются в историю (вкладка «Итоги»). Игроки, наборы и структура остаются.</div>
       </div>
     </section>
   </main>
@@ -1218,11 +1222,11 @@ document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fit);
 
 /* ===== Remote (host side) ===== */
-let NET=null,remoteOn=false,admins={},rUnsub=[],pubT=null,remoteErr='';
+let NET=null,remoteOn=false,admins={},members={},rUnsub=[],remoteErr='',pendingReq=[];
 const pin4=()=>String(Math.floor(1000+Math.random()*9000));
 let pubQ=false;function publishSoon(){if(!remoteOn||pubQ)return;pubQ=true;Promise.resolve().then(()=>{pubQ=false;publish();});}
-function remoteState(){const t=T(),l=L(t.idx),nx=L(t.idx+1),x=totals(),off=NET.now()-Date.now();
-  return{v:1,ver:window.NUTS_VER,name:S.name,mode:S.mode,cur:S.currency,
+function remoteState(){const t=T(),l=L(t.idx),nx=L(t.idx+1),x=totals(),off=NET.now()-Date.now(),ad=Object.values(admins)[0];
+  return{v:1,ver:window.NUTS_VER,name:S.name,mode:S.mode,cur:S.currency,remote:ad?ad.name:'',
     t:{run:!!t.running,end:t.running?Math.round(t.endsAt+off):0,rem:t.running?0:Math.round(rem()),st:t.startedAt!=null,len:Lms(t.idx)},
     lv:l?{ty:l.type,sb:l.sb||0,bb:l.bb||0,an:l.ante||0,min:l.min,n:lvlNum(t.idx)}:null,nx:nx?{ty:nx.type,sb:nx.sb||0,bb:nx.bb||0}:null,
     first:t.idx<=0,last:t.idx>=S.levels.length-1,tot:S.levels.filter(z=>z.type==='level').length,
@@ -1231,16 +1235,34 @@ function remoteState(){const t=T(),l=L(t.idx),nx=L(t.idx+1),x=totals(),off=NET.n
     r:{when:S.rebuyWhen,half:!!S.halfRebuy,addon:!!S.addonOn,max:S.maxRebuys||0,until:S.rebuyUntil||0,lvl:curLvl(),bounty:isT()&&!!S.bountyOn,late:S.lateRegUntil||0,start:S.startStack,rc:S.rebuyCost,rs:S.rebuyStack},
     undo:S.hist.length>0,at:NET.now()};}
 function publish(){if(!remoteOn||!NET)return;NET.set('rooms/'+S.remote.room+'/state',remoteState()).catch(()=>{});}
+const RR=()=>'rooms/'+S.remote.room;
+function strike(uid,why){const sr=S.remote.strikes=S.remote.strikes||{};sr[uid]=(sr[uid]||0)+1;if(sr[uid]>=3)ban(uid,why||'3 отключения');save();}
+function ban(uid,why){NET.set(RR()+'/banned/'+uid,true);NET.remove(RR()+'/members/'+uid);NET.remove(RR()+'/admins/'+uid);logEv('seats','Устройство заблокировано в комнате ('+why+')');}
+function kick(uid){const nm=(members[uid]||admins[uid]||{}).name||'Гость';NET.remove(RR()+'/admins/'+uid);NET.remove(RR()+'/members/'+uid);logEv('seats','Отключён от комнаты: '+nm);strike(uid);toast('Отключён: '+nm);}
+function onJoin(uid,v){NET.remove(RR()+'/join/'+uid);if(!v)return;const nm=String(v.name||'Гость').trim().slice(0,30)||'Гость';
+  if(v.want==='remote'){if(!members[uid]&&!admins[uid])return;if(Object.keys(admins).length&&!admins[uid])return;
+    if(!pendingReq.some(r=>r.uid===uid))pendingReq.push({uid,name:nm});renderApprove();sndWarn();return;}
+  if(v.want==='leave'){NET.remove(RR()+'/admins/'+uid);NET.remove(RR()+'/members/'+uid);return;}
+  if(v.want==='drop'){if(admins[uid]){NET.remove(RR()+'/admins/'+uid);NET.set(RR()+'/members/'+uid,{name:admins[uid].name||nm,at:NET.now()});logEv('seats','Пульт сдан: '+(admins[uid].name||nm));}return;}
+  if(String(v.pin)===String(S.remote.pin)){const w=S.remote.wrong||{};delete w[uid];if(!members[uid]&&!admins[uid]){NET.set(RR()+'/members/'+uid,{name:nm,at:NET.now()});}save();}
+  else{const w=S.remote.wrong=S.remote.wrong||{};w[uid]=(w[uid]||0)+1;if(w[uid]>=5)ban(uid,'5 неверных PIN');save();}}
+function renderApprove(){let el=$('#approveBar');if(!el){el=document.createElement('div');el.id='approveBar';document.body.appendChild(el);}
+  pendingReq=pendingReq.filter(r=>members[r.uid]&&!Object.keys(admins).length);
+  const r=pendingReq[0];if(!r){el.className='';el.innerHTML='';return;}
+  el.className='on';el.innerHTML=`<div class="ab-t">📱 <b>${esc(r.name)}</b> хочет управлять игрой</div><div class="ab-b"><button class="btn red" data-apr="no">Отклонить</button><button class="btn pri" data-apr="yes">Разрешить</button></div>`;}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-apr]');if(!b)return;const r=pendingReq.shift();if(!r)return renderApprove();
+  if(b.dataset.apr==='yes'&&!Object.keys(admins).length&&members[r.uid]){NET.set(RR()+'/admins/'+r.uid,{name:r.name,at:NET.now()});toast('📱 Пульт: '+r.name);logEv('seats','Пульт подключён: '+r.name);}
+  else{strike(r.uid,'3 отказа');logEv('seats','Отклонён запрос пульта: '+r.name);}renderApprove();});
 async function hostConnect(){if(!NutsNet.configured())return;
   NET=await NutsNet.connect();let room=S.remote&&S.remote.room;
   if(room){const o=await NET.get('rooms/'+room+'/owner');if(o&&o!==NET.uid)room=null;else if(!o)await NET.set('rooms/'+room+'/owner',NET.uid);}
   if(!room){for(let i=0;i<10&&!room;i++){const c=NutsNet.code();const o=await NET.get('rooms/'+c+'/owner');if(!o){await NET.set('rooms/'+c+'/owner',NET.uid);room=c;}}}
   if(!room)throw new Error('Не удалось создать комнату');
-  S.remote={room,pin:(S.remote&&S.remote.room===room&&S.remote.pin)||pin4(),on:true};remoteOn=true;remoteErr='';
-  rUnsub.forEach(f=>f());rUnsub=[];const R0='rooms/'+room;
-  rUnsub.push(NET.onValue(R0+'/admins',v=>{admins=v||{};renderRemotePill();refreshRemoteModal();}));
-  rUnsub.push(NET.onChild(R0+'/join',(uid,v)=>{NET.remove(R0+'/join/'+uid);if(!v)return;
-    if(String(v.pin)===String(S.remote.pin)){const nm=String(v.name||'Пульт').slice(0,30);NET.set(R0+'/admins/'+uid,{name:nm,at:NET.now()});toast('📱 Пульт подключён: '+nm);logEv('seats','Подключён пульт: '+nm);save();}}));
+  const keep=S.remote&&S.remote.room===room;S.remote={room,pin:(keep&&S.remote.pin)||pin4(),on:true,strikes:(keep&&S.remote.strikes)||{},wrong:(keep&&S.remote.wrong)||{}};remoteOn=true;remoteErr='';
+  rUnsub.forEach(f=>f());rUnsub=[];const R0=RR();
+  rUnsub.push(NET.onValue(R0+'/admins',v=>{admins=v||{};renderRemotePill();refreshRemoteModal();renderApprove();publishSoon();}));
+  rUnsub.push(NET.onValue(R0+'/members',v=>{members=v||{};refreshRemoteModal();renderApprove();}));
+  rUnsub.push(NET.onChild(R0+'/join',(uid,v)=>{try{onJoin(uid,v);}catch(e){}}));
   rUnsub.push(NET.onChild(R0+'/cmds',(id,c)=>{NET.remove(R0+'/cmds/'+id);if(!c||!admins[c.by]||NET.now()-(c.at||0)>20000)return;try{runCmd(c);}catch(e){}}));
   save();publish();renderRemotePill();}
 function runCmd(c){const p=c.id!=null?S.players.find(q=>q.id===c.id):null,x=totals();
@@ -1255,27 +1277,28 @@ function runCmd(c){const p=c.id!=null?S.players.find(q=>q.id===c.id):null,x=tota
     else if(c.a==='addon'){if(!p.addons&&p.status==='in')playerAct(p,'addon');}
     else if(c.a==='back'){if(p.status==='out')playerAct(p,'back');}}
   render();}
-async function hostDisconnect(){rUnsub.forEach(f=>f());rUnsub=[];
-  if(NET&&S.remote){const R0='rooms/'+S.remote.room;for(const k of ['state','admins','join','cmds']){try{await NET.remove(R0+'/'+k);}catch(e){}}logEv('seats','Комната '+S.remote.room+' закрыта');}
-  remoteOn=false;admins={};S.remote=null;save();renderRemotePill();refreshRemoteModal();}
-function renderRemotePill(){const el=$('#remotePill');const n=Object.keys(admins).length;el.style.display=remoteOn?'':'none';el.textContent=remoteOn?'📱 '+S.remote.room+(n?' · '+n:''):'';}
+async function hostDisconnect(){rUnsub.forEach(f=>f());rUnsub=[];pendingReq=[];renderApprove();
+  if(NET&&S.remote){const R0=RR();for(const k of ['state','admins','members','join','cmds','banned']){try{await NET.remove(R0+'/'+k);}catch(e){}}logEv('seats','Комната '+S.remote.room+' закрыта');}
+  remoteOn=false;admins={};members={};S.remote=null;save();renderRemotePill();refreshRemoteModal();}
+function renderRemotePill(){const el=$('#remotePill');const n=Object.keys(admins).length;el.style.display=remoteOn?'':'none';el.textContent=remoteOn?'📱 '+S.remote.room+(n?' · пульт':''):'';}
 let rmOpen=false;
 async function refreshRemoteModal(){if(!rmOpen||!$('#modal').classList.contains('on')||!$('#rmBody'))return;const b=$('#rmBody');
-  if(!NutsNet.configured()){b.innerHTML=`<p>Пульт ещё не настроен: нужен файл <b>firebase-config.js</b> рядом с приложением (его делает автор по инструкции).</p>`;return;}
-  if(!remoteOn){b.innerHTML=`<p>Создайте комнату — на экране появятся QR-код и PIN. Телефон сканирует код, вводит PIN и становится пультом. Каждая новая комната получает новый код и PIN.</p>${remoteErr?`<p style="color:var(--red)">${esc(remoteErr)}</p>`:''}<button class="btn pri" id="rmStart" style="width:100%">📡 Создать комнату</button>`;return;}
-  const url=NutsNet.joinUrl(S.remote.room),ad=Object.entries(admins);
+  if(!NutsNet.configured()){b.innerHTML=`<p>Пульт ещё не настроен: нужен файл <b>firebase-config.js</b> рядом с приложением.</p>`;return;}
+  if(!remoteOn){b.innerHTML=`<p>Создайте комнату — на экране появятся QR-код и PIN. QR пускает сразу, а по ссылке или коду комнаты нужен PIN. Стать пультом можно только с вашего разрешения. Каждая новая комната получает новый код и PIN.</p>${remoteErr?`<p style="color:var(--red)">${esc(remoteErr)}</p>`:''}<button class="btn pri" id="rmStart" style="width:100%">📡 Создать комнату</button>`;return;}
+  const url=NutsNet.joinUrl(S.remote.room),qrUrl=url+'-'+S.remote.pin,ad=Object.entries(admins),mb=Object.entries(members).filter(([u])=>!admins[u]);
+  const row=(u,v,role)=>`<div><span>${role} ${esc(v.name||'Гость')}</span><button class="btn sm ghost red" data-rmkick="${u}">Отключить</button></div>`;
   b.innerHTML=`<div class="qrbox" id="rmQr"><div style="height:200px;display:grid;place-items:center;color:#555;font-size:13px">QR…</div></div>
-    <div class="row" style="justify-content:center;gap:28px;margin-top:12px"><div><div class="blab" style="text-align:center">Комната</div><div class="rcode">${S.remote.room}</div></div><div><div class="blab" style="text-align:center">PIN пульта</div><div class="rcode" style="color:var(--gold)">${S.remote.pin}</div></div></div>
+    <div class="row" style="justify-content:center;gap:28px;margin-top:12px"><div><div class="blab" style="text-align:center">Комната</div><div class="rcode">${S.remote.room}</div></div><div><div class="blab" style="text-align:center">PIN</div><div class="rcode" style="color:var(--gold)">${S.remote.pin}</div></div></div>
     <p class="small" style="text-align:center;margin:8px 0 0;word-break:break-all">${esc(url)}</p>
-    <div class="rlist">${ad.length?ad.map(([u,v])=>`<div><span>📱 ${esc(v.name||'Пульт')}</span><button class="btn sm ghost red" data-rmkick="${u}">Отключить</button></div>`).join(''):'<div class="muted small">Пультов пока нет. Зрители подключаются по тому же коду без PIN.</div>'}</div>
-    <div class="row" style="margin-top:12px"><button class="btn sm" id="rmPin">🔄 Новый PIN</button><button class="btn sm red" id="rmStop" title="Отключит все телефоны. Следующая комната получит новый код и PIN">Закрыть комнату</button></div>`;
-  let svg;try{svg=await NutsNet.qrSvg(url);}catch(e){svg='<div style="color:#333;font-size:13px;padding:20px;text-align:center">QR не загрузился — откройте ссылку ниже на телефоне</div>';}const qb=$('#rmQr');if(qb)qb.innerHTML=svg;}
+    <div class="rlist">${ad.map(([u,v])=>row(u,v,'🎮 пульт ·')).join('')}${mb.map(([u,v])=>row(u,v,'👀')).join('')}${!ad.length&&!mb.length?'<div class="muted small">Пока никто не подключился.</div>':''}</div>
+    <div class="row" style="margin-top:12px"><button class="btn sm" id="rmPin" title="Уже подключённые останутся">🔄 Новый PIN</button><button class="btn sm red" id="rmStop" title="Отключит всех. Следующая комната получит новый код и PIN">Закрыть комнату</button></div>`;
+  let svg;try{svg=await NutsNet.qrSvg(qrUrl);}catch(e){svg='<div style="color:#333;font-size:13px;padding:20px;text-align:center">QR не загрузился — откройте ссылку ниже на телефоне</div>';}const qb=$('#rmQr');if(qb)qb.innerHTML=svg;}
 function remoteModal(){rmOpen=true;modal(`<h3>📱 Пульт с телефона</h3><div id="rmBody"></div>`,[{t:'Готово',cls:'pri',fn:()=>{rmOpen=false;}}]);refreshRemoteModal();}
 document.addEventListener('click',async e=>{const t=e.target;
   if(t.id==='rmStart'){t.disabled=true;t.textContent='Подключаюсь…';try{await hostConnect();}catch(err){remoteErr='Не получилось подключиться: '+(err.message||err);}refreshRemoteModal();}
   else if(t.id==='rmStop'){await hostDisconnect();toast('Комната закрыта');}
   else if(t.id==='rmPin'){S.remote.pin=pin4();save();refreshRemoteModal();}
-  else if(t.dataset&&t.dataset.rmkick){NET.remove('rooms/'+S.remote.room+'/admins/'+t.dataset.rmkick);}});
+  else if(t.dataset&&t.dataset.rmkick){kick(t.dataset.rmkick);}});
 $('#remoteFab').onclick=remoteModal;$('#remoteOpen').onclick=remoteModal;$('#remotePill').onclick=remoteModal;
 if(S.remote&&S.remote.on&&NutsNet.configured())hostConnect().catch(()=>toast('Пульт: нет связи с сервером'));
 
@@ -1314,37 +1337,42 @@ save();loadSettings();render();setInterval(tick,250);if(T().running)awake(true);
 </script>
 <script>
 (()=>{
-const m=location.hash.match(/^#r-([A-Z0-9]{4})/i);if(!m)return;
-const room=m[1].toUpperCase(),R0='rooms/'+room;document.body.classList.add('remote');
+const m=location.hash.match(/^#r-([A-Z0-9]{4})(?:-(\d{4}))?/i);if(!m)return;
+const room=m[1].toUpperCase(),R0='rooms/'+room;let qrPin=m[2]||'';
+if(qrPin){try{history.replaceState(null,'',location.pathname+location.search+'#r-'+room);}catch(e){}}
+document.body.classList.add('remote');
 const root=document.getElementById('remoteRoot');const q=s=>root.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Math.round(n||0).toLocaleString('ru-RU');const pad=n=>String(n).padStart(2,'0');
 const fmtT=ms=>{ms=Math.max(0,ms);const t=Math.ceil(ms/1000),h=Math.floor(t/3600),mm=Math.floor(t%3600/60),ss=t%60;return h?h+':'+pad(mm)+':'+pad(ss):pad(mm)+':'+pad(ss);};
 const LS='nuts.remote';let me={};try{me=JSON.parse(localStorage.getItem(LS))||{};}catch(e){}
-const saveMe=()=>{try{localStorage.setItem(LS,JSON.stringify(me));}catch(e){}};
-let NET=null,st=null,isAdmin=false,conn=false,mode=(me.room===room&&me.mode)||null,err='',joining=false;
+const saveMe=()=>{try{localStorage.setItem(LS,JSON.stringify({name:me.name||''}));}catch(e){}};
+let NET=null,st=null,isMember=false,isAdmin=false,banned=false,conn=false,err='',joining=false,asking=false,kickedMsg='',stUnsub=null,wasMember=false;
 let pend=0,pendT=null,slow=false;
 function send(c){pend++;clearTimeout(pendT);pendT=setTimeout(()=>{if(pend){slow=true;render();}},5000);
   if(st&&st.t){const t=st.t,now=NET.now();
     if(c.t==='toggle'){if(t.run){t.rem=Math.max(0,t.end-now);t.run=false;}else{t.end=now+(t.st?t.rem:(t.rem||t.len));t.run=true;t.st=true;}render();}
     else if(c.t==='time'){if(t.run)t.end=Math.max(now+1000,t.end+c.d*60000);else t.rem=Math.max(1000,t.rem+c.d*60000);tickR();}}
   return NET.push(R0+'/cmds',Object.assign({by:NET.uid,at:NET.now()},c)).catch(()=>{slow=true;render();});}
+const req=v=>NET.set(R0+'/join/'+NET.uid,Object.assign({name:me.name||'Гость',at:NET.now()},v));
 function sheet(title,text,btns){const w=document.createElement('div');w.className='rmodal';w.innerHTML=`<div class="mbox"><h3>${title}</h3>${text?`<p>${text}</p>`:''}<div class="mbtns col"></div></div>`;
   const bx=w.querySelector('.mbtns');btns.forEach(b=>{const e=document.createElement('button');e.className='btn '+(b.cls||'');e.textContent=b.t;e.onclick=()=>{w.remove();b.fn&&b.fn();};bx.appendChild(e);});
   w.addEventListener('click',e=>{if(e.target===w)w.remove();});document.body.appendChild(w);}
-const header=()=>`<div class="rhead"><div class="brand"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v${window.NUTS_VER}</span></div><span class="small muted">${isAdmin?'пульт':'зритель'}</span><span class="room"><span class="dot ${conn?'on':''}"></span> ${room}</span></div>`;
+const header=()=>`<div class="rhead"><div class="brand"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v${window.NUTS_VER}</span></div><span class="small muted">${isAdmin?'пульт':isMember?'зритель':''}</span><span class="room"><span class="dot ${conn?'on':''}"></span> ${room}</span></div>`;
+const foot=()=>`<div class="hint" style="text-align:center;margin-top:14px">Звук — только на главном экране${isMember?' · <a href="#" id="rLeave" style="color:var(--muted)">выйти</a>':''}</div>`;
 function render(){try{render0();}catch(e){root.innerHTML=header()+`<div class="card" style="color:var(--red)">Ошибка пульта: ${esc(e.message||e)}. Обновите страницу.</div>`;}}
 function render0(){
   if(!NutsNet.configured()){root.innerHTML=header()+`<div class="card">Пульт не настроен на этом сайте.</div>`;return;}
   if(!NET){root.innerHTML=header()+`<div class="card muted">${err?esc(err):'Подключаюсь…'}</div>`;return;}
-  if(!mode&&!isAdmin){root.innerHTML=header()+`<div class="card rjoin"><h3>Комната ${room}</h3>
-    <label class="f">Ваше имя<input id="rjName" value="${esc(me.name||'')}" placeholder="Например, Михаил" autocomplete="off"></label>
-    <label class="f">PIN пульта (показан на экране)<input id="rjPin" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off"></label>
+  if(banned){root.innerHTML=header()+`<div class="card"><h3>⛔ Доступ закрыт</h3><p class="muted">Это устройство заблокировано в комнате ${room}. Если это ошибка — попросите ведущего создать новую комнату.</p></div>`;return;}
+  if(!isMember&&!isAdmin){const needPin=!qrPin;
+    root.innerHTML=header()+`<div class="card rjoin"><h3>Комната ${room}</h3>${kickedMsg?`<p style="color:var(--gold);margin:0 0 10px">${esc(kickedMsg)}</p>`:''}
+    <label class="f">Ваше имя<input id="rjName" value="${esc(me.name||'')}" placeholder="Например, Михаил" autocomplete="off" maxlength="30"></label>
+    ${needPin?`<label class="f">PIN (показан на экране игры)<input id="rjPin" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off"></label>`:''}
     ${err?`<p style="color:var(--red);margin:0 0 10px">${esc(err)}</p>`:''}
-    <button class="btn pri" id="rjAdmin" style="width:100%;margin-bottom:8px" ${joining?'disabled':''}>${joining?'Жду подтверждения…':'📱 Подключиться пультом'}</button>
-    <button class="btn" id="rjView" style="width:100%">👀 Просто смотреть</button></div>`;return;}
+    <button class="btn pri" id="rjGo" style="width:100%" ${joining?'disabled':''}>${joining?'Подключаюсь…':'Войти в комнату'}</button></div>`;return;}
   const stale=st&&st.ver&&st.ver!==window.NUTS_VER?`<div class="card" style="border-color:rgba(251,191,36,.4)">На главном экране версия ${esc(st.ver)}, а здесь ${window.NUTS_VER}. <button class="btn sm gold" id="rReload">Обновить</button></div>`:'';
-  if(!st){root.innerHTML=header()+`<div class="card muted">Ждём экран игры… Убедитесь, что на ноутбуке открыта комната ${room}. Если комнату закрыли — отсканируйте новый QR-код.</div>${foot()}`;return;}
+  if(!st){root.innerHTML=header()+`<div class="card muted">Ждём экран игры…</div>${foot()}`;return;}
   const l=st.lv,nx=st.nx,brk=l&&l.ty==='break';
   let h=header()+`<div class="card rtimer"><div class="lvlchip ${brk?'brk':''}">${l?(brk?'☕ Перерыв':'Уровень '+l.n+' из '+st.tot):''}</div>
     <div class="clock" id="rClock">--:--</div><div class="blinds ${brk?'brk':''}">${l?(brk?'Перерыв':fmt(l.sb)+' / '+fmt(l.bb)):''}</div>
@@ -1358,13 +1386,16 @@ function render0(){
     h+=`<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:10px"><h3 style="margin:0">Игроки</h3><button class="btn sm" data-c="undo" ${st.undo?'':'disabled'}>↶ Отменить</button></div>`+
     P.map(p=>{const win=T&&p.pl===1,acts=[];
       if(p.st==='in'){if(!win&&st.x.inP>1)acts.push(['bust','💥','red']);if(!win&&r.when!=='bust')acts.push(['rebuy','💸','']);if(r.addon&&!p.ad&&!win)acts.push(['addon','➕','']);}
-      else{acts.push(['rebuy','💸 В игру','pri']);acts.push(['back','↩','']);}
-      return`<div class="rpl ${p.st}"><span class="nm">${win?'🏆 ':''}${esc(p.n)}<small>${p.st==='out'?(T&&p.pl?p.pl+' место':'вылет'):''}${p.rb?' +'+p.rb:''}</small></span>${acts.map(([a,t,c])=>`<button class="btn ${c}" data-p="${p.id}" data-a="${a}">${t}</button>`).join('')}</div>`;}).join('')+(P.length?'':'<div class="muted small" style="padding:6px 2px">Игроков пока нет — добавьте ниже.</div>')+
-    `<div class="row" style="margin-top:10px;flex-wrap:nowrap"><input id="rAdd" placeholder="Новый игрок" autocomplete="off"><button class="btn pri" data-c="add">＋</button></div></div>`;
-  }else h+=`<div class="card small muted" style="text-align:center">Режим зрителя. <a href="#" id="rBeAdmin" style="color:var(--acc)">Стать пультом</a></div>`;
+      else{acts.push(['rebuy','💸 В игру','pri']);acts.push(['back','↩',''])}
+      return`<div class="rpl ${p.st}"><span class="nm">${win?'🏆 ':''}${esc(p.n)}<small>${p.st==='out'?(T&&p.pl?p.pl+' место':'вылет'):''}${p.rb?' +'+p.rb:''}</small></span>${acts.map(([a,t,c])=>`<button class="btn ${c}" data-p="${p.id}" data-a="${a}">${t}</button>`).join('')}</div>`;}).join('')+
+    (P.length?'':'<div class="muted small" style="padding:6px 2px">Игроков пока нет — добавьте ниже.</div>')+
+    `<div class="row" style="margin-top:10px;flex-wrap:nowrap"><input id="rAdd" placeholder="Новый игрок" autocomplete="off"><button class="btn pri" data-c="add">＋</button></div></div>
+    <div class="hint" style="text-align:center"><a href="#" id="rDrop" style="color:var(--muted)">Отдать пульт</a></div>`;
+  }else{
+    h+=st.remote?`<div class="card small muted" style="text-align:center">🎮 Пульт у: <b>${esc(st.remote)}</b></div>`:
+      `<div class="card" style="text-align:center">${asking?'<span class="muted">⏳ Ждём разрешения на экране игры…</span>':'<button class="btn pri" id="rAsk" style="width:100%">📱 Стать пультом</button>'}</div>`;}
   const slowBox=slow?`<div class="card" style="border-color:rgba(248,113,113,.45)">⏳ Экран игры не отвечает. Проверьте, что вкладка с таймером открыта на ноутбуке и есть интернет — команда выполнится, когда связь вернётся.</div>`:'';
   root.innerHTML=stale+slowBox+h+foot();tickR();if(pend)root.querySelectorAll('[data-c],[data-p]').forEach(x=>x.classList.add('busy'));}
-const foot=()=>`<div class="hint" style="text-align:center;margin-top:14px">Звук — только на главном экране · <a href="#" id="rLeave" style="color:var(--muted)">выйти</a></div>`;
 function tickR(){const c=q('#rClock');if(!c||!st)return;const r=st.t.run?st.t.end-NET.now():st.t.rem;c.textContent=fmtT(r);c.classList.toggle('warn',r<=60000&&st.t.run&&st.lv&&st.lv.ty==='level');c.classList.toggle('paused',!st.t.run&&st.t.st);}
 setInterval(tickR,250);
 function playerCmd(p,a){const r=st.r,k=a==='rebuy50'?.5:1,go=extra=>send(Object.assign({t:'p',id:p.id,a},extra||{}));
@@ -1380,12 +1411,17 @@ function playerCmd(p,a){const r=st.r,k=a==='rebuy50'?.5:1,go=extra=>send(Object.
     if(p.st==='in'&&r.when==='short')return sheet(label,`Стек не больше стартового (${fmt(r.start)})?`,[{t:'Да, докуп',cls:'pri',fn:()=>go()},{t:'Отмена',cls:'ghost'}]);
     return go();}
   go();}
+async function joinRoom(){const nm=((q('#rjName')||{}).value||'').trim();const pin=qrPin||((q('#rjPin')||{}).value||'').trim();
+  if(!nm){err='Введите имя';render();return;}if(!/^\d{4}$/.test(pin)){err='Введите 4 цифры PIN';render();return;}
+  me.name=nm.slice(0,30);saveMe();err='';kickedMsg='';joining=true;render();
+  try{await req({pin});}catch(e){joining=false;err='Не удалось отправить: '+(e.message||e);render();return;}
+  setTimeout(()=>{if(joining&&!isMember&&!isAdmin){joining=false;if(qrPin)qrPin='';err='PIN не подошёл или экран игры не в сети';render();}},7000);}
 root.addEventListener('click',e=>{const b=e.target.closest('button,a');if(!b)return;
-  if(b.id==='rjView'){e.preventDefault();mode='view';me.room=room;me.mode='view';saveMe();render();return;}
-  if(b.id==='rjAdmin'){joinAdmin();return;}
-  if(b.id==='rBeAdmin'){e.preventDefault();mode=null;me.mode=null;saveMe();render();return;}
+  if(b.id==='rjGo')return joinRoom();
   if(b.id==='rReload'){location.href=location.pathname+'?v='+Date.now()+location.hash;return;}
-  if(b.id==='rLeave'){e.preventDefault();me={name:me.name};saveMe();location.hash='';location.reload();return;}
+  if(b.id==='rLeave'){e.preventDefault();req({want:'leave'}).catch(()=>{});setTimeout(()=>{location.hash='';location.reload();},400);return;}
+  if(b.id==='rAsk'){asking=true;render();req({want:'remote'}).catch(()=>{asking=false;render();});setTimeout(()=>{if(asking&&!isAdmin){asking=false;render();}},60000);return;}
+  if(b.id==='rDrop'){e.preventDefault();sheet('Отдать пульт?','Вы останетесь зрителем, а стать пультом сможет кто-то другой.',[{t:'Отдать',cls:'pri',fn:()=>req({want:'drop'})},{t:'Отмена',cls:'ghost'}]);return;}
   if(!isAdmin||!st)return;
   try{if(navigator.wakeLock&&!window.__wl)navigator.wakeLock.request('screen').then(w=>window.__wl=w).catch(()=>{});}catch(err){}
   b.classList.add('busy');
@@ -1394,15 +1430,17 @@ root.addEventListener('click',e=>{const b=e.target.closest('button,a');if(!b)ret
   else if(c==='minus')send({t:'time',d:-1});else if(c==='plus')send({t:'time',d:1});else if(c==='undo')send({t:'undo'});
   else if(c==='add'){const v=q('#rAdd').value.split(',').map(x=>x.trim()).filter(Boolean);if(v.length){send({t:'add',names:v});q('#rAdd').value='';}}
   else if(b.dataset.p){const p=st.pl.find(x=>x.id==b.dataset.p);if(p)playerCmd(p,b.dataset.a);}});
-root.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='rAdd')q('[data-c=add]').click();if(e.key==='Enter'&&(e.target.id==='rjPin'||e.target.id==='rjName'))joinAdmin();});
-async function joinAdmin(){const pin=(q('#rjPin')||{}).value||'',name=((q('#rjName')||{}).value||'').trim()||'Пульт';if(!/^\d{4}$/.test(pin)){err='Введите 4 цифры PIN';render();return;}
-  me.name=name;me.room=room;saveMe();err='';joining=true;render();
-  try{await NET.set(R0+'/join/'+NET.uid,{pin,name,at:NET.now()});}catch(e){joining=false;err='Не удалось отправить: '+(e.message||e);render();return;}
-  setTimeout(()=>{if(!isAdmin&&joining){joining=false;err='PIN не подошёл или экран игры не в сети';render();}},7000);}
+root.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='rAdd')q('[data-c=add]').click();if(e.key==='Enter'&&(e.target.id==='rjPin'||e.target.id==='rjName'))joinRoom();});
+function watchState(){const on=isMember||isAdmin;
+  if(on&&!stUnsub){stUnsub=NET.onValue(R0+'/state',v=>{pend=0;clearTimeout(pendT);slow=false;if(v){v.pl=Array.isArray(v.pl)?v.pl:Object.values(v.pl||{});v.x=v.x||{inP:0,n:0,reb:0,bank:0,avg:0};v.r=v.r||{};v.t=v.t||{};}st=v;render();});}
+  if(!on&&stUnsub){try{stUnsub();}catch(e){}stUnsub=null;st=null;}}
 (async()=>{render();try{NET=await NutsNet.connect();}catch(e){err='Нет связи с сервером: '+(e.message||e);render();return;}
   NET.onConn(c=>{conn=c;const d=q('.dot');if(d)d.classList.toggle('on',c);});
-  NET.onValue(R0+'/admins/'+NET.uid,v=>{const was=isAdmin;isAdmin=!!v;if(isAdmin){joining=false;mode='admin';me.mode='admin';me.room=room;saveMe();}else if(was){mode=null;}render();});
-  NET.onValue(R0+'/state',v=>{pend=0;clearTimeout(pendT);slow=false;if(v){v.pl=Array.isArray(v.pl)?v.pl:Object.values(v.pl||{});v.x=v.x||{inP:0,n:0,reb:0,bank:0,avg:0};v.r=v.r||{};v.t=v.t||{};}st=v;render();});render();})();
+  NET.onValue(R0+'/banned/'+NET.uid,v=>{banned=!!v;render();});
+  NET.onValue(R0+'/admins/'+NET.uid,v=>{isAdmin=!!v;if(isAdmin){asking=false;joining=false;}watchState();render();});
+  NET.onValue(R0+'/members/'+NET.uid,v=>{isMember=!!v;if(isMember){joining=false;err='';wasMember=true;}else if(wasMember&&!isAdmin){kickedMsg='Вас отключили от комнаты.';wasMember=false;}watchState();render();});
+  render();
+  if(qrPin&&me.name)setTimeout(()=>{if(!isMember&&!isAdmin&&!banned)joinRoom();},600);})();
 })();
 </script>
 </body>
