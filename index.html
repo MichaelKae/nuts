@@ -11,11 +11,13 @@
 <script src="voice/manifest.js" onerror="window.NUTS_VOICE=null"></script>
 <script src="firebase-config.js" onerror="window.NUTS_FB=window.NUTS_FB||null"></script>
 <script>
-window.NUTS_VER='4.13';
+window.NUTS_VER='4.14';
 window.NutsNet=(()=>{
   const SDK='https://www.gstatic.com/firebasejs/10.12.2/';
   const load=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('Нет связи с '+new URL(src).host));document.head.appendChild(s);});
   let ready=null;
+  try{const q0=new URLSearchParams(location.search),nr=q0.get('nr');if(nr&&/^[A-Z0-9]{4}$/i.test(nr)&&!/^#r-/i.test(location.hash))history.replaceState(null,'',location.pathname+location.search+'#r-'+nr.toUpperCase());}catch(e){}
+  const prov=()=>(window.NUTS_FB&&Array.isArray(window.NUTS_FB.providers)&&window.NUTS_FB.providers)||['google','email'];
   const configured=()=>!!(window.NUTS_FB_ADAPTER||(window.NUTS_FB&&window.NUTS_FB.databaseURL));
   function connect(){if(ready)return ready;
     ready=(async()=>{
@@ -26,39 +28,81 @@ window.NutsNet=(()=>{
       if(ack&&location.protocol.startsWith('http')){try{await load(SDK+'firebase-app-check-compat.js');firebase.appCheck().activate(new firebase.appCheck.ReCaptchaEnterpriseProvider(ack),true);}catch(e){console.warn('App Check не загрузился',e);}}
       const auth=firebase.auth();await new Promise(r=>{const off=auth.onAuthStateChanged(()=>{off();r();});});
       if(!auth.currentUser)await auth.signInAnonymously();const db=firebase.database();
-      const who=()=>{const u=auth.currentUser;if(!u)return{uid:null,google:false,name:'',photo:'',email:''};const g=(u.providerData||[]).find(x=>x&&x.providerId==='google.com');
-        return{uid:u.uid,google:!!g,name:(g&&g.displayName)||u.displayName||'',photo:(g&&g.photoURL)||u.photoURL||'',email:(g&&g.email)||u.email||''};};
-      async function google(){const pr=new firebase.auth.GoogleAuthProvider();pr.setCustomParameters({prompt:'select_account'});const u=auth.currentUser;
+      const who=()=>{const u=auth.currentUser;if(!u)return{uid:null,google:false,verified:false,name:'',photo:'',email:'',providers:[]};const pd=(u.providerData||[]).filter(Boolean);
+        const g=pd.find(x=>x.providerId==='google.com')||pd.find(x=>x.providerId==='microsoft.com')||pd[0];
+        return{uid:u.uid,google:!u.isAnonymous&&pd.length>0,verified:!!u.emailVerified,name:(g&&g.displayName)||u.displayName||'',photo:(g&&g.photoURL)||u.photoURL||'',email:u.email||(g&&g.email)||'',providers:pd.map(x=>({id:x.providerId,email:x.email||''}))};};
+      const PROV={google:()=>{const p=new firebase.auth.GoogleAuthProvider();p.setCustomParameters({prompt:'select_account'});return p;},
+        microsoft:()=>{const p=new firebase.auth.OAuthProvider('microsoft.com');p.setCustomParameters({prompt:'select_account'});return p;}};
+      const fresh=async()=>{try{await auth.currentUser.getIdToken(true);}catch(e){}return who();};
+      async function signIn(kind){const pr=PROV[kind](),u=auth.currentUser;
         try{if(u&&u.isAnonymous)await u.linkWithPopup(pr);else await auth.signInWithPopup(pr);}
         catch(e){if((e.code==='auth/credential-already-in-use'||e.code==='auth/email-already-in-use')&&e.credential)await auth.signInWithCredential(e.credential);else throw e;}
-        try{await auth.currentUser.getIdToken(true);}catch(e){}return who();}
+        return fresh();}
+      async function link(kind){await auth.currentUser.linkWithPopup(PROV[kind]());return fresh();}
+      async function unlink(pid){await auth.currentUser.unlink(pid);return fresh();}
+      const sendLink=(email,url)=>auth.sendSignInLinkToEmail(email,{url,handleCodeInApp:true});
+      const isLink=h=>auth.isSignInWithEmailLink(h);
+      async function finishLink(email,href,mode){const u=auth.currentUser,cred=firebase.auth.EmailAuthProvider.credentialWithLink(email,href);
+        if(u&&!u.isAnonymous&&mode==='link')await u.linkWithCredential(cred);
+        else if(u&&u.isAnonymous){try{await u.linkWithCredential(cred);}catch(e){if(/already-in-use|already-linked/.test(e.code||''))await auth.signInWithEmailLink(email,href);else throw e;}}
+        else await auth.signInWithEmailLink(email,href);
+        return fresh();}
       async function signOut(){await auth.signOut();await auth.signInAnonymously();return who();}
       let off=0,conn=false;const cl=[];db.ref('.info/serverTimeOffset').on('value',x=>off=x.val()||0);
       db.ref('.info/connected').on('value',x=>{conn=!!x.val();cl.forEach(f=>f(conn));});
-      return{get uid(){return auth.currentUser?auth.currentUser.uid:null;},who,google,signOut,now:()=>Date.now()+off,
+      return{get uid(){return auth.currentUser?auth.currentUser.uid:null;},who,google:()=>signIn('google'),signIn,link,unlink,sendLink,isLink,finishLink,signOut,now:()=>Date.now()+off,
         get:async p=>(await db.ref(p).get()).val(),set:(p,v)=>db.ref(p).set(v),update:(p,o)=>db.ref(p).update(o),remove:p=>db.ref(p).remove(),push:(p,v)=>db.ref(p).push(v),
         onValue:(p,cb,onErr)=>{const r=db.ref(p),h=x=>cb(x.val());r.on('value',h,e=>{onErr&&onErr(e);});return()=>r.off('value',h);},
         onChild:(p,cb)=>{const r=db.ref(p),h=x=>cb(x.key,x.val());r.on('child_added',h);return()=>r.off('child_added',h);},
         onConn:f=>{cl.push(f);f(conn);}};})();
+    ready=ready.then(async api=>{await completeLink(api);return api;});
     ready.catch(()=>{ready=null;});return ready;}
+  async function completeLink(api){const h=location.href;if(!api.isLink||!api.isLink(h))return;let rq={};try{rq=JSON.parse(localStorage.getItem('nuts.emailReq')||'{}');}catch(e){}
+    const clean=()=>{try{history.replaceState(null,'',location.pathname+location.hash);}catch(e){}};
+    let email=rq.email;if(!email){const w=api.who&&api.who();if(w&&w.google&&w.email)email=w.email;}if(!email)email=(window.prompt('Введите email, на который пришла ссылка для входа')||'').trim();
+    if(!email){clean();window.NUTS_LINK={ok:false,err:'Вход по ссылке отменён: не указан email.'};return;}
+    try{await api.finishLink(email,h,rq.mode||'signin');window.NUTS_LINK={ok:true,mode:rq.mode||'signin'};try{localStorage.removeItem('nuts.emailReq');}catch(e){}}
+    catch(e){window.NUTS_LINK={ok:false,mode:rq.mode||'signin',err:gErr(e)};}
+    clean();}
   const CH='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   const code=()=>Array.from({length:4},()=>CH[Math.floor(Math.random()*CH.length)]).join('');
   const base=()=>location.protocol.startsWith('http')?location.origin+location.pathname:'https://michaelkae.github.io/nuts/';
   const joinUrl=room=>base()+'#r-'+room;
   async function qrSvg(text){if(!window.qrcode){try{await load('lib/qrcode.js');}catch(e){await load('https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js');}}const q=qrcode(0,'M');q.addData(text);q.make();return q.createSvgTag({cellSize:6,margin:2,scalable:true});}
   const inApp=()=>/FBAN|FBAV|Instagram|Line\/|Telegram|VKClient|; wv\)/i.test(navigator.userAgent);
-  function gErr(e){const c=(e&&e.code)||'';
-    if(c==='auth/popup-closed-by-user'||c==='auth/cancelled-popup-request')return inApp()?'Во встроенном браузере вход через Google не работает. Откройте страницу в Chrome или Safari (меню ⋮ → «Открыть в браузере»).':'';
-    if(inApp()||c==='auth/operation-not-supported-in-this-environment'||c==='auth/web-storage-unsupported')return 'Во встроенном браузере вход через Google не работает. Откройте страницу в Chrome или Safari (меню ⋮ → «Открыть в браузере»).';
+  function gErr(e){const c=(e&&e.code)||'',IA='Во встроенном браузере вход через Google и Microsoft не работает. Откройте страницу в Chrome или Safari (меню ⋮ → «Открыть в браузере») или войдите по почте.';
+    if(c==='auth/popup-closed-by-user'||c==='auth/cancelled-popup-request'||c==='auth/user-cancelled')return inApp()?IA:'';
+    if(c==='auth/account-exists-with-different-credential')return 'Этот email уже используется с другим способом входа. Войдите тем способом, а этот привяжите в кабинете.';
+    if(c==='auth/credential-already-in-use'||c==='auth/email-already-in-use')return 'Этот аккаунт уже привязан к другому профилю Nuts.';
+    if(c==='auth/provider-already-linked')return 'Этот способ входа уже привязан.';
+    if(c==='auth/invalid-action-code'||c==='auth/expired-action-code')return 'Ссылка из письма устарела или уже использована — запросите новую.';
+    if(c==='auth/invalid-email')return 'Похоже, в адресе почты опечатка.';
+    if(c==='auth/missing-email')return 'Введите адрес почты.';
+    if(c==='auth/quota-exceeded')return 'Лимит писем на сегодня исчерпан — попробуйте завтра или войдите через Google.';
+    if(c==='auth/requires-recent-login')return 'Для этого нужно войти заново: выйдите и войдите снова, потом повторите.';
+    if(c==='auth/no-such-provider')return 'Этот способ входа не привязан.';
+    if(inApp()||c==='auth/operation-not-supported-in-this-environment'||c==='auth/web-storage-unsupported')return IA;
     if(c==='auth/popup-blocked')return 'Браузер заблокировал окно входа. Разрешите всплывающие окна для сайта и нажмите ещё раз.';
-    if(c==='auth/unauthorized-domain')return 'Сайт не добавлен в Firebase → Authentication → Settings → Authorized domains.';
-    if(c==='auth/operation-not-allowed')return 'Вход через Google не включён в Firebase (Authentication → Sign-in method).';
+    if(c==='auth/unauthorized-domain'||c==='auth/unauthorized-continue-uri')return 'Сайт не добавлен в Firebase → Authentication → Settings → Authorized domains.';
+    if(c==='auth/operation-not-allowed')return 'Этот способ входа не включён в Firebase (Authentication → Sign-in method).';
     if(c==='auth/network-request-failed')return 'Нет интернета — не получилось войти.';
     return 'Не получилось войти: '+((e&&e.message)||e);}
   const e_=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const avatar=w=>w&&w.photo?`<img class="av" src="${e_(w.photo)}" referrerpolicy="no-referrer" alt="">`:`<span class="av">${e_(((w&&(w.name||w.email))||'?').trim().charAt(0).toUpperCase()||'?')}</span>`;
   const GICON='<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.7c4.3-4 6.9-9.9 6.9-17.1z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.7c-2.1 1.4-4.8 2.3-8.5 2.3-6.2 0-11.5-4.1-13.4-9.8l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>';
-  return{configured,connect,code,joinUrl,qrSvg,gErr,avatar,GICON,inApp};
+  const MSICON='<svg viewBox="0 0 21 21" aria-hidden="true"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>';
+  const PNAME={'google.com':'Google','microsoft.com':'Microsoft','password':'Почта'},PICON={'google.com':GICON,'microsoft.com':MSICON,'password':'<span class="pi">✉️</span>'},PID={google:'google.com',microsoft:'microsoft.com',email:'password'};
+  function authBtns(o){o=o||{};const P=prov(),b=[],dis=o.busy?'disabled':'';
+    if(P.includes('google'))b.push(`<button class="btn abtn ab-g" data-auth="google" ${dis}>${GICON}<span>${o.busy==='google'?'Входим…':'Войти через Google'}</span></button>`);
+    if(P.includes('microsoft'))b.push(`<button class="btn abtn ab-m" data-auth="microsoft" ${dis}>${MSICON}<span>${o.busy==='microsoft'?'Входим…':'Войти через Microsoft'}</span></button>`);
+    if(P.includes('email'))b.push(`<button class="btn abtn ab-e ${o.emailOpen||o.sent?'on':''}" data-auth="email" ${dis}><span class="pi">✉️</span><span>Войти по почте</span></button>`);
+    return `<div class="authcol">${b.join('')}</div>`+mailBox(o);}
+  function mailBox(o){if(o.sent)return `<div class="authmail">📬 Ссылка отправлена на <b>${e_(o.sent)}</b>. Откройте её из письма на этом устройстве. Нет письма пару минут — загляните в «Спам». <a href="#" data-auth="resend">Отправить ещё раз</a></div>`;
+    if(o.emailOpen)return `<div class="authmail"><div class="row" style="flex-wrap:nowrap;gap:8px"><input type="email" id="authEmail" placeholder="you@mail.ru" autocomplete="email" inputmode="email" style="flex:1;min-width:0" value="${e_(o.emailVal||'')}"><button class="btn pri" data-auth="send" ${o.busy?'disabled':''}>${o.busy==='send'?'Шлём…':'Прислать'}</button></div><div class="small muted" style="margin-top:6px">Пришлём письмо со ссылкой — без пароля.</div></div>`;
+    return '';}
+  const okEmail=v=>/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(v);
+  const provLabel=w=>{const p=(w&&w.providers||[])[0];return p?'вход через '+(p.id==='password'?'почту':PNAME[p.id]||p.id):'';};
+  return{configured,connect,code,joinUrl,qrSvg,gErr,avatar,GICON,MSICON,inApp,prov,authBtns,mailBox,okEmail,PNAME,PICON,PID,provLabel};
 })();
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -246,6 +290,15 @@ body.remote #remoteRoot{display:block;max-width:560px;margin:0 auto;padding:14px
 #remoteRoot .btn.busy{opacity:.75}
 .btn.gbtn{background:#fff;color:#1f1f1f;border-color:#fff;display:flex;align-items:center;justify-content:center;gap:10px;font-weight:700}
 .btn.gbtn svg{width:18px;height:18px;flex:none}.btn.gbtn:hover{background:#f1f1f1}
+.authcol{display:flex;flex-direction:column;gap:8px}
+.btn.abtn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;font-weight:700;padding:12px 14px;font-size:15px}
+.btn.abtn svg{width:18px;height:18px;flex:none}.abtn .pi,.pi{font-size:16px;line-height:1;width:18px;text-align:center;display:inline-block}
+.btn.ab-g{background:#fff;color:#1f1f1f;border-color:#fff}.btn.ab-g:hover{background:#f1f1f1}
+.btn.ab-m{background:#2f2f2f;color:#fff;border-color:#444}.btn.ab-m:hover{background:#3a3a3a}
+.btn.ab-e.on{border-color:var(--acc)}
+.authmail{margin-top:10px;font-size:13px;line-height:1.45}.authmail a{color:var(--acc)}
+.plist>div{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}.plist>div:last-child{border:0}
+.plist svg{width:18px;height:18px;flex:none}.plist .pnm{flex:1;min-width:0;line-height:1.25}.plist .pnm small{display:block;color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis}
 .who{display:flex;align-items:center;gap:10px;margin:0 0 12px;text-align:left}.who b{display:block;font-weight:700}.who small{display:block;color:var(--muted);font-size:12px}
 .who a{margin-left:auto;color:var(--muted);font-size:13px}
 .av{width:34px;height:34px;border-radius:50%;flex:none;display:inline-grid;place-items:center;background:var(--glass2);font-weight:800;object-fit:cover}
@@ -406,7 +459,7 @@ body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
 <body>
 <div class="app">
   <nav>
-    <div class="brand" title="Nuts · версия 4.13 · by MichaelKae"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v4.13</span></div>
+    <div class="brand" title="Nuts · версия 4.14 · by MichaelKae"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v4.14</span></div>
     <button class="tab on" data-v="timer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg><span>Таймер</span></button>
     <button class="tab" data-v="players"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14.6c2.6.2 4.4 1.9 5 4.9"/></svg><span>Игроки</span></button>
     <button class="tab" data-v="results"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 14v4M8 21h8"/></svg><span>Итоги</span></button>
@@ -619,7 +672,7 @@ body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
       </div>
       <div class="card">
         <div class="about"><div class="logo">♠</div><div>
-          <div style="font-family:var(--disp);font-weight:800;font-size:20px">Nuts <span class="muted small" style="font-family:var(--ui)">v4.13</span></div>
+          <div style="font-family:var(--disp);font-weight:800;font-size:20px">Nuts <span class="muted small" style="font-family:var(--ui)">v4.14</span></div>
           <div class="muted small">Покерный таймер для домашних игр · автор <a href="https://github.com/MichaelKae" target="_blank" rel="noopener">MichaelKae</a> · <a href="https://github.com/MichaelKae/nuts" target="_blank" rel="noopener">GitHub</a></div>
         </div></div>
       </div>
@@ -647,7 +700,7 @@ body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
           <button class="btn red" id="newGame">Завершить вечер и начать новый</button>
           <button class="btn red" id="resetAll">Сбросить всё</button>
         </div>
-        <div class="hint">Nuts · версия 4.13. При завершении итоги вечера сохраняются в историю (вкладка «Итоги»). Игроки, наборы и структура остаются.</div>
+        <div class="hint">Nuts · версия 4.14. При завершении итоги вечера сохраняются в историю (вкладка «Итоги»). Игроки, наборы и структура остаются.</div>
       </div>
     </section>
   </main>
@@ -1319,13 +1372,13 @@ function onJoin(uid,v){NET.remove(RR()+'/join/'+uid);if(!v)return;const nm=Strin
 function renderApprove(){let el=$('#approveBar');if(!el){el=document.createElement('div');el.id='approveBar';document.body.appendChild(el);}
   pendingReq=pendingReq.filter(r=>members[r.uid]&&!Object.keys(admins).length);
   const r=pendingReq[0];if(!r){el.className='';el.innerHTML='';return;}
-  el.className='on';el.innerHTML=`<div class="ab-t">📱 <b>${esc(r.name)}</b> хочет управлять игрой</div><div class="ab-b"><button class="btn red" data-apr="no">Отклонить</button><button class="btn pri" data-apr="yes">Разрешить</button>${r.g?'<button class="btn" data-apr="always" title="В следующий раз этот Google-аккаунт станет пультом без вопроса">Всегда</button>':''}</div>`;}
+  el.className='on';el.innerHTML=`<div class="ab-t">📱 <b>${esc(r.name)}</b> хочет управлять игрой</div><div class="ab-b"><button class="btn red" data-apr="no">Отклонить</button><button class="btn pri" data-apr="yes">Разрешить</button>${r.g?'<button class="btn" data-apr="always" title="В следующий раз этот аккаунт станет пультом без вопроса">Всегда</button>':''}</div>`;}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-apr]');if(!b)return;const r=pendingReq.shift();if(!r)return renderApprove();
   if(b.dataset.apr!=='no'&&!Object.keys(admins).length&&members[r.uid]){const g=!!members[r.uid].g;NET.set(RR()+'/admins/'+r.uid,g?{name:r.name,at:NET.now(),g:true}:{name:r.name,at:NET.now()});
     if(b.dataset.apr==='always'&&g){trusted()[r.uid]={name:r.name,at:Date.now()};save();}toast('📱 Пульт: '+r.name);logEv('seats','Пульт подключён: '+r.name);}
   else{strike(r.uid,'3 отказа');logEv('seats','Отклонён запрос пульта: '+r.name);}renderApprove();});
 async function hostConnect(force){if(!NutsNet.configured())return;
-  NET=await NutsNet.connect();const W=NET.who();if(!W.google)throw new Error('сначала войдите через Google');
+  NET=await NutsNet.connect();const W=NET.who();if(!W.google)throw new Error('сначала войдите в аккаунт');
   const hi=await hostInfo(true);if(!hi.can)throw new Error('аккаунт '+(W.email||W.name)+' не приглашён ведущим');let room=S.remote&&S.remote.room;
   if(!force){const act=await activeRoom();if(act&&act!==room){const e=new Error('комната '+act+' открыта на другом устройстве');e.busy=act;throw e;}}
   try{
@@ -1363,19 +1416,19 @@ function renderRemotePill(){const el=$('#remotePill');const n=Object.keys(admins
 let rmOpen=false;
 async function refreshRemoteModal(){if(!rmOpen||!$('#modal').classList.contains('on')||!$('#rmBody'))return;const b=$('#rmBody');
   if(!NutsNet.configured()){b.innerHTML=`<p>Пульт ещё не настроен: нужен файл <b>firebase-config.js</b> рядом с приложением.</p>`;return;}
-  const gOnly=`<label class="chk"><input type="checkbox" id="rmGOnly" ${S.gOnlyRemote?'checked':''}> Пульт — только для вошедших через Google</label>`;
+  const gOnly=`<label class="chk"><input type="checkbox" id="rmGOnly" ${S.gOnlyRemote?'checked':''}> Пульт — только для вошедших в аккаунт</label>`;
   const tr=Object.entries(S.trustedRemotes||{}),trHtml=tr.length?`<div class="blab" style="margin-top:12px">Доверенные пульты — без подтверждения</div><div class="rlist">${tr.map(([u,v])=>`<div><span>⭐ ${esc(v.name||'Гость')}</span><button class="btn sm ghost" data-rmforget="${u}">Забыть</button></div>`).join('')}</div>`:'';
   if(!remoteOn){
     if(!NET){b.innerHTML='<p class="muted">Подключаюсь…</p>';try{NET=await NutsNet.connect();}catch(e){b.innerHTML=`<p style="color:var(--red)">Нет связи с сервером: ${esc(e.message||e)}</p>`;return;}return refreshRemoteModal();}
     const W=NET.who(),er=remoteErr?`<p style="color:var(--red)">${esc(remoteErr)}</p>`:'';
-    if(!W.google){b.innerHTML=`<p>Комнату для телефонов создаёт ведущий, вошедший через Google. Так комната останется вашей на любом устройстве, а посторонние не смогут создавать комнаты в вашей базе.</p><p class="small muted">Гости заходят как раньше — по QR-коду и PIN, с Google или просто по имени.</p>${er}<button class="btn gbtn" id="rmGoogle" style="width:100%">${NutsNet.GICON} Войти через Google</button>`;return;}
+    if(!W.google){b.innerHTML=`<p>Комнату для телефонов создаёт ведущий, вошедший в аккаунт. Так комната останется вашей на любом устройстве, а посторонние не смогут создавать комнаты в вашей базе.</p><p class="small muted">Гости заходят как раньше — по QR-коду и PIN, с аккаунтом или просто по имени.</p>${er}<button class="btn pri" id="rmLogin" style="width:100%">👤 Войти в аккаунт</button>`;return;}
     const hi=await hostInfo();if(!rmOpen||!$('#rmBody'))return;const whoC=`<div class="who">${NutsNet.avatar(W)}<span><b>${esc(W.name||W.email)}</b><small>${esc(W.email)}</small></span><a href="#" id="rmOut">выйти</a></div>`;
     if(rmBusy&&hi.can){b.innerHTML=whoC+`<p>⚠️ У вас уже открыта комната <b>${rmBusy}</b> на другом устройстве — там может идти игра.</p><p class="small muted">Если открыть комнату здесь, та закроется и подключённые телефоны отвалятся.</p>
       <div class="col" style="display:flex;flex-direction:column;gap:8px"><button class="btn pri" id="rmAsRemote" data-room="${rmBusy}">🎮 Управлять той комнатой отсюда</button><button class="btn red" id="rmForce">Закрыть её и открыть здесь</button><button class="btn ghost" id="rmBusyNo">Отмена</button></div>`;return;}
-    if(!hi.can){b.innerHTML=whoC+`<p>Создавать комнаты для телефонов могут ведущие. Попросите владельца сайта пригласить вас по адресу <b>${esc(W.email)}</b>.</p><p class="small muted">Таймер на этом устройстве работает как обычно.</p>`;return;}
+    if(!hi.can){b.innerHTML=whoC+(W.verified?`<p>Создавать комнаты для телефонов могут ведущие. Попросите владельца сайта пригласить вас по адресу <b>${esc(W.email)}</b>.</p>`:`<p>Ведущим можно быть со входом через Google или по почте: Microsoft не подтверждает адрес. Привяжите один из них в кабинете (👤).</p>`)+`<p class="small muted">Таймер на этом устройстве работает как обычно.</p>`;return;}
     b.innerHTML=whoC+`<p>Создайте комнату — на экране появятся QR-код и PIN. QR пускает сразу, а по ссылке или коду комнаты нужен PIN. Стать пультом можно только с вашего разрешения. Каждая новая комната получает новый код и PIN.</p>${gOnly}${er}<button class="btn pri" id="rmStart" style="width:100%">📡 Создать комнату</button>${trHtml}`;return;}
   const url=NutsNet.joinUrl(S.remote.room),qrUrl=url+'-'+S.remote.pin,ad=Object.entries(admins),mb=Object.entries(members).filter(([u])=>!admins[u]);
-  const row=(u,v,role)=>`<div><span>${role} ${esc(v.name||'Гость')}${v.g?'<span class="gb" title="Вошёл через Google">G</span>':''}${(S.trustedRemotes||{})[u]?' ⭐':''}</span><button class="btn sm ghost red" data-rmkick="${u}">Отключить</button></div>`;
+  const row=(u,v,role)=>`<div><span>${role} ${esc(v.name||'Гость')}${v.g?'<span class="gb" title="Вошёл в аккаунт">✓</span>':''}${(S.trustedRemotes||{})[u]?' ⭐':''}</span><button class="btn sm ghost red" data-rmkick="${u}">Отключить</button></div>`;
   b.innerHTML=`<div class="qrbox" id="rmQr"><div style="height:200px;display:grid;place-items:center;color:#555;font-size:13px">QR…</div></div>
     <div class="row" style="justify-content:center;gap:28px;margin-top:12px"><div><div class="blab" style="text-align:center">Комната</div><div class="rcode">${S.remote.room}</div></div><div><div class="blab" style="text-align:center">PIN</div><div class="rcode" style="color:var(--gold)">${S.remote.pin}</div></div></div>
     <p class="small" style="text-align:center;margin:8px 0 0;word-break:break-all">${esc(url)}</p>
@@ -1391,7 +1444,7 @@ document.addEventListener('click',async e=>{const t=e.target;
   else if(t.id==='rmPin'){S.remote.pin=pin4();save();refreshRemoteModal();}
   else if(t.dataset&&t.dataset.rmkick){kick(t.dataset.rmkick);}
   else if(t.dataset&&t.dataset.rmforget){delete trusted()[t.dataset.rmforget];save();refreshRemoteModal();}
-  else if(t.closest&&t.closest('#rmGoogle')){const bt=t.closest('#rmGoogle');bt.disabled=true;try{await NET.google();remoteErr='';HI=null;setEntry('google');refreshAcct();}catch(err){remoteErr=NutsNet.gErr(err);}refreshRemoteModal();}
+  else if(t.id==='rmLogin'){rmOpen=false;closeModal();openEntry('welcome');}
   else if(t.id==='rmOut'){e.preventDefault();remoteErr='';try{await NET.signOut();}catch(err){}HI=null;setEntry('');refreshAcct();refreshRemoteModal();}});
 document.addEventListener('change',e=>{if(e.target.id==='rmGOnly'){S.gOnlyRemote=e.target.checked;save();publishSoon();}});
 $('#remoteFab').onclick=remoteModal;$('#remoteOpen').onclick=remoteModal;$('#remotePill').onclick=remoteModal;
@@ -1399,18 +1452,19 @@ if(S.remote&&S.remote.on&&NutsNet.configured())hostConnect().catch(e=>{if(e&&e.b
 
 /* ===== Entry & cabinet ===== */
 const ENTRY='nuts.entry';function getEntry(){try{return localStorage.getItem(ENTRY)||'';}catch(e){return'';}}function setEntry(v){try{v?localStorage.setItem(ENTRY,v):localStorage.removeItem(ENTRY);}catch(e){}}
-let enMode='',enErr='',enBusy=false,profSaved=false;
+let enMode='',enErr='',enBusy=false,profSaved=false,enMail={open:false,sent:'',mode:'signin',val:''};
 function entryEl(){let el=$('#entry');if(!el){el=document.createElement('div');el.id='entry';document.body.appendChild(el);el.addEventListener('click',entryClick);
-  el.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='enCode')joinByCode();if(e.key==='Enter'&&e.target.id==='enHost')$('#enAdd').click();});}return el;}
+  el.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='enCode')joinByCode();if(e.key==='Enter'&&e.target.id==='authEmail')sendMail();if(e.key==='Enter'&&e.target.id==='enHost')$('#enAdd').click();});}return el;}
 function closeEntry(){enMode='';enErr='';const el=$('#entry');if(el){el.className='';el.innerHTML='';}}
-function openEntry(m){enMode=m;enErr='';renderEntry();}
+function openEntry(m){enMode=m;enErr='';enMail={open:false,sent:'',mode:'signin',val:''};renderEntry();}
 const codeBox=()=>`<div class="en-join"><div class="blab">Подключиться к игре</div><div class="row" style="flex-wrap:nowrap"><input id="enCode" maxlength="4" placeholder="Код комнаты" autocomplete="off" autocapitalize="characters" style="text-transform:uppercase;letter-spacing:.2em"><button class="btn" id="enJoin">Войти</button></div><div class="small muted" style="margin-top:6px">Код показан на экране игры рядом с QR</div></div>`;
 async function renderEntry(){const el=entryEl(),m=enMode;if(!m)return closeEntry();el.className='on';
   const x=`<button class="en-x" id="enClose" title="К таймеру">✕</button>`,er=enErr?`<p class="en-err">${esc(enErr)}</p>`:'',ft=`<div class="en-foot">♠ Nuts v${window.NUTS_VER} · by MichaelKae</div>`;
   if(m==='welcome'){el.innerHTML=`<div class="en-box">${x}<div class="brand en-brand"><i>♠</i>Nuts</div><p class="en-tag">Покерный таймер и учёт домашнего вечера</p>${er}
-    <button class="btn gbtn en-big" id="enGoogle" ${enBusy?'disabled':''}>${NutsNet.GICON} ${enBusy?'Входим…':'Войти через Google'}</button><div class="small muted en-cap">Личный кабинет и история ваших вечеров</div>
-    <button class="btn en-big" id="enGuest">Продолжить как гость</button><div class="small muted en-cap">Таймер на этом устройстве, без регистрации</div>
-    <div class="orline">или</div>${codeBox()}${ft}</div>`;return;}
+    ${NutsNet.authBtns({busy:enBusy,emailOpen:enMail.open&&enMail.mode==='signin',sent:enMail.mode==='signin'?enMail.sent:'',emailVal:enMail.val})}<div class="small muted en-cap">Личный кабинет и история ваших вечеров</div>
+    <div class="orline">или</div>
+    <button class="btn en-big ghost" id="enGuest">Продолжить как гость</button><div class="small muted en-cap">Таймер на этом устройстве, без регистрации</div>
+    <div class="en-sec">${codeBox()}</div>${ft}</div>`;return;}
   if(!el.querySelector('.en-box.wide'))el.innerHTML=`<div class="en-box">${x}<div class="muted" style="text-align:center;padding:20px">Загружаю кабинет…</div></div>`;
   let hi;try{hi=await hostInfo(true);}catch(e){enErr='Нет связи с сервером: '+(e.message||e);enMode='welcome';return renderEntry();}
   if(enMode!=='cabinet')return;if(!hi.w.google){enMode='welcome';return renderEntry();}
@@ -1423,29 +1477,48 @@ async function renderEntry(){const el=entryEl(),m=enMode;if(!m)return closeEntry
     <div class="small muted en-cap">${hi.can?'Вы ведущий: в таймере можно открыть комнату и управлять игрой с телефона.':'Таймер работает. Чтобы подключать телефоны к своему вечеру, нужно приглашение владельца сайта.'}</div>
     ${codeBox()}
     <div class="en-sec"><div class="blab">Мои вечера</div><div class="muted small">Скоро: здесь появятся ваши вечера и статистика в фишках — результат в стартовых стеках, докупы, места.</div></div>`;
+  {const P=NutsNet.prov(),mine=W.providers||[],n=mine.length;
+    h+=`<div class="en-sec"><div class="blab">Способы входа</div><div class="plist">`+P.map(k=>{const pid=NutsNet.PID[k],has=mine.find(x=>x.id===pid);
+      return `<div>${NutsNet.PICON[pid]}<span class="pnm">${NutsNet.PNAME[pid]}${has?`<small>${esc(has.email||'привязан')}</small>`:''}</span>${has?(n>1?`<button class="btn sm ghost" data-unlink="${pid}">Отвязать</button>`:'<span class="small muted">✓</span>'):`<button class="btn sm" data-link="${k}" ${enBusy?'disabled':''}>${enBusy===k?'…':'Привязать'}</button>`}</div>`;}).join('')+`</div>`+
+      (enMail.mode==='link'?NutsNet.mailBox({emailOpen:enMail.open,sent:enMail.sent,emailVal:enMail.val,busy:enBusy}):'')+
+      `<div class="small muted" style="margin-top:6px">Входите любым привязанным способом — попадёте в этот же кабинет.</div></div>`;}
   if(hi.admin){const hs=Object.entries(hi.hosts||{});
     h+=`<div class="en-sec"><div class="blab">Ведущие · видите только вы</div>
-    <label class="chk"><input type="checkbox" id="enOpen" ${hi.open?'checked':''}> Ведущим может быть любой, кто вошёл через Google</label>
+    <label class="chk"><input type="checkbox" id="enOpen" ${hi.open?'checked':''}> Ведущим может быть любой, кто вошёл в аккаунт с подтверждённой почтой</label>
     <div class="rlist">${hs.map(([k,v])=>`<div><span>${esc((v&&v.email)||k)}</span><button class="btn sm ghost red" data-enrm="${esc(k)}">Убрать</button></div>`).join('')||'<div class="muted small">Пока только вы.</div>'}</div>
     <div class="row" style="flex-wrap:nowrap;margin-top:8px"><input id="enHost" type="email" placeholder="email@gmail.com" autocomplete="off" style="flex:1;min-width:0"><button class="btn" id="enAdd">Пригласить</button></div>
-    <div class="small muted" style="margin-top:6px">Приглашённый входит через Google с этой почтой — и может создавать комнаты для телефонов.</div></div>`;}
+    <div class="small muted" style="margin-top:6px">Приглашённый входит через Google или по почте с этим адресом — и может создавать комнаты для телефонов.</div></div>`;}
   el.innerHTML=h+ft+`</div>`;}
+async function sendMail(){const v=(($('#authEmail')||{}).value||'').trim().toLowerCase();enMail.val=v;if(!NutsNet.okEmail(v)){enErr='Введите адрес почты, например kolya@mail.ru';return renderEntry();}
+  enBusy='send';enErr='';renderEntry();
+  try{NET=NET||await NutsNet.connect();try{localStorage.setItem('nuts.emailReq',JSON.stringify({email:v,mode:enMail.mode}));}catch(x){}
+    await NET.sendLink(v,location.origin+location.pathname);enMail.sent=v;enMail.open=false;}catch(err){enErr=NutsNet.gErr(err);}
+  enBusy=false;renderEntry();}
 function joinByCode(){const c=(($('#enCode')||{}).value||'').trim().toUpperCase();if(!/^[A-Z0-9]{4}$/.test(c)){enErr='Код комнаты — 4 символа, например 6D2P';return renderEntry();}location.hash='#r-'+c;location.reload();}
 async function entryClick(e){const b=e.target.closest('button,a');if(!b)return;
   if(b.id==='enClose'||b.id==='enStart'){closeEntry();return;}
   if(b.id==='enGuest'){setEntry('guest');closeEntry();return;}
   if(b.id==='enJoin')return joinByCode();
   if(b.id==='enRemote'){location.hash='#r-'+b.dataset.room;location.reload();return;}
-  if(b.id==='enGoogle'){enBusy=true;enErr='';renderEntry();try{NET=NET||await NutsNet.connect();await NET.google();HI=null;setEntry('google');enMode='cabinet';}catch(err){enErr=NutsNet.gErr(err);}enBusy=false;renderEntry();refreshAcct();return;}
+  const au=b.dataset.auth;
+  if(au==='google'||au==='microsoft'){enBusy=au;enErr='';renderEntry();try{NET=NET||await NutsNet.connect();await NET.signIn(au);HI=null;profSaved=false;setEntry('google');enMode='cabinet';}catch(err){enErr=NutsNet.gErr(err);}enBusy=false;renderEntry();refreshAcct();return;}
+  if(au==='email'||au==='resend'){e.preventDefault();enMail={open:true,sent:'',mode:enMode==='cabinet'?'link':'signin',val:enMail.sent||enMail.val};enErr='';renderEntry();setTimeout(()=>{const i=$('#authEmail');if(i)i.focus();},50);return;}
+  if(au==='send')return sendMail();
+  if(b.dataset.link){const k=b.dataset.link;if(k==='email'){enMail={open:true,sent:'',mode:'link',val:''};enErr='';renderEntry();return;}
+    enBusy=k;enErr='';renderEntry();try{await NET.link(k);HI=null;profSaved=false;}catch(err){enErr=NutsNet.gErr(err);}enBusy=false;renderEntry();refreshAcct();return;}
+  if(b.dataset.unlink){try{await NET.unlink(b.dataset.unlink);HI=null;}catch(err){enErr=NutsNet.gErr(err);}renderEntry();refreshAcct();return;}
   if(b.id==='enOut'){e.preventDefault();if(remoteOn){enErr='Сначала закройте комнату для телефонов (📱 → Закрыть комнату).';return renderEntry();}try{await NET.signOut();}catch(x){}HI=null;profSaved=false;setEntry('');enMode='welcome';renderEntry();refreshAcct();return;}
   if(b.id==='enAdd'){const v=(($('#enHost')||{}).value||'').trim().toLowerCase();if(!/^[^@\s\/#$\[\]]+@[^@\s\/#$\[\]]+\.[a-z]{2,}$/.test(v)){enErr='Введите email, например kolya@gmail.com';return renderEntry();}
     try{await NET.set('hosts/'+ekey(v),{email:v,at:NET.now()});enErr='';}catch(x){enErr='Не получилось: '+(x.message||x);}return renderEntry();}
   if(b.dataset.enrm){try{await NET.remove('hosts/'+b.dataset.enrm);}catch(x){enErr='Не получилось убрать';}return renderEntry();}}
 document.addEventListener('change',async e=>{if(e.target.id==='enOpen'){try{await NET.set('settings/openHosting',e.target.checked);enErr='';}catch(x){enErr='Не получилось сохранить';}renderEntry();}});
 function refreshAcct(){const b=$('#acctBtn');if(!b)return;if(!NutsNet.configured()){b.style.display='none';return;}const W=NET&&NET.who();
-  b.innerHTML=W&&W.google?NutsNet.avatar(W):'👤 Войти';b.title=W&&W.google?'Личный кабинет · '+(W.email||''):'Войти через Google';}
+  b.innerHTML=W&&W.google?NutsNet.avatar(W):'👤 Войти';b.title=W&&W.google?'Личный кабинет · '+(W.email||''):'Войти в аккаунт';}
 $('#acctBtn').onclick=()=>{const W=NET&&NET.who();openEntry(W&&W.google?'cabinet':(getEntry()==='google'?'cabinet':'welcome'));};
 (function initEntry(){refreshAcct();if(!NutsNet.configured())return;const pref=getEntry(),busy=T().startedAt!=null||!!(S.remote&&S.remote.on);
+  if(/[?&]oobCode=/.test(location.search)){NutsNet.connect().then(n=>{NET=NET||n;HI=null;refreshAcct();const L=window.NUTS_LINK||{};
+      if(L.ok){setEntry('google');openEntry('cabinet');toast(L.mode==='link'?'✉️ Почта привязана':'✉️ Вы вошли по почте');}
+      else{openEntry(n.who().google?'cabinet':'welcome');enErr=L.err||'Не получилось войти по ссылке';renderEntry();}}).catch(e=>{openEntry('welcome');enErr='Нет связи с сервером';renderEntry();});return;}
   if(pref==='google'||busy&&S.remote&&S.remote.on)NutsNet.connect().then(n=>{NET=NET||n;refreshAcct();}).catch(()=>{});
   if(busy)return;if(pref==='')openEntry('welcome');else if(pref==='google')openEntry('cabinet');})();
 
@@ -1495,23 +1568,32 @@ const fmtT=ms=>{ms=Math.max(0,ms);const t=Math.ceil(ms/1000),h=Math.floor(t/3600
 const LS='nuts.remote';let me={};try{me=JSON.parse(localStorage.getItem(LS))||{};}catch(e){}
 const saveMe=()=>{try{localStorage.setItem(LS,JSON.stringify({name:me.name||''}));}catch(e){}};
 let NET=null,st=null,isMember=false,isAdmin=false,banned=false,conn=false,err='',joining=false,asking=false,kickedMsg='',stUnsub=null,wasMember=false,hadState=false,closed=false,denied=false;
-let pend=0,pendT=null,slow=false,G={google:false},gBusy=false,isOwner=false,dropping=false,kickT=null;
+let pend=0,pendT=null,slow=false,G={google:false},gBusy=false,isOwner=false,dropping=false,kickT=null,rMail={open:false,sent:'',val:''};
 function maybeKicked(){clearTimeout(kickT);kickT=setTimeout(()=>{if(!isMember&&!isAdmin&&!closed&&!banned){if(!dropping)kickedMsg='Ведущий отключил вас от комнаты. Можно зайти снова.';dropping=false;render();}},2500);}const PK='nuts.pin.'+room;
-try{const pd=JSON.parse(sessionStorage.getItem('nuts.pend')||'null');sessionStorage.removeItem('nuts.pend');if(pd&&pd.room===room&&pd.pin&&!qrPin)qrPin=pd.pin;}catch(e){}
+try{const pd=JSON.parse(sessionStorage.getItem('nuts.pend')||localStorage.getItem('nuts.pend')||'null');sessionStorage.removeItem('nuts.pend');localStorage.removeItem('nuts.pend');if(pd&&pd.room===room&&pd.pin&&!qrPin&&Date.now()-(pd.at||Date.now())<3600e3)qrPin=pd.pin;}catch(e){}
 function send(c){pend++;clearTimeout(pendT);pendT=setTimeout(()=>{if(pend){slow=true;render();}},5000);
   if(st&&st.t){const t=st.t,now=NET.now();
     if(c.t==='toggle'){if(t.run){t.rem=Math.max(0,t.end-now);t.run=false;}else{t.end=now+(t.st?t.rem:(t.rem||t.len));t.run=true;t.st=true;}render();}
     else if(c.t==='time'){if(t.run)t.end=Math.max(now+1000,t.end+c.d*60000);else t.rem=Math.max(1000,t.rem+c.d*60000);tickR();}}
   return NET.push(R0+'/cmds',Object.assign({by:NET.uid,at:NET.now()},c)).catch(()=>{slow=true;render();});}
 const req=v=>{const o={name:me.name||'Гость',at:NET.now()};if(G.google){o.g=true;if(G.photo&&/^https:\/\//.test(G.photo))o.ph=G.photo.slice(0,400);}return NET.set(R0+'/join/'+NET.uid,Object.assign(o,v));};
-const gBtn=(id,t)=>`<button class="btn gbtn" id="${id}" style="width:100%" ${gBusy?'disabled':''}>${NutsNet.GICON} ${gBusy?'Входим…':t||'Войти через Google'}</button>`;
-const whoCard=()=>`<div class="who">${NutsNet.avatar(G)}<span><b>${esc(G.name||G.email||'Google')}</b><small>вход через Google</small></span><a href="#" id="rgOut">выйти</a></div>`;
-async function doGoogle(upgrade){const before=NET.uid,typed=((q('#rjName')||{}).value||'').trim(),pin=qrPin||((q('#rjPin')||{}).value||'').trim()||sessionStorage.getItem(PK)||'';
+const aBtns=()=>NutsNet.authBtns({busy:gBusy,emailOpen:rMail.open,sent:rMail.sent,emailVal:rMail.val});
+const whoCard=()=>`<div class="who">${NutsNet.avatar(G)}<span><b>${esc(G.name||G.email||'Аккаунт')}</b><small>${esc(NutsNet.provLabel(G)||G.email||'')}</small></span><a href="#" id="rgOut">выйти</a></div>`;
+const curPin=()=>qrPin||((q('#rjPin')||{}).value||'').trim()||sessionStorage.getItem(PK)||'';
+async function sendMailR(upgrade){const v=((q('#authEmail')||{}).value||'').trim().toLowerCase(),pin=curPin();rMail.val=v;
+  if(!upgrade&&!/^\d{4}$/.test(pin)){err='Сначала введите PIN с экрана игры';render();return;}
+  if(!NutsNet.okEmail(v)){err='Введите адрес почты, например kolya@mail.ru';render();return;}
+  gBusy='send';err='';render();
+  try{const typed=((q('#rjName')||{}).value||'').trim();if(typed){me.name=typed.slice(0,30);saveMe();}
+    localStorage.setItem('nuts.emailReq',JSON.stringify({email:v,mode:'signin'}));localStorage.setItem('nuts.pend',JSON.stringify({room,pin,at:Date.now()}));
+    await NET.sendLink(v,location.origin+location.pathname+'?nr='+room);rMail={open:false,sent:v,val:v};}catch(e){err=NutsNet.gErr(e);}
+  gBusy=false;render();}
+async function doGoogle(upgrade,kind){const before=NET.uid,typed=((q('#rjName')||{}).value||'').trim(),pin=curPin();
   if(!upgrade&&!qrPin&&!/^\d{4}$/.test(pin)){err='Сначала введите PIN с экрана игры';render();return;}
-  gBusy=true;err='';render();
-  try{G=await NET.google();}catch(e){gBusy=false;err=NutsNet.gErr(e);render();return;}
+  gBusy=kind||'google';err='';render();
+  try{G=await NET.signIn(kind||'google');}catch(e){gBusy=false;err=NutsNet.gErr(e);render();return;}
   gBusy=false;if(!typed&&G.name){me.name=G.name.slice(0,30);saveMe();}else if(typed){me.name=typed.slice(0,30);saveMe();}
-  if(NET.uid!==before){try{sessionStorage.setItem('nuts.pend',JSON.stringify({room,pin}));}catch(e){}location.reload();return;}
+  if(NET.uid!==before){try{sessionStorage.setItem('nuts.pend',JSON.stringify({room,pin,at:Date.now()}));}catch(e){}location.reload();return;}
   if(upgrade){if(pin)await req({pin}).catch(()=>{});render();setTimeout(()=>{if(!isAdmin){asking=true;render();req({want:'remote'}).catch(()=>{asking=false;render();});setTimeout(()=>{if(asking&&!isAdmin){asking=false;render();}},60000);}},900);return;}
   if(!qrPin)qrPin=pin;const f=q('#rjName');if(f)f.value=me.name||'';joinRoom();}
 function sheet(title,text,btns){const w=document.createElement('div');w.className='rmodal';w.innerHTML=`<div class="mbox"><h3>${title}</h3>${text?`<p>${text}</p>`:''}<div class="mbtns col"></div></div>`;
@@ -1533,7 +1615,7 @@ function render0(){
     const er=err?`<p style="color:var(--red);margin:0 0 10px">${esc(err)}</p>`:'',go=t=>`<button class="btn ${t?'':'pri'}" id="rjGo" style="width:100%" ${joining?'disabled':''}>${joining?'Подключаюсь…':(t||'Войти в комнату')}</button>`;
     root.innerHTML=header()+`<div class="card rjoin"><h3>Комната ${room}</h3>${kickedMsg?`<p style="color:var(--gold);margin:0 0 10px">${esc(kickedMsg)}</p>`:''}`+
       (G.google?whoCard()+nameF+pinF+er+go():
-       pinF+er+gBtn('rgIn')+`<p class="small muted" style="margin:8px 0 0">С Google ведущий узнает вас на любом устройстве и сможет давать пульт без подтверждения.</p><div class="orline">или просто по имени</div>`+nameF+go('Войти по имени'))+`</div>`;return;}
+       pinF+er+aBtns()+`<p class="small muted" style="margin:8px 0 0">С аккаунтом ведущий узнает вас на любом устройстве и сможет давать пульт без подтверждения.</p><div class="orline">или просто по имени</div>`+nameF+go('Войти по имени'))+`</div>`;return;}
   const stale=st&&st.ver&&st.ver!==window.NUTS_VER?`<div class="card" style="border-color:rgba(251,191,36,.4)">На главном экране версия ${esc(st.ver)}, а здесь ${window.NUTS_VER}. <button class="btn sm gold" id="rReload">Обновить</button></div>`:'';
   if(!st){root.innerHTML=header()+`<div class="card muted">Ждём экран игры…</div>${foot()}`;return;}
   const l=st.lv,nx=st.nx,brk=l&&l.ty==='break';
@@ -1556,7 +1638,7 @@ function render0(){
     <div class="hint" style="text-align:center"><a href="#" id="rDrop" style="color:var(--muted)">Отдать пульт</a></div>`;
   }else{
     h+=st.remote?`<div class="card small muted" style="text-align:center">🎮 Пульт у: <b>${esc(st.remote)}</b></div>`:
-      st.go&&!G.google?`<div class="card" style="text-align:center"><p class="small muted" style="margin:0 0 10px">Пультом может стать только тот, кто вошёл через Google.</p>${err?`<p style="color:var(--red);margin:0 0 10px">${esc(err)}</p>`:''}${gBtn('rgUp','Войти и стать пультом')}</div>`:
+      st.go&&!G.google?`<div class="card rup" style="text-align:center"><p class="small muted" style="margin:0 0 10px">Пультом может стать только тот, кто вошёл в аккаунт.</p>${err?`<p style="color:var(--red);margin:0 0 10px">${esc(err)}</p>`:''}${aBtns()}</div>`:
       `<div class="card" style="text-align:center">${asking?'<span class="muted">⏳ Ждём разрешения на экране игры…</span>':'<button class="btn pri" id="rAsk" style="width:100%">📱 Стать пультом</button>'}</div>`;}
   const slowBox=slow?`<div class="card" style="border-color:rgba(248,113,113,.45)">⏳ Экран игры не отвечает. Проверьте, что вкладка с таймером открыта на ноутбуке и есть интернет — команда выполнится, когда связь вернётся.</div>`:'';
   root.innerHTML=stale+slowBox+h+foot();tickR();if(pend)root.querySelectorAll('[data-c],[data-p]').forEach(x=>x.classList.add('busy'));}
@@ -1582,8 +1664,10 @@ async function joinRoom(){const nm=((q('#rjName')||{}).value||'').trim();const p
   setTimeout(()=>{if(joining&&!isMember&&!isAdmin){joining=false;if(qrPin)qrPin='';err='Экран игры не подтвердил вход. Проверьте PIN и что комната на ноутбуке открыта.';render();}},7000);}
 root.addEventListener('click',e=>{const b=e.target.closest('button,a');if(!b)return;
   if(b.id==='rjGo')return joinRoom();
-  if(b.id==='rgIn'){return doGoogle(false);}
-  if(b.id==='rgUp'){return doGoogle(true);}
+  const au=b.dataset.auth,up=!!b.closest('.rup');
+  if(au==='google'||au==='microsoft')return doGoogle(up,au);
+  if(au==='email'||au==='resend'){e.preventDefault();rMail={open:true,sent:'',val:rMail.sent||rMail.val};err='';render();setTimeout(()=>{const i=q('#authEmail');if(i)i.focus();},50);return;}
+  if(au==='send')return sendMailR(up);
   if(b.id==='rgOut'){e.preventDefault();(async()=>{if(isMember||isAdmin)await req({want:'leave'}).catch(()=>{});try{await NET.signOut();}catch(x){}me.name='';saveMe();location.hash='#r-'+room;location.reload();})();return;}
   if(b.id==='rReload'){location.href=location.pathname+'?v='+Date.now()+location.hash;return;}
   if(b.id==='rLeave'){e.preventDefault();req({want:'leave'}).catch(()=>{});setTimeout(()=>{location.hash='';location.reload();},400);return;}
@@ -1598,7 +1682,7 @@ root.addEventListener('click',e=>{const b=e.target.closest('button,a');if(!b)ret
   else if(c==='minus')send({t:'time',d:-1});else if(c==='plus')send({t:'time',d:1});else if(c==='undo')send({t:'undo'});
   else if(c==='add'){const v=q('#rAdd').value.split(',').map(x=>x.trim()).filter(Boolean);if(v.length){send({t:'add',names:v});q('#rAdd').value='';}}
   else if(b.dataset.p){const p=st.pl.find(x=>x.id==b.dataset.p);if(p)playerCmd(p,b.dataset.a);}});
-root.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='rAdd')q('[data-c=add]').click();if(e.key==='Enter'&&(e.target.id==='rjPin'||e.target.id==='rjName'))joinRoom();});
+root.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='authEmail')sendMailR(!!e.target.closest('.rup'));if(e.key==='Enter'&&e.target.id==='rAdd')q('[data-c=add]').click();if(e.key==='Enter'&&(e.target.id==='rjPin'||e.target.id==='rjName'))joinRoom();});
 function watchState(){const on=isMember||isAdmin;
   if(on&&!stUnsub){stUnsub=NET.onValue(R0+'/state',v=>{pend=0;clearTimeout(pendT);slow=false;if(v)hadState=true;else if(hadState)closed=true;if(v){v.pl=Array.isArray(v.pl)?v.pl:Object.values(v.pl||{});v.x=v.x||{inP:0,n:0,reb:0,bank:0,avg:0};v.r=v.r||{};v.t=v.t||{};}st=v;render();});}
   if(!on&&stUnsub){try{stUnsub();}catch(e){}stUnsub=null;st=null;}}

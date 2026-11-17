@@ -8,5 +8,7 @@ window.NUTS_FB = {
   messagingSenderId: "1014046839078",
   appId: "1:1014046839078:web:46edf278cf3155569331e7",
   // reCAPTCHA Enterprise (Fraud Defense) — ключ сайта для App Check
-  appCheckKey: "6LcOpSQuAAAAAJbHb5UCjCpneQQCfI5TSri5NqMY"
+  appCheckKey: "6LcOpSQuAAAAAJbHb5UCjCpneQQCfI5TSri5NqMY",
+  // Способы входа. Когда настроишь Microsoft, добавь "microsoft" в список.
+  providers: ["google", "email"]
 };
