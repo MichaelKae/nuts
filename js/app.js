@@ -1026,6 +1026,7 @@ const phFmt=v=>{let d=String(v||'').replace(/\D/g,'');if(d[0]==='8')d='7'+d.slic
 let enMode='',enErr='',enBusy=false,profSaved=false,enMail={open:false,sent:'',mode:'signin',val:''};
 function entryEl(){let el=$('#entry');if(!el){el=document.createElement('div');el.id='entry';document.body.appendChild(el);el.addEventListener('click',entryClick);
   el.addEventListener('input',e=>{if(e.target.id==='payPh'){const v=phFmt(e.target.value);if(v!==e.target.value)e.target.value=v;}});
+  const payLive=e=>{if(!/^(payPh|payBankO|payShare)$/.test(e.target.id||''))return;payRead();const b=$('#paySave');if(b)b.disabled=!payDirty();};el.addEventListener('input',payLive);el.addEventListener('change',payLive);
   el.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='enCode')joinByCode();if(e.key==='Enter'&&e.target.id==='authEmail')sendMail();if(e.key==='Enter'&&e.target.id==='enHost')$('#enAdd').click();});}return el;}
 function closeEntry(){enMode='';enErr='';const el=$('#entry');if(el){el.className='';el.innerHTML='';}}
 function openEntry(m){enMode=m;enErr='';evSel=null;evMore=false;PAYC=null;payDr=null;enMail={open:false,sent:'',mode:'signin',val:''};renderEntry();}
@@ -1057,7 +1058,7 @@ async function renderEntry(){const el=entryEl(),m=enMode;if(!m)return closeEntry
       <div class="wz-sel">${BANKS.map(b=>`<span class="rchip ${!D.other&&D.bank===b?'on':''}" data-bank="${b}">${b}</span>`).join('')}<span class="rchip ${D.other?'on':''}" data-bank="__other">Другой…</span></div>
       ${D.other?`<input id="payBankO" placeholder="Название банка" maxlength="40" value="${esc(D.bank||'')}" style="margin-bottom:8px">`:''}
       <label class="chk"><input type="checkbox" id="payShare" ${D.share?'checked':''}> Передавать ведущему, когда я в комнате</label>
-      <div class="row"><button class="btn sm pri" id="paySave">Сохранить</button>${PAYC.ph?'<button class="btn sm ghost red" id="payDel">Удалить реквизиты</button>':''}</div></div>`;}
+      <div class="row"><button class="btn sm pri" id="paySave" ${payDirty()?'':'disabled'}>Сохранить</button>${PAYC.ph?'<button class="btn sm ghost red" id="payDel">Удалить реквизиты</button>':''}</div></div>`;}
   {const P=NutsNet.prov(),mine=W.providers||[],n=mine.length;
     h+=`<div class="en-sec"><div class="blab">Способы входа</div><div class="provlist">`+P.map(k=>{const pid=NutsNet.PID[k],has=mine.find(x=>x.id===pid);
       return `<div>${NutsNet.PICON[pid]}<span class="pnm">${NutsNet.PNAME[pid]}${has?`<small>${esc(has.email||'привязан')}</small>`:''}</span>${has?(n>1?`<button class="btn sm ghost" data-unlink="${pid}">Отвязать</button>`:'<span class="small muted">✓</span>'):`<button class="btn sm" data-link="${k}" ${enBusy?'disabled':''}>${enBusy===k?'…':'Привязать'}</button>`}</div>`;}).join('')+`</div>`+
@@ -1108,6 +1109,7 @@ async function sendMail(){const v=(($('#authEmail')||{}).value||'').trim().toLow
     await NET.sendLink(v,location.origin+location.pathname);enMail.sent=v;enMail.open=false;}catch(err){enErr=NutsNet.gErr(err);}
   enBusy=false;renderEntry();}
 function joinByCode(){const c=(($('#enCode')||{}).value||'').trim().toUpperCase();if(!/^[A-Z0-9]{4}$/.test(c)){enErr='Код комнаты — 4 символа, например 6D2P';return renderEntry();}location.hash='#r-'+c;location.reload();}
+function payDirty(){const D=payDr,C=PAYC||{};if(!D)return false;const d=String(D.ph||'').replace(/\D/g,''),c=String(C.ph||'').replace(/\D/g,'');return d!==c||String(D.bank||'')!==String(C.bank||'')||!!D.share!==(C.share!==false);}
 function payRead(){if(!payDr)return;const p=$('#payPh'),o=$('#payBankO'),s=$('#payShare');if(p)payDr.ph=p.value;if(o)payDr.bank=o.value.trim();if(s)payDr.share=s.checked;}
 async function entryClick(e){const b=e.target.closest('button,a,[data-bank]');if(!b)return;
   if(b.id==='enClose'){closeEntry();return;}

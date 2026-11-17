@@ -502,3 +502,8 @@ body.anim-calm #fxwin .in{animation:fxFade2 .8s ease both}
 #fxdemo{position:fixed;left:10px;bottom:34px;z-index:95;display:flex;flex-wrap:wrap;gap:5px;padding:8px;border-radius:14px;background:rgba(9,18,14,.94);border:1px solid var(--line);font-size:12px;max-width:min(380px,calc(100vw - 20px))}#fxdemo b{width:100%;padding:0 4px 2px}
 #fxdemo button{all:unset;cursor:pointer;padding:6px 10px;border-radius:8px;background:rgba(255,255,255,.06);font-weight:600}#fxdemo button:hover{background:rgba(255,255,255,.14)}
 @media (prefers-reduced-motion:reduce){#fxwin .cf{display:none}}
+
+/* 5.0.4 */
+.rchip[data-bank]{padding:5px 12px;justify-content:center;line-height:1.2}
+details.arch>summary{cursor:pointer}
+#paySave:disabled{opacity:.45;cursor:default;box-shadow:none}
