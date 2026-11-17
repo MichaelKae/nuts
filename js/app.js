@@ -169,9 +169,9 @@ const invested=p=>p.paid!=null?p.paid:legacyPaid(p);
 const chipsOf=p=>p.chipsIn!=null?p.chipsIn:legacyChips(p);
 function totals(){const P=S.players,reb=P.reduce((a,p)=>a+p.rebuys,0),add=P.reduce((a,p)=>a+p.addons,0),inP=P.filter(p=>p.status==='in').length;
   const money=P.reduce((a,p)=>a+invested(p),0),entries=P.length+reb;
-  const bountyTot=isT()&&S.bountyOn?entries*S.bounty:0;
+  const freeH=isT()&&S.bountyOn?P.reduce((a,p)=>a+(p.freeHeads||0),0):0,bountyTot=isT()&&S.bountyOn?Math.max(0,entries-freeH)*S.bounty:0;
   const chips=P.reduce((a,p)=>a+chipsOf(p),0);
-  return{n:P.length,reb,add,inP,money,entries,bountyTot,pool:money-bountyTot,chips,avg:inP?chips/inP:0};}
+  return{n:P.length,reb,add,inP,money,entries,freeH,bountyTot,pool:money-bountyTot,chips,avg:inP?chips/inP:0};}
 function payoutPcts(){if(!S.payoutsAuto)return S.payouts;const n=S.players.length;
   return n<=3?[100]:n<=6?[65,35]:n<=10?[50,30,20]:[45,27,17,11];}
 const payouts=pool=>{const pc=payoutPcts(),tot=pc.reduce((a,b)=>a+b,0)||100,a=pc.map(p=>Math.floor(pool*p/tot));if(a.length)a[0]+=pool-a.reduce((x,y)=>x+y,0);return a;};
@@ -282,7 +282,7 @@ function transfers(list){const cr=[],db=[];list.forEach(o=>{if(o.net>0.5)cr.push
 
 function renderResults(x,pa){const box=$('#resBox');if(document.activeElement&&document.activeElement.classList.contains('chipin'))return;
   if(!S.players.length){box.innerHTML='<div class="card muted">Добавьте игроков — здесь появятся итоги и расчёт, кто кому переводит.</div>'+logCard()+archiveHTML();return;}
-  const R=nets(x,pa);let h=`<div class="row" style="justify-content:flex-end;margin-bottom:12px"><button class="btn pri" data-final="1">🏁 Итоги вечера</button></div>`;
+  const R=nets(x,pa);let h=`<div class="row" style="justify-content:flex-end;margin-bottom:12px"><button class="btn pri" data-final="1">🏁 Итоги вечера</button></div><div class="card" style="padding-top:4px">${howHTML(x,pa)}</div>`;
   if(isT()){const done=x.inP<=1;
     h+=`<div class="stats"><div class="stat"><div class="l">Призовой фонд</div><div class="v money">${money(x.pool)}</div></div><div class="stat"><div class="l">Входов</div><div class="v">${x.entries}</div></div>${S.bountyOn?`<div class="stat"><div class="l">Баунти всего</div><div class="v">${money(x.bountyTot)}</div></div>`:''}<div class="stat"><div class="l">Статус</div><div class="v" style="font-size:18px">${done?'✅ Завершён':'⏳ Идёт'}</div></div></div>`;
     if(!done)h+=`<div class="card small muted">Турнир ещё идёт — итоги предварительные. Места появятся по мере вылетов.</div>`;
@@ -405,16 +405,7 @@ $('#side').addEventListener('click',e=>{if(e.target.closest('[data-help]'))retur
 
 /* ===== Help / hand rankings ===== */
 const card=(c,k)=>{const suit=c.slice(-1),red=suit==='♥'||suit==='♦';return`<span class="pc${red?' r':''}${k?' k':''}">${c.slice(0,-1)}<br>${suit}</span>`;};
-const HANDS=[['Роял-флеш','Royal flush','Туз, король, дама, валет, десятка одной масти. Сильнее не бывает.','A♠ K♠ Q♠ J♠ 10♠',5],
-  ['Стрит-флеш','Straight flush','Пять карт подряд одной масти.','9♥ 8♥ 7♥ 6♥ 5♥',5],
-  ['Каре','Four of a kind','Четыре карты одного достоинства.','Q♣ Q♦ Q♥ Q♠ 7♦',4],
-  ['Фулл-хаус','Full house','Тройка + пара. Между двумя фулл-хаусами сильнее тот, у кого старше тройка.','K♠ K♥ K♦ 4♣ 4♥',5],
-  ['Флеш','Flush','Пять карт одной масти, не подряд. Сравнивают по старшей карте.','A♦ J♦ 8♦ 6♦ 2♦',5],
-  ['Стрит','Straight','Пять карт подряд, масти любые. Туз может быть и младшей: A-2-3-4-5.','10♣ 9♦ 8♠ 7♥ 6♣',5],
-  ['Сет / тройка','Three of a kind','Три карты одного достоинства.','7♠ 7♥ 7♦ K♣ 2♠',3],
-  ['Две пары','Two pair','Две разные пары. Сначала сравнивают старшую пару, потом младшую, потом кикер.','J♥ J♣ 4♠ 4♦ A♥',4],
-  ['Пара','One pair','Две карты одного достоинства.','10♠ 10♥ K♦ 6♣ 3♠',2],
-  ['Старшая карта','High card','Ничего не собралось — решает самая старшая карта.','A♣ Q♦ 9♠ 5♥ 3♣',1]];
+const HANDS=window.NUTS_HANDS;
 const HELP={guide:['Что умеет Nuts',()=>`<div class="hsec">
   <p>Nuts — таймер и учёт домашней игры в покер. Работает в браузере на ноутбуке, телефоне и ТВ, в том числе без интернета. Все данные хранятся только у вас.</p>
   <h4>⏱ Таймер</h4><ul><li><b>Старт/пауза</b> — большая кнопка или пробел. Уровни меняются сами, со звуком и голосом; за минуту до конца — предупреждение.</li><li><b>⏮ ⏭</b> — соседний уровень, <b>±1м</b> — подвинуть время, <b>⟲</b> — перезапуск уровня, таймер с начала или завершение вечера.</li><li><b>📺 ТВ</b> — крупный режим для телевизора, <b>🔒</b> — блокировка кнопок от случайных нажатий.</li><li>Когда структура кончилась, уровни добавляются автоматически.</li></ul>
@@ -488,26 +479,32 @@ $('#acctBox').addEventListener('click',e=>{const c=e.target.closest('[data-acc]'
 $('#rosterBox').addEventListener('click',e=>{const x=e.target.closest('[data-rx]');if(x){S.roster=S.roster.filter(n=>n!==x.dataset.rx);save();render();return;}
   const r=e.target.closest('[data-r]');if(r){addPlayers([r.dataset.r]);return;}
   if(e.target.closest('[data-rall]')){const have=new Set(S.players.map(p=>p.name.toLowerCase()));addPlayers(S.roster.filter(n=>!have.has(n.toLowerCase())));}});
-function doBust(p,by){snap();p.status='out';p.outAt=Date.now();p.finalChips=0;p.bustedBy=by||null;const k=by?S.players.find(q=>q.id===by):null;if(k)k.knocks=(k.knocks||0)+1;
-  settle();logEv('bust',p.name+' — вылет'+(isT()?' · '+p.place+' место':'')+(k?' · выбил(а) '+k.name:''));const w=S.players.find(q=>q.place===1&&q.status==='in');if(w){logEv('win','Победитель: '+w.name);if(T().running)pause();}save();render();toast(p.name+(isT()?' — '+p.place+' место':' — вылет'));}
+function doBust(p,by){snap();p.status='out';p.outAt=Date.now();p.finalChips=0;p.bustedBy=by||null;if(isT()&&S.bountyOn&&!by)p.freeHeads=(p.freeHeads||0)+1;const k=by?S.players.find(q=>q.id===by):null;if(k)k.knocks=(k.knocks||0)+1;
+  settle();logEv('bust',p.name+' — вылет'+(isT()?' · '+p.place+' место':'')+(k?' · выбил(а) '+k.name:'')+(isT()&&S.bountyOn&&!k?' · баунти — в призовой фонд':''));const w=S.players.find(q=>q.place===1&&q.status==='in');if(w){logEv('win','Победитель: '+w.name);if(T().running)pause();}save();render();toast(p.name+(isT()?' — '+p.place+' место':' — вылет'));}
 function applyRebuy(p,k=1){const cost=Math.round(S.rebuyCost*k),stack=Math.round(S.rebuyStack*k),lbl=k<1?' — докуп 50%':' — докуп';{snap();p.rebuys++;if(k<1)p.halfs=(p.halfs||0)+1;p.paid=invested(p)+cost;p.chipsIn=chipsOf(p)+stack;(p.rb=p.rb||[]).push([cost,stack,k]);logEv('rebuy',p.name+(p.status==='out'?lbl+', снова в игре':lbl)+' · №'+p.rebuys+' (+'+fmt(stack)+' фишек, '+money(cost)+')');if(p.status==='out'){p.status='in';p.finalChips=null;p.bustedBy=null;}settle();save();render();toast(p.name+lbl);}}
 function rebuyAsk(p){if(!S.halfRebuy)return doRebuy(p,1);
   modal(`<h3>Докуп: ${esc(p.name)}</h3><p>На сколько докупается?</p>`,[{t:`💸 Весь стек · +${fmt(S.rebuyStack)} фишек за ${money(S.rebuyCost)}`,cls:'pri',fn:()=>{setTimeout(()=>doRebuy(p,1),0);}},{t:`💸 Половина · +${fmt(Math.round(S.rebuyStack/2))} фишек за ${money(Math.round(S.rebuyCost/2))}`,fn:()=>{setTimeout(()=>doRebuy(p,.5),0);}},{t:'Отмена',cls:'ghost'}]);$('#mbox .mbtns').classList.add('col');}
+function bustThen(p,after){const others=S.players.filter(q=>q.status==='in'&&q!==p);
+  if(isT()&&S.bountyOn&&others.length){modal(`<h3>Вылет: ${esc(p.name)}</h3><p>Кто выбил? Баунти ${money(S.bounty)} достанется ему.</p><select id="byWho">${others.map(q=>`<option value="${q.id}">${esc(q.name)}</option>`).join('')}<option value="">— никто (баунти — в призовой фонд)</option></select>`,
+    [{t:'Отмена'},{t:'Готово',cls:'pri',fn:()=>{doBust(p,+$('#byWho').value||null);setTimeout(after,0);}}]);return;}
+  doBust(p);after();}
 function doRebuy(p,k=1){const f=()=>applyRebuy(p,k);
   const check=()=>{const why=canRebuy(p,k);if(why)confirmB('Докуп вне правил',why+' Всё равно оформить?',f,'Оформить');else f();};
   if(p.status==='in'&&S.rebuyWhen==='bust')return confirmB('Докуп только после вылета',`По правилам этого вечера ${esc(p.name)} может докупиться только после вылета. Всё равно оформить?`,check,'Оформить');
-  if(p.status==='in'&&S.rebuyWhen==='short')return confirmB('Докуп: '+esc(p.name),`Стек сейчас не больше стартового (${fmt(S.startStack)} фишек)?`,check,'Да, докуп');
+  if(p.status==='in'&&S.rebuyWhen==='short'){const lim=k<1?Math.round(S.startStack/2):S.startStack;
+    modal(`<h3>${k<1?'Докуп 50%':'Докуп'}: ${esc(p.name)}</h3><p>Стек сейчас не больше ${k<1?'половины стартового':'стартового'} (${fmt(lim)} фишек)? Если игрок уже вылетел — оформим вылет и докуп.</p>`,
+      [{t:'Да, стек не больше '+fmt(lim),cls:'pri',fn:check},{t:'💥 Вылетел — вылет и докуп',fn:()=>setTimeout(()=>bustThen(p,()=>{const why=canRebuy(p,k);if(why)confirmB('Докуп вне правил',why+' Всё равно оформить?',f,'Оформить');else f();}),0)},{t:'Отмена',cls:'ghost'}]);$('#mbox .mbtns').classList.add('col');return;}
   check();}
 $('#plist').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const p=S.players.find(x=>x.id==b.dataset.id);if(!p)return;playerAct(p,b.dataset.a);});
 function playerAct(p,a){
   if(a==='acct')return acctMenu(p);
   if(a==='bust'){const others=S.players.filter(q=>q.status==='in'&&q!==p);
-    if(isT()&&S.bountyOn&&others.length){modal(`<h3>Вылет: ${esc(p.name)}</h3><p>Кто выбил? Баунти ${money(S.bounty)} достанется ему.</p><select id="byWho">${others.map(q=>`<option value="${q.id}">${esc(q.name)}</option>`).join('')}<option value="">— никто / не важно</option></select>`,
+    if(isT()&&S.bountyOn&&others.length){modal(`<h3>Вылет: ${esc(p.name)}</h3><p>Кто выбил? Баунти ${money(S.bounty)} достанется ему.</p><select id="byWho">${others.map(q=>`<option value="${q.id}">${esc(q.name)}</option>`).join('')}<option value="">— никто (баунти — в призовой фонд)</option></select>`,
       [{t:'Отмена'},{t:'Готово',cls:'pri',fn:()=>doBust(p,+$('#byWho').value||null)}]);}
     else doBust(p);return;}
   if(a==='rebuy')return rebuyAsk(p);
   if(a==='rebuy50')return doRebuy(p,0.5);
-  if(a==='back'){snap();logEv('back',p.name+' возвращён в игру (ошибочный вылет)');if(p.bustedBy){const k=S.players.find(q=>q.id===p.bustedBy);if(k&&k.knocks)k.knocks--;}p.status='in';p.finalChips=null;p.bustedBy=null;settle();save();render();return;}
+  if(a==='back'){snap();logEv('back',p.name+' возвращён в игру (ошибочный вылет)');if(p.bustedBy){const k=S.players.find(q=>q.id===p.bustedBy);if(k&&k.knocks)k.knocks--;}else if(p.freeHeads)p.freeHeads--;p.status='in';p.finalChips=null;p.bustedBy=null;settle();save();render();return;}
   if(a==='addon'){snap();p.addons++;p.paid=invested(p)+S.addonCost;p.chipsIn=chipsOf(p)+S.addonStack;logEv('addon',p.name+' взял аддон');save();render();toast(p.name+': аддон');return;}
   if(a==='unrebuy'){snap();const last=(p.rb&&p.rb.pop())||[S.rebuyCost,S.rebuyStack,1];p.paid=invested(p)-last[0];p.chipsIn=chipsOf(p)-last[1];p.rebuys--;if(last[2]<1&&p.halfs)p.halfs--;logEv('undo','Отменён докуп: '+p.name);save();render();return;}
   if(a==='del')confirmB('Удалить игрока?',`«${esc(p.name)}» и все его взносы уйдут из банка.`,()=>{snap();logEv('del',p.name+' удалён из игры');S.players=S.players.filter(x=>x!==p);if(!S.players.length&&T().startedAt==null){S.log=[];S.hist=[];}settle();save();render();},'Удалить','red');}
@@ -810,6 +807,15 @@ document.addEventListener('nuts-install',renderInstall);window.addEventListener(
 document.addEventListener('click',async e=>{if(e.target.id==='instBtn'&&window.NUTS_INSTALL){const ev=window.NUTS_INSTALL;ev.prompt();try{await ev.userChoice;}catch(x){}window.NUTS_INSTALL=null;renderInstall();}});
 renderInstall();
 /* ===== Final screen ===== */
+function howHTML(x,pa){const tm=isT();let h='';
+  if(tm){const pc=payoutPcts(),tot=pc.reduce((a,b)=>a+b,0)||100;
+    h+=`<div>Собрано всего: <b>${money(x.money)}</b> — взносов: ${x.n}${x.reb?`, докупов: ${x.reb}`:''}${x.add?`, аддонов: ${x.add}`:''}.</div>`;
+    if(S.bountyOn)h+=`<div>Баунти — ${money(S.bounty)} с каждого входа: ${x.entries}${x.freeH?` − ${x.freeH} ничейн.`:''} × ${money(S.bounty)} = <b>${money(x.bountyTot)}</b>. Выбивший забирает голову выбитого, победитель — ещё и свою.${x.freeH?' Ничейные головы вернулись в призовой фонд.':''}</div>`;
+    h+=`<div>Призовой фонд: ${money(x.money)}${S.bountyOn?' − '+money(x.bountyTot)+' баунти':''} = <b>${money(x.pool)}</b>.</div>`;
+    h+=`<div>Деление по местам${S.payoutsAuto?' (подобрано по числу игроков)':''}:</div><table>${pa.map((v,i)=>`<tr><td>${i+1} место</td><td class="r">${Math.round((pc[i]||0)/tot*100)}%</td><td class="r"><b>${money(v)}</b></td></tr>`).join('')}</table>`;
+    h+=`<div style="margin-top:6px">Итог игрока = приз + баунти − вложил.</div>`;}
+  else{const r=rate();h+=`<div>Курс: ${money(S.buyin)} = ${fmt(S.startStack)} фишек, то есть 1 фишка = <b>${(+r.toFixed(3)).toLocaleString('ru-RU')} ${esc(S.currency)}</b>.</div><div>Выдано фишек: <b>${fmt(x.chips)}</b> на <b>${money(x.money)}</b> — взносов: ${x.n}${x.reb?`, докупов: ${x.reb}`:''}.</div><div>Итог игрока = фишки в конце × курс − вложил. Переводы подобраны так, чтобы платежей было как можно меньше.</div>`;}
+  return `<details class="how"><summary>🧮 Как посчитано</summary><div class="hw">${h}</div></details>`;}
 function finReady(x,R){if(!S.players.length)return false;if(isT())return x.inP<=1;return !R.some(o=>o.chips==null)&&R.reduce((a,o)=>a+(o.chips||0),0)===x.chips;}
 function finEl(){let el=$('#fin');if(!el){el=document.createElement('div');el.id='fin';document.body.appendChild(el);el.addEventListener('click',finClick);}return el;}
 function closeFin(){const el=$('#fin');if(el){el.className='';el.innerHTML='';}}
@@ -817,7 +823,7 @@ function openFin(){if(!S.players.length)return;renderFin();}
 function renderFin(){const el=finEl(),x=totals(),pa=isT()?payouts(x.pool):[],R=nets(x,pa),ok=finReady(x,R),tm=isT();el.className='on';
   const d=new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
   const ord=tm?[...R].sort((a,b)=>(a.p.place||99)-(b.p.place||99)):[...R].sort((a,b)=>(b.net??-1e15)-(a.net??-1e15));
-  const val=o=>tm?(o.win+(o.bnt||0)?money(o.win+(o.bnt||0)):''):(o.net==null?'—':sgn(o.net));
+  const val=o=>o.net==null?'—':sgn(o.net),det=o=>(tm?[o.win?'приз '+money(o.win):'',o.bnt?'баунти '+money(o.bnt):'','вложил '+money(o.inv)]:[o.chips!=null?fmt(o.chips)+' фишек':'','вложил '+money(o.inv)]).filter(Boolean).join(' · ');
   const cls=o=>{const v=tm?o.net:o.net;return v>0?'pos':v<0?'neg':'';};
   const M=['🥇','🥈','🥉'];
   const pod=ok?ord.slice(0,Math.min(3,ord.length)):[];
@@ -825,13 +831,16 @@ function renderFin(){const el=finEl(),x=totals(),pa=isT()?payouts(x.pool):[],R=n
     <div class="fin-h"><div class="brand en-brand"><i>♠</i>Итоги вечера</div>
     <div class="muted small">${esc(S.name||'Покерный вечер')} · ${d} · ${T().startedAt!=null?fmtHM(clockElapsed())+' игры · ':''}${S.players.length} игроков · ${tm?'призовой фонд':'банк'} ${money(tm?x.pool:x.money)}</div></div>`;
   if(!ok)h+=`<div class="fin-warn">${tm?'⏳ Турнир ещё идёт — победитель не определился. Ниже предварительные места.':`🧮 Не все фишки посчитаны или сумма не сходится с выданной (${fmt(x.chips)}). Расчёт будет точным после подсчёта.`}<button class="btn sm" data-fin="count">${tm?'К игрокам':'Посчитать фишки'}</button></div>`;
-  if(pod.length)h+=`<div class="podium">${pod.map((o,i)=>`<div class="pd p${i+1}"><div class="md">${M[i]}</div><div class="nm">${esc(o.p.name)}</div><div class="vl ${cls(o)}">${val(o)}</div>${!tm&&o.chips!=null?`<small>${fmt(o.chips)} фишек</small>`:tm&&o.p.knocks&&S.bountyOn?`<small>выбил: ${o.p.knocks}</small>`:''}</div>`).join('')}</div>`;
+  if(pod.length)h+=`<div class="podium">${pod.map((o,i)=>`<div class="pd p${i+1}"><div class="md">${M[i]}</div><div class="nm">${esc(o.p.name)}</div><div class="vl ${cls(o)}">${val(o)}</div><span class="dt">${det(o)}</span></div>`).join('')}</div>`;
   const rest=ok?ord.slice(pod.length):ord;
-  if(rest.length)h+=`<div class="fin-list">${rest.map((o,i)=>`<div><span class="fpl">${ok?pod.length+i+1:(tm&&o.p.place?o.p.place:'·')}</span><span class="fnm">${esc(o.p.name)}${o.p.rebuys?`<small>докупов: ${o.p.rebuys}</small>`:''}</span><span class="fvl ${cls(o)}">${val(o)}</span></div>`).join('')}</div>`;
-  const F=[],mr=[...S.players].sort((a,b)=>(b.rebuys||0)-(a.rebuys||0))[0],mk=[...S.players].sort((a,b)=>(b.knocks||0)-(a.knocks||0))[0],fo=S.players.filter(p=>p.outAt).sort((a,b)=>a.outAt-b.outAt)[0];
-  if(mr&&mr.rebuys)F.push(['💸','Чаще всех докупался',mr.name+' · '+mr.rebuys]);if(mk&&mk.knocks)F.push(['🎯','Выбил больше всех',mk.name+' · '+mk.knocks]);if(fo&&S.players.length>2)F.push(['🚪','Первым вылетел',fo.name]);
+  if(rest.length)h+=`<div class="fin-list">${rest.map((o,i)=>`<div><span class="fpl">${ok?pod.length+i+1:(tm&&o.p.place?o.p.place:'·')}</span><span class="fnm">${esc(o.p.name)}<small>${det(o)}${o.p.rebuys?' · докупов: '+o.p.rebuys:''}</small></span><span class="fvl ${cls(o)}">${val(o)}</span></div>`).join('')}</div>`;
+  const F=[],fo=S.players.filter(p=>p.outAt).sort((a,b)=>a.outAt-b.outAt)[0];
+  const lead=(key,lbl,icon)=>{const mx=Math.max(0,...S.players.map(p=>p[key]||0));if(!mx)return;const L=S.players.filter(p=>(p[key]||0)===mx);if(mx===1&&L.length>2)return;
+    F.push([icon,lbl,(L.length>3?L.slice(0,3).map(p=>p.name).join(', ')+' и ещё '+(L.length-3):L.map(p=>p.name).join(', '))+' · '+(L.length>1?'по '+mx:mx)]);};
+  lead('rebuys','Чаще всех докупался','💸');lead('knocks','Выбил больше всех','🎯');if(fo&&S.players.length>2)F.push(['🚪','Первым вылетел',fo.name]);
   const reb=S.players.reduce((a,p)=>a+(p.rebuys||0),0);F.push(['🔁','Докупов за вечер',String(reb)]);
   h+=`<div class="fin-facts">${F.map(([i,a,b])=>`<div><span>${i}</span><small>${a}</small><b>${esc(b)}</b></div>`).join('')}</div>`;
+  h+=howHTML(x,pa);
   if(ok){const tr=transfers(R.filter(o=>o.net!=null));h+=`<div class="blab" style="margin-top:14px">💸 Кто кому переводит</div>${tr.length?tr.map(([a,b,v])=>`<div class="xfer"><span>${esc(a)}</span><span class="arr">→</span><span>${esc(b)}</span><span class="amt">${money(v)}</span></div>`).join(''):'<div class="muted">Все при своих.</div>'}`;}
   h+=`<div class="wz-nav" style="flex-wrap:wrap"><button class="btn" data-fin="copy">📋 Скопировать</button>${navigator.share?'<button class="btn" data-fin="share">📤 Поделиться</button>':''}<span class="sp"></span><button class="btn red" data-fin="end">🏁 Завершить вечер</button></div>
     <div class="small muted" style="margin-top:8px">«Завершить вечер» сохранит итоги в историю${S.players.some(p=>p.acct)?', отправит результаты в фишках в кабинеты привязанных игроков':''} и очистит стол для новой игры.</div></div>`;
@@ -860,6 +869,11 @@ function openWiz(opt){opt=opt||{};
   go();}
 function wizUseTpl(t){WZ.cfg=Object.assign(curCfg(),JSON.parse(JSON.stringify(t.cfg||{})));WZ.cfg.gen=Object.assign({},S.gen,(t.cfg||{}).gen||{});WZ.names=(t.players||[]).slice();
   WZ.hours=WZ.cfg.gen.hours||3;WZ.pace=WZ.cfg.gen.pace||'standard';WZ.tplName=t.name;WZ.step=3;}
+function wzMap(){const m={},used=new Set();let acc=[];try{acc=roomAccts();}catch(e){}
+  WZ.names.forEach(n=>{const lo=n.toLowerCase();let a=Object.values(WZ.accs).find(z=>z.pn===n)||null;
+    if(!a){const ra=(S.rosterAcct||{})[lo];if(ra)a={uid:ra.uid,name:ra.name};}
+    if(!a){const f=acc.find(z=>z.name.toLowerCase()===lo);if(f)a={uid:f.uid,name:f.name};}
+    if(a&&!used.has(a.uid)){used.add(a.uid);m[n]={uid:a.uid,name:a.name};}});return m;}
 function wizRead(){if(!WZ)return;const v=id=>{const e=$('#'+id);return e?e.value:null;},c=WZ.cfg;
   if(v('wName')!=null)c.name=v('wName').trim().slice(0,60)||'Покерный вечер';
   if(v('wBuy')!=null)c.buyin=Math.max(0,Math.round(+v('wBuy')||0));if(v('wStack')!=null)c.startStack=Math.max(0,Math.round(+v('wStack')||0));
@@ -891,9 +905,9 @@ function renderWiz(){if(!WZ)return;const el=wizEl(),c=WZ.cfg,st=WZ.step,T_=c.mod
       <label class="chk"><input type="checkbox" id="wHalf" ${c.halfRebuy?'checked':''}> Можно докупаться на половину стека</label>
       ${T_?`<label class="chk"><input type="checkbox" id="wBnt" ${c.bountyOn?'checked':''}> Баунти за выбитого <input id="wBntV" type="number" min="0" value="${c.bounty||0}" style="width:90px;margin-left:6px"> ${esc(S.currency)}</label><label class="chk"><input type="checkbox" id="wAddon" ${c.addonOn?'checked':''}> Аддон (одна докупка на всех в перерыве)</label>`:''}
       <div class="small muted">Докуп стоит как взнос и даёт столько же фишек. Тонкие настройки — потом во вкладке «Настройки».</div>`;}
-  else if(st===3){const have=new Set(WZ.names.map(n=>n.toLowerCase())),rs=(S.roster||[]).filter(n=>!have.has(n.toLowerCase()));let acc=[];try{acc=roomAccts();}catch(e){}acc=acc.filter(a=>!WZ.accs[a.uid]);
+  else if(st===3){const have=new Set(WZ.names.map(n=>n.toLowerCase())),rs=(S.roster||[]).filter(n=>!have.has(n.toLowerCase()));let acc=[];try{acc=roomAccts();}catch(e){}const M=wzMap(),mu=new Set(Object.values(M).map(z=>z.uid));acc=acc.filter(a=>!WZ.accs[a.uid]&&!mu.has(a.uid));
     h=`<div class="wz-h">Кто играет?</div><div class="row" style="flex-wrap:nowrap"><input id="wAdd" placeholder="Имя или несколько через запятую" autocomplete="off" style="flex:1;min-width:0"><button class="btn pri" data-w="add">Добавить</button></div>
-      <div class="wz-sel">${WZ.names.length?WZ.names.map(n=>`<span class="wz-pill">${esc(n)}${Object.values(WZ.accs).some(a=>a.pn===n)?' 🔗':''}<button data-wx="${esc(n)}" title="Убрать">✕</button></span>`).join(''):'<span class="muted small">Пока никого — можно добавить и позже.</span>'}</div>
+      <div class="wz-sel">${WZ.names.length?WZ.names.map(n=>`<span class="wz-pill">${esc(n)}${M[n]?' 🔗':''}<button data-wx="${esc(n)}" title="Убрать">✕</button></span>`).join(''):'<span class="muted small">Пока никого — можно добавить и позже.</span>'}</div>
       ${rs.length?`<div class="hint">Сохранённые игроки:</div><div class="wz-sel">${rs.map(n=>`<span class="rchip" data-wr="${esc(n)}">＋ ${esc(n)}${(S.rosterAcct||{})[n.toLowerCase()]?' 🔗':''}</span>`).join('')}<span class="rchip" data-w="allr" style="border-style:solid">Все</span></div>`:''}
       ${acc.length?`<div class="hint">🔗 Аккаунты${remoteOn?' в комнате':''}:</div><div class="wz-sel">${acc.map(a=>`<span class="rchip acc" data-wa="${esc(a.uid)}">＋ ${esc(a.name)}${a.self?' (вы)':''}</span>`).join('')}</div>`:''}
       <div class="small muted">Игроков: <b>${WZ.names.length}</b>${WZ.names.length?` · банк на старте ${fmt(WZ.names.length*c.buyin)} ${esc(S.currency)}`:''}</div>`;}
@@ -930,9 +944,9 @@ function wizFinish(startNow){const c=WZ.cfg;TPL_KEYS.forEach(k=>{if(k in c&&c[k]
   const np=Math.max(2,WZ.names.length||S.gen.players);S.gen=Object.assign({},S.gen,paceGen(WZ.pace),{hours:WZ.hours,pace:WZ.pace,players:np,rebuys:Math.round(np*.6)});
   S.levels=generate();S.timer=freshTimer();S.wizDone=true;
   if(WZ.saveTpl)saveTpl(WZ.tplName||S.name,WZ.names);
-  const names=WZ.names.slice(),accs=Object.values(WZ.accs);
+  const names=WZ.names.slice(),MAP=wzMap();
   if(names.length)addPlayersNow(names);
-  accs.forEach(a=>{const p=S.players.find(q=>q.name===a.pn);if(p)setAcct(p,a);});
+  names.forEach(n=>{const a=MAP[n],p=S.players.find(q=>q.name===n);if(a&&p&&!(p.acct&&p.acct.uid===a.uid))setAcct(p,a);});
   closeWiz();save();loadSettings();show('timer');render();
   if(startNow&&S.players.length)start();toast(startNow?'▶ Поехали!':'Вечер настроен — жмите «Старт», когда будете готовы');}
 function renderTpl(){const el=$('#tplList');if(!el)return;const L=S.templates||[];
@@ -945,11 +959,12 @@ $('#tplSave').onclick=()=>{modal(`<h3>💾 Сохранить как шабло�
 
 /* ===== Entry & cabinet ===== */
 const ENTRY='nuts.entry';function getEntry(){try{return localStorage.getItem(ENTRY)||'';}catch(e){return'';}}function setEntry(v){try{v?localStorage.setItem(ENTRY,v):localStorage.removeItem(ENTRY);}catch(e){}}
+let EVC={},evSel=null,evMore=false,evUndo=null;
 let enMode='',enErr='',enBusy=false,profSaved=false,enMail={open:false,sent:'',mode:'signin',val:''};
 function entryEl(){let el=$('#entry');if(!el){el=document.createElement('div');el.id='entry';document.body.appendChild(el);el.addEventListener('click',entryClick);
   el.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='enCode')joinByCode();if(e.key==='Enter'&&e.target.id==='authEmail')sendMail();if(e.key==='Enter'&&e.target.id==='enHost')$('#enAdd').click();});}return el;}
 function closeEntry(){enMode='';enErr='';const el=$('#entry');if(el){el.className='';el.innerHTML='';}}
-function openEntry(m){enMode=m;enErr='';enMail={open:false,sent:'',mode:'signin',val:''};renderEntry();}
+function openEntry(m){enMode=m;enErr='';evSel=null;evMore=false;enMail={open:false,sent:'',mode:'signin',val:''};renderEntry();}
 const codeBox=()=>`<div class="en-join"><div class="blab">Подключиться к игре</div><div class="row" style="flex-wrap:nowrap"><input id="enCode" maxlength="4" placeholder="Код комнаты" autocomplete="off" autocapitalize="characters" style="text-transform:uppercase;letter-spacing:.2em"><button class="btn" id="enJoin">Войти</button></div><div class="small muted" style="margin-top:6px">Код показан на экране игры рядом с QR</div></div>`;
 async function renderEntry(){const el=entryEl(),m=enMode;if(!m)return closeEntry();el.className='on';
   const x=`<button class="en-x" id="enClose" title="К таймеру">✕</button>`,er=enErr?`<p class="en-err">${esc(enErr)}</p>`:'',ft=`<div class="en-foot">♠ Nuts v${window.NUTS_VER} · by MichaelKae</div>`;
@@ -961,6 +976,7 @@ async function renderEntry(){const el=entryEl(),m=enMode;if(!m)return closeEntry
   if(!el.querySelector('.en-box.wide'))el.innerHTML=`<div class="en-box">${x}<div class="muted" style="text-align:center;padding:20px">Загружаю кабинет…</div></div>`;
   let hi;try{hi=await hostInfo(true);}catch(e){enErr='Нет связи с сервером: '+(e.message||e);enMode='welcome';return renderEntry();}
   if(enMode!=='cabinet')return;if(!hi.w.google){enMode='welcome';return renderEntry();}
+  if(evSel&&EVC[evSel]){el.innerHTML=evDetail(EVC[evSel]);return;}evSel=null;
   const W=hi.w;if(!profSaved){profSaved=true;const pr={name:String(W.name||W.email||'').slice(0,60),at:NET.now()};if(/^https:\/\//.test(W.photo||''))pr.photo=W.photo.slice(0,400);NET.set('users/'+NET.uid+'/profile',pr).catch(()=>{});}
   const act=hi.can?await activeRoom():null;if(enMode!=='cabinet')return;
   const actH=act?(remoteOn&&S.remote&&S.remote.room===act?`<div class="en-live">🟢 Комната <b>${act}</b> открыта на этом устройстве</div>`:
@@ -984,7 +1000,18 @@ async function renderEntry(){const el=entryEl(),m=enMode;if(!m)return closeEntry
   h+=`<div class="en-sec" style="text-align:center"><button class="btn sm ghost" id="enOut">Выйти из аккаунта</button></div>`;
   if(enMode!=='cabinet')return;el.innerHTML=h+ft+`</div>`;}
 const sgS=v=>(v>0?'+':v<0?'−':'')+Math.abs(v).toLocaleString('ru-RU',{maximumFractionDigits:2});
+function evDetail(e){const d=new Date(e.at).toLocaleString('ru-RU',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}),tm=e.mode==='t';
+  const cells=[['Формат',tm?'Турнир':'Кэш'],['Игроков',e.n],['Стартовый стек',fmt(e.st||0)]];
+  if(tm){cells.push(['Место',e.pl?(e.pl===1?'🏆 ':'')+e.pl+' из '+e.n:'—']);if(e.kn)cells.push(['Выбил',e.kn]);}
+  else cells.push(['Получил фишек',fmt(e.ci||0)],['Ушёл с',e.co!=null?fmt(e.co):'—'],['Итог, фишек',e.net!=null?`<span class="${e.net>0?'pos':e.net<0?'neg':''}">${sgS(e.net)}</span>`:'—'],['Итог, стеков',e.stk!=null?`<span class="${e.stk>0?'pos':e.stk<0?'neg':''}">${sgS(e.stk)}</span>`:'—']);
+  cells.push(['Докупов',(e.rb||0)+(e.hf?` (на 50%: ${e.hf})`:'')]);if(e.ad)cells.push(['Аддон','да']);
+  return `<div class="en-box wide"><button class="en-x" id="enClose" title="К таймеру">✕</button><button class="btn sm ghost" data-evback="1">← Мои вечера</button>
+    <div class="wz-h" style="margin-top:12px">${esc(e.name||'Вечер')}</div><div class="muted small">${d}${e.host?' · ведущий '+esc(e.host):''}${e.me?' · вы играли как «'+esc(e.me)+'»':''}</div>
+    <div class="evd">${cells.map(([a,b])=>`<div><small>${a}</small><b>${b}</b></div>`).join('')}</div>
+    <div class="small muted">В кабинете хранятся только фишки и места — без денег.</div>
+    <div class="en-sec"><button class="btn sm ghost red" data-evrm="${esc(e.k)}">Убрать из кабинета</button></div></div>`;}
 async function evHTML(){let ev={},ho={};try{ev=(await NET.get('users/'+NET.uid+'/evenings'))||{};}catch(e){}try{ho=(await NET.get('users/'+NET.uid+'/hosted'))||{};}catch(e){}
+  EVC={};Object.entries(ev).forEach(([k,v])=>{EVC[k]=Object.assign({k},v);});
   const L=Object.entries(ev).map(([k,v])=>Object.assign({k},v)).sort((a,b)=>b.at-a.at),C=L.filter(e=>e.mode==='c'&&e.stk!=null),Tn=L.filter(e=>e.mode==='t'&&e.pl);
   let h='';
   if(!L.length)h+=`<div class="muted small">Пока пусто. Вечер попадёт сюда, когда ведущий привяжет вас к игроку (🔗 во вкладке «Игроки») и завершит вечер. Проще всего — войти в комнату с телефона через аккаунт.</div>`;
@@ -992,10 +1019,14 @@ async function evHTML(){let ev={},ho={};try{ev=(await NET.get('users/'+NET.uid+'
     const cells=[['Вечеров',L.length]];if(C.length){cells.push(['Итог, стеков',`<span class="${tot>0?'pos':tot<0?'neg':''}">${sgS(Math.round(tot*100)/100)}</span>`],['Лучший вечер',`<span class="${best>0?'pos':''}">${sgS(best)}</span>`],['В плюсе',plus+' из '+C.length]);}
     if(Tn.length)cells.push(['Турниров',Tn.length],['Побед',Tn.filter(e=>e.pl===1).length],['Среднее место',(Tn.reduce((s,e)=>s+e.pl,0)/Tn.length).toLocaleString('ru-RU',{maximumFractionDigits:1})]);
     cells.push(['Докупов в среднем',rb.toLocaleString('ru-RU',{maximumFractionDigits:1})]);
-    h+=`<div class="evs">${cells.map(([a,b])=>`<div><small>${a}</small><b>${b}</b></div>`).join('')}</div><div class="evl">`+L.slice(0,30).map(e=>{
-      const d=new Date(e.at).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'2-digit'}),sub=[d,e.host?'ведущий '+esc(e.host):'',e.rb?'докупов '+e.rb:''].filter(Boolean).join(' · ');
+    h+=`<div class="evs">${cells.map(([a,b])=>`<div><small>${a}</small><b>${b}</b></div>`).join('')}</div>`;
+    const shown=evMore?L:L.slice(0,10);let lastM='';
+    shown.forEach(e=>{const m=new Date(e.at).toLocaleDateString('ru-RU',{month:'long',year:'numeric'});if(m!==lastM){if(lastM)h+='</ul>';h+=`<div class="evm">${m}</div><ul class="evl">`;lastM=m;}
+      const d=new Date(e.at).toLocaleDateString('ru-RU',{day:'numeric',month:'short'}),sub=[d,e.host?'ведущий '+esc(e.host):'',e.rb?'докупов '+e.rb:''].filter(Boolean).join(' · ');
       const res=e.mode==='t'?(e.pl?`${e.pl===1?'🏆 ':''}${e.pl} из ${e.n}`:'—'):e.stk==null?'—':`<span class="${e.stk>0?'pos':e.stk<0?'neg':''}">${sgS(e.stk)} ст.</span><small>${sgS(e.net||0)} фиш.</small>`;
-      return `<div><span class="ed"><b>${esc(e.name||'Вечер')}</b><small>${sub}</small></span><span class="er">${res}</span><button class="x" data-evdel="${esc(e.k)}" title="Убрать из кабинета">✕</button></div>`;}).join('')+`</div>`;}
+      h+=`<li><button class="evrow" data-ev="${esc(e.k)}" aria-label="${esc(e.name||'Вечер')}, ${d} — подробнее"><span class="ed"><b>${esc(e.name||'Вечер')}</b><small>${sub}</small></span><span class="er">${res}</span><span class="chev" aria-hidden="true">›</span></button></li>`;});
+    if(lastM)h+='</ul>';if(L.length>shown.length)h+=`<button class="btn sm ghost" data-evmore="1" style="width:100%;margin-top:8px">Показать ещё ${L.length-shown.length}</button>`;}
+  if(evUndo)h+=`<div class="snack" role="status"><span>Вечер «${esc(evUndo.rec.name||'Вечер')}» убран</span><button class="btn sm" data-evundo="1">Отменить</button></div>`;
   const H=Object.entries(ho).map(([k,v])=>Object.assign({k},v)).sort((a,b)=>b.at-a.at);
   if(H.length)h+=`<details class="hosted"><summary>Проведённые вами вечера (${H.length})</summary>${H.slice(0,20).map(e=>`<div class="small" style="margin-top:8px"><b>${esc(e.name||'Вечер')}</b> · ${new Date(e.at).toLocaleDateString('ru-RU')} · ${e.mode==='t'?'турнир':'кэш'}, ${e.n} игр.</div><table>${(e.rows||[]).slice().sort((a,b)=>e.mode==='t'?(a.pl||99)-(b.pl||99):(b.stk||0)-(a.stk||0)).map(r=>`<tr><td>${esc(r.n)}</td><td class="r">${e.mode==='t'?(r.pl?r.pl+' место':''):r.stk!=null?`<span class="${r.stk>0?'pos':r.stk<0?'neg':''}">${sgS(r.stk)} ст.</span>`:'—'}</td><td class="r muted">${r.rb?'+'+r.rb:''}</td></tr>`).join('')}</table>`).join('')}</details>`;
   return h;}
@@ -1012,6 +1043,11 @@ async function entryClick(e){const b=e.target.closest('button,a');if(!b)return;
   if(b.id==='enJoin')return joinByCode();
   if(b.id==='enRemote'){location.hash='#r-'+b.dataset.room;location.reload();return;}
   if(b.id==='enMove'){b.disabled=true;return takeOver(b.dataset.room);}
+  if(b.dataset.ev){evSel=b.dataset.ev;return renderEntry();}
+  if(b.dataset.evback){evSel=null;return renderEntry();}
+  if(b.dataset.evmore){evMore=true;return renderEntry();}
+  if(b.dataset.evrm){const k=b.dataset.evrm,rec=EVC[k];try{await NET.remove('users/'+NET.uid+'/evenings/'+k);evUndo={k,rec};setTimeout(()=>{if(evUndo&&evUndo.k===k){evUndo=null;if(enMode==='cabinet'&&!evSel)renderEntry();}},6000);}catch(x){enErr='Не получилось убрать';}evSel=null;return renderEntry();}
+  if(b.dataset.evundo&&evUndo){const {k,rec}=evUndo,o=Object.assign({},rec);delete o.k;evUndo=null;try{await NET.set('users/'+NET.uid+'/evenings/'+k,o);}catch(x){enErr='Не получилось вернуть';}return renderEntry();}
   if(b.dataset.evdel){try{await NET.remove('users/'+NET.uid+'/evenings/'+b.dataset.evdel);}catch(x){enErr='Не получилось убрать';}return renderEntry();}
   const au=b.dataset.auth;
   if(au==='google'||au==='microsoft'){enBusy=au;enErr='';renderEntry();try{NET=NET||await NutsNet.connect();await NET.signIn(au);HI=null;profSaved=false;setEntry('google');enMode='cabinet';flushUp();render();}catch(err){enErr=NutsNet.gErr(err);}enBusy=false;renderEntry();refreshAcct();return;}

@@ -87,11 +87,17 @@ function render0(){
       st.go&&!G.google?`<div class="card rup" style="text-align:center"><p class="small muted" style="margin:0 0 10px">Пультом может стать только тот, кто вошёл в аккаунт.</p>${err?`<p style="color:var(--red);margin:0 0 10px">${esc(err)}</p>`:''}${aBtns()}</div>`:
       `<div class="card" style="text-align:center">${asking?'<span class="muted">⏳ Ждём разрешения на экране игры…</span>':'<button class="btn pri" id="rAsk" style="width:100%">📱 Стать пультом</button>'}</div>`;}
   const slowBox=slow?`<div class="card" style="border-color:rgba(248,113,113,.45)">⏳ Экран игры не отвечает. Проверьте, что вкладка с таймером открыта на ноутбуке и есть интернет — команда выполнится, когда связь вернётся.</div>`:'';
-  root.innerHTML=stale+slowBox+h+foot();tickR();if(pend)root.querySelectorAll('[data-c],[data-p]').forEach(x=>x.classList.add('busy'));}
+  root.innerHTML=stale+slowBox+h+cmbHTML()+foot();tickR();if(pend)root.querySelectorAll('[data-c],[data-p]').forEach(x=>x.classList.add('busy'));}
 function tickR(){const c=q('#rClock');if(!c||!st)return;const r=st.t.run?st.t.end-NET.now():st.t.rem;c.textContent=fmtT(r);c.classList.toggle('warn',r<=60000&&st.t.run&&st.lv&&st.lv.ty==='level');c.classList.toggle('paused',!st.t.run&&st.t.st);}
 setInterval(tickR,250);
+function bustThenR(p,a){const r=st.r,two=kk=>{haptic(30);send(Object.assign({t:'p',id:p.id,a:'bust'},kk?{k:kk}:{}));send({t:'p',id:p.id,a},p.n+' — вылет и '+(a==='rebuy50'?'докуп 50%':'докуп'));};
+  if(r.bounty){const others=st.pl.filter(x=>x.st==='in'&&x.id!==p.id);return sheet('Кто выбил '+esc(p.n)+'?','',others.map(o=>({t:o.n,fn:()=>two(o.id)})).concat([{t:'Никто — баунти в призовой фонд',fn:()=>two()},{t:'Отмена',cls:'ghost'}]));}
+  two();}
+let cmbOpen=(()=>{try{return localStorage.getItem('nuts.combos')==='1';}catch(e){return false;}})();
+const cmbHTML=()=>`<details class="card rcombo" ${cmbOpen?'open':''}><summary>🃏 Комбинации · от старшей</summary><div class="hl">${(window.NUTS_HANDS||[]).map((x,i)=>`<div><span><i>${i+1}</i>${x[0]}</span><span class="c">${x[3].split(' ').map(c=>/[♥♦]/.test(c)?'<span class="r">'+c+'</span>':c).join(' ')}</span></div>`).join('')}</div></details>`;
+root.addEventListener('toggle',e=>{if(e.target.classList&&e.target.classList.contains('rcombo')){cmbOpen=e.target.open;try{localStorage.setItem('nuts.combos',cmbOpen?'1':'0');}catch(x){}}},true);
 function playerCmd(p,a){const r=st.r,k=a==='rebuy50'?.5:1,LB={bust:p.n+' — вылет',rebuy:p.n+(p.st==='out'?' — докуп, снова в игре':' — докуп'),rebuy50:p.n+' — докуп 50%',addon:p.n+' — аддон',back:p.n+' — снова в игре'},go=extra=>{haptic(a==='bust'?30:15);send(Object.assign({t:'p',id:p.id,a},extra||{}),LB[a]);};
-  if(a==='bust'){if(r.bounty){const others=st.pl.filter(x=>x.st==='in'&&x.id!==p.id);return sheet('Вылет: '+esc(p.n),'Кто выбил?',others.map(o=>({t:o.n,fn:()=>go({k:o.id})})).concat([{t:'Никто / не важно',fn:()=>go()},{t:'Отмена',cls:'ghost'}]));}
+  if(a==='bust'){if(r.bounty){const others=st.pl.filter(x=>x.st==='in'&&x.id!==p.id);return sheet('Вылет: '+esc(p.n),'Кто выбил?',others.map(o=>({t:o.n,fn:()=>go({k:o.id})})).concat([{t:'Никто — баунти в призовой фонд',fn:()=>go()},{t:'Отмена',cls:'ghost'}]));}
     return sheet('Вылет: '+esc(p.n)+'?','',[{t:'💥 Да, вылет',cls:'red',fn:()=>go()},{t:'Отмена',cls:'ghost'}]);}
   if(a==='rebuy'&&r.half&&!playerCmd.k){const cur=st.cur||'₽';return sheet('Докуп: '+esc(p.n),'На сколько докупается?',[{t:`💸 Весь стек · +${fmt(r.rs)} за ${fmt(r.rc)} ${cur}`,cls:'pri',fn:()=>{playerCmd.k=1;try{playerCmd(p,'rebuy');}finally{playerCmd.k=0;}}},{t:`💸 Половина · +${fmt(r.rs/2)} за ${fmt(r.rc/2)} ${cur}`,fn:()=>{playerCmd.k=1;try{playerCmd(p,'rebuy50');}finally{playerCmd.k=0;}}},{t:'Отмена',cls:'ghost'}]);}
   if(a==='back')return sheet('Вернуть '+esc(p.n)+'?','Без докупа — если вылет отметили по ошибке.',[{t:'↩ Вернуть в игру',cls:'pri',fn:()=>go()},{t:'Отмена',cls:'ghost'}]);
@@ -100,7 +106,7 @@ function playerCmd(p,a){const r=st.r,k=a==='rebuy50'?.5:1,LB={bust:p.n+' — в�
     if(p.st==='in'&&r.when==='bust')why.push('докуп только после вылета');
     const label=(k<1?'Докуп 50%':'Докуп')+': '+esc(p.n);
     if(why.length)return sheet(label,'Не по правилам: '+why.join(', ')+'. Всё равно оформить?',[{t:'Оформить',cls:'pri',fn:()=>go()},{t:'Отмена',cls:'ghost'}]);
-    if(p.st==='in'&&r.when==='short')return sheet(label,`Стек не больше стартового (${fmt(r.start)})?`,[{t:'Да, докуп',cls:'pri',fn:()=>go()},{t:'Отмена',cls:'ghost'}]);
+    if(p.st==='in'&&r.when==='short'){const lim=k<1?Math.round(r.start/2):r.start;return sheet(label,`Стек не больше ${k<1?'половины стартового':'стартового'} (${fmt(lim)})?`,[{t:'Да, стек не больше '+fmt(lim),cls:'pri',fn:()=>go()},{t:'💥 Вылетел — вылет и докуп',fn:()=>bustThenR(p,a)},{t:'Отмена',cls:'ghost'}]);}
     return go();}
   go();}
 async function joinRoom(){const nm=((q('#rjName')||{}).value||'').trim();const pin=qrPin||((q('#rjPin')||{}).value||'').trim();
