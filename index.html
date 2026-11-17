@@ -11,7 +11,7 @@
 <script src="voice/manifest.js" onerror="window.NUTS_VOICE=null"></script>
 <script src="firebase-config.js" onerror="window.NUTS_FB=window.NUTS_FB||null"></script>
 <script>
-window.NUTS_VER='4.7';
+window.NUTS_VER='4.8';
 window.NutsNet=(()=>{
   const SDK='https://www.gstatic.com/firebasejs/10.12.2/';
   const load=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('Нет связи с '+new URL(src).host));document.head.appendChild(s);});
@@ -29,7 +29,7 @@ window.NutsNet=(()=>{
       db.ref('.info/connected').on('value',x=>{conn=!!x.val();cl.forEach(f=>f(conn));});
       return{uid,now:()=>Date.now()+off,
         get:async p=>(await db.ref(p).get()).val(),set:(p,v)=>db.ref(p).set(v),remove:p=>db.ref(p).remove(),push:(p,v)=>db.ref(p).push(v),
-        onValue:(p,cb)=>{const r=db.ref(p),h=x=>cb(x.val());r.on('value',h);return()=>r.off('value',h);},
+        onValue:(p,cb,onErr)=>{const r=db.ref(p),h=x=>cb(x.val());r.on('value',h,e=>{onErr&&onErr(e);});return()=>r.off('value',h);},
         onChild:(p,cb)=>{const r=db.ref(p),h=x=>cb(x.key,x.val());r.on('child_added',h);return()=>r.off('child_added',h);},
         onConn:f=>{cl.push(f);f(conn);}};})();
     ready.catch(()=>{ready=null;});return ready;}
@@ -362,7 +362,7 @@ body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
 <body>
 <div class="app">
   <nav>
-    <div class="brand" title="Nuts · версия 4.7 · by MichaelKae"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v4.7</span></div>
+    <div class="brand" title="Nuts · версия 4.8 · by MichaelKae"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v4.8</span></div>
     <button class="tab on" data-v="timer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg><span>Таймер</span></button>
     <button class="tab" data-v="players"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14.6c2.6.2 4.4 1.9 5 4.9"/></svg><span>Игроки</span></button>
     <button class="tab" data-v="results"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 14v4M8 21h8"/></svg><span>Итоги</span></button>
@@ -574,7 +574,7 @@ body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
       </div>
       <div class="card">
         <div class="about"><div class="logo">♠</div><div>
-          <div style="font-family:var(--disp);font-weight:800;font-size:20px">Nuts <span class="muted small" style="font-family:var(--ui)">v4.7</span></div>
+          <div style="font-family:var(--disp);font-weight:800;font-size:20px">Nuts <span class="muted small" style="font-family:var(--ui)">v4.8</span></div>
           <div class="muted small">Покерный таймер для домашних игр · автор <a href="https://github.com/MichaelKae" target="_blank" rel="noopener">MichaelKae</a> · <a href="https://github.com/MichaelKae/nuts" target="_blank" rel="noopener">GitHub</a></div>
         </div></div>
       </div>
@@ -602,7 +602,7 @@ body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
           <button class="btn red" id="newGame">Завершить вечер и начать новый</button>
           <button class="btn red" id="resetAll">Сбросить всё</button>
         </div>
-        <div class="hint">Nuts · версия 4.7. При завершении итоги вечера сохраняются в историю (вкладка «Итоги»). Игроки, наборы и структура остаются.</div>
+        <div class="hint">Nuts · версия 4.8. При завершении итоги вечера сохраняются в историю (вкладка «Итоги»). Игроки, наборы и структура остаются.</div>
       </div>
     </section>
   </main>
@@ -1347,7 +1347,7 @@ const fmt=n=>Math.round(n||0).toLocaleString('ru-RU');const pad=n=>String(n).pad
 const fmtT=ms=>{ms=Math.max(0,ms);const t=Math.ceil(ms/1000),h=Math.floor(t/3600),mm=Math.floor(t%3600/60),ss=t%60;return h?h+':'+pad(mm)+':'+pad(ss):pad(mm)+':'+pad(ss);};
 const LS='nuts.remote';let me={};try{me=JSON.parse(localStorage.getItem(LS))||{};}catch(e){}
 const saveMe=()=>{try{localStorage.setItem(LS,JSON.stringify({name:me.name||''}));}catch(e){}};
-let NET=null,st=null,isMember=false,isAdmin=false,banned=false,conn=false,err='',joining=false,asking=false,kickedMsg='',stUnsub=null,wasMember=false;
+let NET=null,st=null,isMember=false,isAdmin=false,banned=false,conn=false,err='',joining=false,asking=false,kickedMsg='',stUnsub=null,wasMember=false,hadState=false,closed=false,denied=false;
 let pend=0,pendT=null,slow=false;
 function send(c){pend++;clearTimeout(pendT);pendT=setTimeout(()=>{if(pend){slow=true;render();}},5000);
   if(st&&st.t){const t=st.t,now=NET.now();
@@ -1365,6 +1365,8 @@ function render0(){
   if(!NutsNet.configured()){root.innerHTML=header()+`<div class="card">Пульт не настроен на этом сайте.</div>`;return;}
   if(!NET){root.innerHTML=header()+`<div class="card muted">${err?esc(err):'Подключаюсь…'}</div>`;return;}
   if(banned){root.innerHTML=header()+`<div class="card"><h3>⛔ Доступ закрыт</h3><p class="muted">Это устройство заблокировано в комнате ${room}. Если это ошибка — попросите ведущего создать новую комнату.</p></div>`;return;}
+  if(denied){root.innerHTML=header()+`<div class="card"><h3>⚠️ Нет доступа к базе</h3><p class="muted">Сервер отклонил запрос. Похоже, на стороне игры не обновлены правила базы. Сообщите ведущему.</p></div>`;return;}
+  if(closed&&!isMember&&!isAdmin){root.innerHTML=header()+`<div class="card"><h3>🏁 Комната ${room} закрыта</h3><p class="muted">Ведущий завершил игру в этой комнате. Если играете дальше — отсканируйте новый QR-код с экрана игры.</p></div>`;return;}
   if(!isMember&&!isAdmin){const needPin=!qrPin;
     root.innerHTML=header()+`<div class="card rjoin"><h3>Комната ${room}</h3>${kickedMsg?`<p style="color:var(--gold);margin:0 0 10px">${esc(kickedMsg)}</p>`:''}
     <label class="f">Ваше имя<input id="rjName" value="${esc(me.name||'')}" placeholder="Например, Михаил" autocomplete="off" maxlength="30"></label>
@@ -1415,7 +1417,7 @@ async function joinRoom(){const nm=((q('#rjName')||{}).value||'').trim();const p
   if(!nm){err='Введите имя';render();return;}if(!/^\d{4}$/.test(pin)){err='Введите 4 цифры PIN';render();return;}
   me.name=nm.slice(0,30);saveMe();err='';kickedMsg='';joining=true;render();
   try{await req({pin});}catch(e){joining=false;err='Не удалось отправить: '+(e.message||e);render();return;}
-  setTimeout(()=>{if(joining&&!isMember&&!isAdmin){joining=false;if(qrPin)qrPin='';err='PIN не подошёл или экран игры не в сети';render();}},7000);}
+  setTimeout(()=>{if(joining&&!isMember&&!isAdmin){joining=false;if(qrPin)qrPin='';err='Экран игры не подтвердил вход. Проверьте PIN и что комната на ноутбуке открыта.';render();}},7000);}
 root.addEventListener('click',e=>{const b=e.target.closest('button,a');if(!b)return;
   if(b.id==='rjGo')return joinRoom();
   if(b.id==='rReload'){location.href=location.pathname+'?v='+Date.now()+location.hash;return;}
@@ -1432,13 +1434,14 @@ root.addEventListener('click',e=>{const b=e.target.closest('button,a');if(!b)ret
   else if(b.dataset.p){const p=st.pl.find(x=>x.id==b.dataset.p);if(p)playerCmd(p,b.dataset.a);}});
 root.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='rAdd')q('[data-c=add]').click();if(e.key==='Enter'&&(e.target.id==='rjPin'||e.target.id==='rjName'))joinRoom();});
 function watchState(){const on=isMember||isAdmin;
-  if(on&&!stUnsub){stUnsub=NET.onValue(R0+'/state',v=>{pend=0;clearTimeout(pendT);slow=false;if(v){v.pl=Array.isArray(v.pl)?v.pl:Object.values(v.pl||{});v.x=v.x||{inP:0,n:0,reb:0,bank:0,avg:0};v.r=v.r||{};v.t=v.t||{};}st=v;render();});}
+  if(on&&!stUnsub){stUnsub=NET.onValue(R0+'/state',v=>{pend=0;clearTimeout(pendT);slow=false;if(v)hadState=true;else if(hadState)closed=true;if(v){v.pl=Array.isArray(v.pl)?v.pl:Object.values(v.pl||{});v.x=v.x||{inP:0,n:0,reb:0,bank:0,avg:0};v.r=v.r||{};v.t=v.t||{};}st=v;render();});}
   if(!on&&stUnsub){try{stUnsub();}catch(e){}stUnsub=null;st=null;}}
 (async()=>{render();try{NET=await NutsNet.connect();}catch(e){err='Нет связи с сервером: '+(e.message||e);render();return;}
   NET.onConn(c=>{conn=c;const d=q('.dot');if(d)d.classList.toggle('on',c);});
-  NET.onValue(R0+'/banned/'+NET.uid,v=>{banned=!!v;render();});
-  NET.onValue(R0+'/admins/'+NET.uid,v=>{isAdmin=!!v;if(isAdmin){asking=false;joining=false;}watchState();render();});
-  NET.onValue(R0+'/members/'+NET.uid,v=>{isMember=!!v;if(isMember){joining=false;err='';wasMember=true;}else if(wasMember&&!isAdmin){kickedMsg='Вас отключили от комнаты.';wasMember=false;}watchState();render();});
+  const onDen=()=>{denied=true;render();};
+  NET.onValue(R0+'/banned/'+NET.uid,v=>{banned=!!v;render();},onDen);
+  NET.onValue(R0+'/admins/'+NET.uid,v=>{const wasA=isAdmin;isAdmin=!!v;if(isAdmin){asking=false;joining=false;}else if(wasA&&!isMember&&!closed)kickedMsg='Ведущий отключил вас от комнаты. Можно зайти снова.';watchState();render();},onDen);
+  NET.onValue(R0+'/members/'+NET.uid,v=>{isMember=!!v;if(isMember){joining=false;err='';wasMember=true;}else if(wasMember&&!isAdmin){if(!closed)kickedMsg='Ведущий отключил вас от комнаты. Можно зайти снова.';wasMember=false;}watchState();render();},onDen);
   render();
   if(qrPin&&me.name)setTimeout(()=>{if(!isMember&&!isAdmin&&!banned)joinRoom();},600);})();
 })();
