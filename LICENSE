@@ -1,0 +1,29 @@
+Nuts — покерный таймер для домашних игр
+Copyright (c) 2026 MichaelKae (https://github.com/MichaelKae)
+
+Этот проект распространяется по лицензии
+Creative Commons «Атрибуция — Некоммерческое использование» 4.0 Международная
+(CC BY-NC 4.0): https://creativecommons.org/licenses/by-nc/4.0/legalcode.ru
+
+Коротко (полные условия — по ссылке выше):
+  • Можно: смотреть, копировать, распространять, переделывать и использовать
+    для себя и своих игр.
+  • Обязательно: указывать автора (MichaelKae) и ссылку на оригинал
+    https://github.com/MichaelKae/nuts, а также отмечать, что вы изменили.
+  • Нельзя: использовать в коммерческих целях — продавать, встраивать
+    в платные продукты и сервисы, монетизировать.
+
+Для коммерческого использования свяжитесь с автором через GitHub.
+
+Сторонние компоненты имеют свои лицензии и под CC BY-NC 4.0 не подпадают:
+  • lib/qrcode.js — qrcode-generator, Kazuhiko Arase, лицензия MIT.
+  • voice/ — фразы сгенерированы моделью Piper ru_RU-ruslan-medium
+    (rhasspy/piper-voices); условия — в voice/LICENSE.txt.
+  • Firebase JS SDK загружается с серверов Google по их лицензии (Apache 2.0).
+
+---
+
+This work is licensed under CC BY-NC 4.0
+(https://creativecommons.org/licenses/by-nc/4.0/). Attribution required:
+"Nuts by MichaelKae — https://github.com/MichaelKae/nuts". No commercial use.
+Third-party components (lib/, voice/, Firebase SDK) keep their own licenses.
