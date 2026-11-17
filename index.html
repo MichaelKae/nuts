@@ -11,7 +11,7 @@
 <script src="voice/manifest.js" onerror="window.NUTS_VOICE=null"></script>
 <script src="firebase-config.js" onerror="window.NUTS_FB=window.NUTS_FB||null"></script>
 <script>
-window.NUTS_VER='4.12';
+window.NUTS_VER='4.13';
 window.NutsNet=(()=>{
   const SDK='https://www.gstatic.com/firebasejs/10.12.2/';
   const load=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('Нет связи с '+new URL(src).host));document.head.appendChild(s);});
@@ -406,7 +406,7 @@ body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
 <body>
 <div class="app">
   <nav>
-    <div class="brand" title="Nuts · версия 4.12 · by MichaelKae"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v4.12</span></div>
+    <div class="brand" title="Nuts · версия 4.13 · by MichaelKae"><i>♠</i>Nuts <span style="font-size:10px;color:var(--dim);font-family:var(--ui)">v4.13</span></div>
     <button class="tab on" data-v="timer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg><span>Таймер</span></button>
     <button class="tab" data-v="players"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14.6c2.6.2 4.4 1.9 5 4.9"/></svg><span>Игроки</span></button>
     <button class="tab" data-v="results"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 14v4M8 21h8"/></svg><span>Итоги</span></button>
@@ -619,7 +619,7 @@ body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
       </div>
       <div class="card">
         <div class="about"><div class="logo">♠</div><div>
-          <div style="font-family:var(--disp);font-weight:800;font-size:20px">Nuts <span class="muted small" style="font-family:var(--ui)">v4.12</span></div>
+          <div style="font-family:var(--disp);font-weight:800;font-size:20px">Nuts <span class="muted small" style="font-family:var(--ui)">v4.13</span></div>
           <div class="muted small">Покерный таймер для домашних игр · автор <a href="https://github.com/MichaelKae" target="_blank" rel="noopener">MichaelKae</a> · <a href="https://github.com/MichaelKae/nuts" target="_blank" rel="noopener">GitHub</a></div>
         </div></div>
       </div>
@@ -647,7 +647,7 @@ body.tv .fabs{opacity:.3;right:auto;left:14px} body.tv .fabs:hover{opacity:1}
           <button class="btn red" id="newGame">Завершить вечер и начать новый</button>
           <button class="btn red" id="resetAll">Сбросить всё</button>
         </div>
-        <div class="hint">Nuts · версия 4.12. При завершении итоги вечера сохраняются в историю (вкладка «Итоги»). Игроки, наборы и структура остаются.</div>
+        <div class="hint">Nuts · версия 4.13. При завершении итоги вечера сохраняются в историю (вкладка «Итоги»). Игроки, наборы и структура остаются.</div>
       </div>
     </section>
   </main>
@@ -1312,7 +1312,7 @@ function onJoin(uid,v){NET.remove(RR()+'/join/'+uid);if(!v)return;const nm=Strin
     if(mem&&mem.g&&trusted()[uid]&&!Object.keys(admins).length){NET.set(RR()+'/admins/'+uid,{name:mem.name||nm,at:NET.now(),g:true});trusted()[uid]={name:mem.name||nm,at:Date.now()};save();toast('📱 Пульт: '+(mem.name||nm));logEv('seats','Пульт подключён (доверенный): '+(mem.name||nm));return;}
     if(!pendingReq.some(r=>r.uid===uid))pendingReq.push({uid,name:nm,g:!!(mem&&mem.g)});renderApprove();sndWarn();return;}
   if(v.want==='leave'){NET.remove(RR()+'/admins/'+uid);NET.remove(RR()+'/members/'+uid);return;}
-  if(v.want==='drop'){if(admins[uid]){NET.remove(RR()+'/admins/'+uid);NET.set(RR()+'/members/'+uid,Object.assign({},admins[uid],{name:admins[uid].name||nm,at:NET.now()}));logEv('seats','Пульт сдан: '+(admins[uid].name||nm));}return;}
+  if(v.want==='drop'){if(admins[uid]){const a=admins[uid],R1=RR();NET.set(R1+'/members/'+uid,Object.assign({},a,{name:a.name||nm,at:NET.now()})).catch(()=>{}).then(()=>NET.remove(R1+'/admins/'+uid));logEv('seats','Пульт сдан: '+(a.name||nm));}return;}
   if(String(v.pin)===String(S.remote.pin)){const w=S.remote.wrong||{};delete w[uid];const rec=g?{name:nm,at:NET.now(),g:true,ph}:{name:nm,at:NET.now()};
     if(!members[uid]&&!admins[uid])NET.set(RR()+'/members/'+uid,rec);else if(g&&members[uid]&&!members[uid].g)NET.set(RR()+'/members/'+uid,Object.assign({},members[uid],{g:true,ph}));save();}
   else{const w=S.remote.wrong=S.remote.wrong||{};w[uid]=(w[uid]||0)+1;if(w[uid]>=5)ban(uid,'5 неверных PIN');save();}}
@@ -1495,7 +1495,8 @@ const fmtT=ms=>{ms=Math.max(0,ms);const t=Math.ceil(ms/1000),h=Math.floor(t/3600
 const LS='nuts.remote';let me={};try{me=JSON.parse(localStorage.getItem(LS))||{};}catch(e){}
 const saveMe=()=>{try{localStorage.setItem(LS,JSON.stringify({name:me.name||''}));}catch(e){}};
 let NET=null,st=null,isMember=false,isAdmin=false,banned=false,conn=false,err='',joining=false,asking=false,kickedMsg='',stUnsub=null,wasMember=false,hadState=false,closed=false,denied=false;
-let pend=0,pendT=null,slow=false,G={google:false},gBusy=false,isOwner=false;const PK='nuts.pin.'+room;
+let pend=0,pendT=null,slow=false,G={google:false},gBusy=false,isOwner=false,dropping=false,kickT=null;
+function maybeKicked(){clearTimeout(kickT);kickT=setTimeout(()=>{if(!isMember&&!isAdmin&&!closed&&!banned){if(!dropping)kickedMsg='Ведущий отключил вас от комнаты. Можно зайти снова.';dropping=false;render();}},2500);}const PK='nuts.pin.'+room;
 try{const pd=JSON.parse(sessionStorage.getItem('nuts.pend')||'null');sessionStorage.removeItem('nuts.pend');if(pd&&pd.room===room&&pd.pin&&!qrPin)qrPin=pd.pin;}catch(e){}
 function send(c){pend++;clearTimeout(pendT);pendT=setTimeout(()=>{if(pend){slow=true;render();}},5000);
   if(st&&st.t){const t=st.t,now=NET.now();
@@ -1525,6 +1526,7 @@ function render0(){
   if(banned){root.innerHTML=header()+`<div class="card"><h3>⛔ Доступ закрыт</h3><p class="muted">Это устройство заблокировано в комнате ${room}. Если это ошибка — попросите ведущего создать новую комнату.</p></div>`;return;}
   if(denied){root.innerHTML=header()+`<div class="card"><h3>⚠️ Нет доступа к базе</h3><p class="muted">Сервер отклонил запрос. Похоже, на стороне игры не обновлены правила базы. Сообщите ведущему.</p></div>`;return;}
   if(closed&&!isMember&&!isAdmin){root.innerHTML=header()+`<div class="card"><h3>🏁 Комната ${room} закрыта</h3><p class="muted">Ведущий завершил игру в этой комнате. Если играете дальше — отсканируйте новый QR-код с экрана игры.</p></div>`;return;}
+  if(dropping&&!isMember&&!isAdmin){root.innerHTML=header()+`<div class="card muted" style="text-align:center">Передаём пульт…</div>`;return;}
   if(!isMember&&!isAdmin){const needPin=!qrPin,pv=((q('#rjPin')||{}).value)||'',nf=q('#rjName'),nv=nf?nf.value:(me.name||'');
     const pinF=needPin?`<label class="f">PIN (показан на экране игры)<input id="rjPin" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off" value="${esc(pv)}"></label>`:'';
     const nameF=`<label class="f">${G.google?'Имя в игре':'Ваше имя'}<input id="rjName" value="${esc(nv)}" placeholder="Например, Михаил" autocomplete="off" maxlength="30"></label>`;
@@ -1585,8 +1587,9 @@ root.addEventListener('click',e=>{const b=e.target.closest('button,a');if(!b)ret
   if(b.id==='rgOut'){e.preventDefault();(async()=>{if(isMember||isAdmin)await req({want:'leave'}).catch(()=>{});try{await NET.signOut();}catch(x){}me.name='';saveMe();location.hash='#r-'+room;location.reload();})();return;}
   if(b.id==='rReload'){location.href=location.pathname+'?v='+Date.now()+location.hash;return;}
   if(b.id==='rLeave'){e.preventDefault();req({want:'leave'}).catch(()=>{});setTimeout(()=>{location.hash='';location.reload();},400);return;}
+  if(b.id==='rAsk'&&isOwner){NET.set(R0+'/admins/'+NET.uid,{name:String(G.name||me.name||'Ведущий').slice(0,30),at:NET.now(),g:true}).catch(()=>{});return;}
   if(b.id==='rAsk'){asking=true;render();req({want:'remote'}).catch(()=>{asking=false;render();});setTimeout(()=>{if(asking&&!isAdmin){asking=false;render();}},60000);return;}
-  if(b.id==='rDrop'){e.preventDefault();sheet('Отдать пульт?','Вы останетесь зрителем, а стать пультом сможет кто-то другой.',[{t:'Отдать',cls:'pri',fn:()=>req({want:'drop'})},{t:'Отмена',cls:'ghost'}]);return;}
+  if(b.id==='rDrop'){e.preventDefault();sheet('Отдать пульт?','Вы останетесь зрителем, а стать пультом сможет кто-то другой.',[{t:'Отдать',cls:'pri',fn:()=>{dropping=true;req({want:'drop'}).catch(()=>{dropping=false;render();});}},{t:'Отмена',cls:'ghost'}]);return;}
   if(!isAdmin||!st)return;
   try{if(navigator.wakeLock&&!window.__wl)navigator.wakeLock.request('screen').then(w=>window.__wl=w).catch(()=>{});}catch(err){}
   b.classList.add('busy');
@@ -1606,8 +1609,8 @@ function watchState(){const on=isMember||isAdmin;
   NET.onConn(c=>{conn=c;const d=q('.dot');if(d)d.classList.toggle('on',c);});
   const onDen=()=>{denied=true;render();};
   NET.onValue(R0+'/banned/'+NET.uid,v=>{banned=!!v;render();},onDen);
-  NET.onValue(R0+'/admins/'+NET.uid,v=>{const wasA=isAdmin;isAdmin=!!v;if(isAdmin){asking=false;joining=false;}else if(wasA&&!isMember&&!closed)kickedMsg='Ведущий отключил вас от комнаты. Можно зайти снова.';watchState();render();},onDen);
-  NET.onValue(R0+'/members/'+NET.uid,v=>{isMember=!!v;if(isMember){joining=false;err='';wasMember=true;}else if(wasMember&&!isAdmin){if(!closed)kickedMsg='Ведущий отключил вас от комнаты. Можно зайти снова.';wasMember=false;}watchState();render();},onDen);
+  NET.onValue(R0+'/admins/'+NET.uid,v=>{const wasA=isAdmin;isAdmin=!!v;if(isAdmin){asking=false;joining=false;}else if(wasA&&!isMember&&!closed)maybeKicked();watchState();render();},onDen);
+  NET.onValue(R0+'/members/'+NET.uid,v=>{isMember=!!v;if(isMember){joining=false;err='';wasMember=true;if(!isAdmin)dropping=false;}else if(wasMember&&!isAdmin){if(!closed)maybeKicked();wasMember=false;}watchState();render();},onDen);
   render();
   if(qrPin&&me.name&&!isOwner)setTimeout(()=>{if(!isMember&&!isAdmin&&!banned)joinRoom();},600);})();
 })();
